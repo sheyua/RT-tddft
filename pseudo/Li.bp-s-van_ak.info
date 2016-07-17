@@ -1,0 +1,8 @@
+*****  Li_VDB_BP_SEMI from CPMD
+Ultrasoft Li with 1s states in valence, i.e. all-electron!
+Info by Axel Kohlmeyer:
+
+   The lithium potential was built from scratch. It gave
+   excellent agreement with with previously published values
+   and results from other codes/potentials for bulk lithium,
+   bulk Li(NH3)4, and bulk LiH.

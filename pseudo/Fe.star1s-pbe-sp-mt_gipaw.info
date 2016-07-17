@@ -1,0 +1,11 @@
+Pseudopotential for Iron including semicore states in 
+valence, local part d, gipaw reconstruction included.
+Two gipaw projectors per p and d channels, only one
+projector on s channel. 
+A 1s core-hole is included in the pseudo.
+
+This pseudo has been used succesfully to calculate 
+band-structure in Ferromagnetic Iron and the XAS/XMCD
+spectra in Iron using the XSPECTRA code.
+
+Matteo Calandra.

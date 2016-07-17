@@ -1,0 +1,9 @@
+&inputtddft
+    job = 'optical'
+    prefix = 'sih4'
+    tmp_dir = './out/'
+    dt = 2.0                   ! attoseconds (1e-18 s)
+    nstep = 5000               ! 5000-10000 typically
+    e_direction = 1            ! 1=x, 2=y, 3=z
+    e_strength = 0.01          ! E-field strength (1/Angstrom)
+/

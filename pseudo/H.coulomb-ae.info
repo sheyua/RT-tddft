@@ -1,0 +1,6 @@
+Coulomb bare -1/r potential for H. For testing purposes, or for all cases
+where there is no real advantage in using a PP for H (e.g. if there are other
+atoms with "hard" PP). Should be reasonably converged around 70 Ry or so.
+Note that this PP is internally tagged as "PBE", even if it is actually
+independent on the specific XC functional used. Use input option "input_dft"
+if the code complains about "inconsistent dft".

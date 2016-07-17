@@ -1,0 +1,11 @@
+Results of PP tests:
+
+I-I dimer bond distance:
+PP: 5.100 au
+Experiment: 5.027 au
+
+alpha-AgI lattice parameter:
+PP: 9.799 au
+Experiment: 9.579 au
+
+Used for calculations in PRL 97, 166401 (2006).

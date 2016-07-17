@@ -1,0 +1,9 @@
+&lr_input
+    prefix="benzene",
+    outdir='./out',
+/
+&lr_control
+    itermax=5,
+    ipol=1
+/
+

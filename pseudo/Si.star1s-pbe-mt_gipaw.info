@@ -1,0 +1,18 @@
+Norm-conserving pseudopotential with two gipaw projectors per
+s, p and d channel. A core-hole in the 1s state is present.
+
+This pseudopotential has been used to calculate
+Si K-edge spectra of SiO2 (alpha-quartz) with 
+a core-hole in the final state using the XSPECTRA
+code. 
+Results with this pseudopotential are published in
+
+"First-principles calculations of x-ray absorption in a scheme 
+based on ultrasoft pseudopotentials: From alpha-quartz to 
+high-Tc  compounds",
+
+Christos Gougoussis, Matteo Calandra, Ari P. Seitsonen, and Francesco Mauri
+Phys. Rev. B 80, 075102 (2009)
+
+http://link.aps.org/doi/10.1103/PhysRevB.80.075102 
+

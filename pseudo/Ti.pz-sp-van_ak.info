@@ -1,0 +1,15 @@
+The Ti pseudopotentials are adapted versions of the LDA pseudo in the 
+vanderbilt distribution. A few parameters needed to be tweaked and most
+mportant, I needed to add a few constraints for avoid excessive negative
+ensities. Also it has two projectors in the d-channel for CPMD compatibility.
+
+I ran alat scans with plain hcp-Ti and TiO2 (rutile and anatase).
+On average for the GGA potentials, the plain Ti was a bit overbinding
+wrt to experiment and the TiO2 a little bit underbinding, but within 1%
+of the reference. with LDA there is overbinding throughout (~4% for
+plain Ti and ~1.5% for TiO2).
+
+Important: ecut has to be at least 30ry, or else forces and energies
+are getting 'shaky'. 
+
+(Info by Axel Kohlmeyer, 2006/09/18)

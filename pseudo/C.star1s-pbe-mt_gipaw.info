@@ -1,0 +1,9 @@
+Norm conserving pseudopotential for carbon with
+two gipaw projectors per s and p channel and a 
+core-hole in the 1s state.
+
+The pseudo has been used to calculate electronic
+structure and K-edge XAS spectra in Graphite and 
+Graphene using the XSPECTRA code.
+
+MCB 

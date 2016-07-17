@@ -1,0 +1,110 @@
+*****  H_VDB_BP.UPF *****  from CPMD
+
+===============================================================
+The following pseudopotentials were created with 
+version 7.3.4-3 of the pseudopotential creation code
+from http://www.physics.rutgers.edu/~dhv/uspp/
+
+since the pseudopotential code seems to be sensitive to
+numerical precision occasionally it was compiled only
+with moderate optimization and flags to improve numerical
+precision.
+the code was compiled on redhat 7.x using the intel 
+fortran compiler version 8.1-23 using the flags: 
+'-O -mp -pc80 -arch pn3 -tune pn3'
+
+conversion to UPF format from binary .uspp files with
+uspp2upf.x taken from PWScf-v2.1cvs-20050304.
+
+the pseudopotentials are all in text-mode and can be read in
+directly with recent CPMD version using the FORMATTED flag. if
+you still prefer binary pseudopotential files (or have to use
+them), you can use the reform utility from
+http://www.physics.rutgers.edu/~dhv/uspp/uspp-735/Utils/reform.f
+
+Naming convention: <Element>_VDB_<DFT>[_(SEMI|NLCC)].UPF
+SEMI indicates inclusion of semi-core states in the valence.
+NLCC indicates the use of non-linear core correction.
+Note: GGA=PW91  LDA=PZ
+
+the 'adapted' pseudopotentials were done by re-creating
+the pseudopotential with the same parameters from an
+all-electron calculation with a different functional.
+There were no additional tests done for them.
+Use at your own risk. Please test pseudopotentials befor use.
+
+Recommended plane wave cutoff is 20-40ry (most are optimized for 25ry).
+
+04/07/2005. Axel Kohlmeyer <axel.kohlmeyer@theochem.ruhr-uni-bochum.de>
+
+Pseudopotential:       Remarks:
+Al_VDB_GGA_NLCC.UPF   see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/013-Al/013-Al-gpw-n-campos/
+Al_VDB_BLYP_NLCC.UPF  adapted from the pseudopotential above
+Al_VDB_BP_NLCC.UPF    adapted from the pseudopotential above
+Al_VDB_PBE_NLCC.UPF   adapted from the pseudopotential above
+
+Au_VDB_PBE.UPF        Konopka, unpublished.
+Au_VDB_BLYP.UPF       adapted from the pseudopotential above
+Au_VDB_BP.UPF         adapted from the pseudopotential above
+Au_VDB_GGA.UPF        adapted from the pseudopotential above
+Au_VDB_LDA.UPF        adapted from the pseudopotential above
+
+B_VDB_GGA_NLCC.UPF    see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/005-B/005-B-gpw-n-campos/
+B_VDB_BLYP_NLCC.UPF   adapted from the pseudopotential above
+B_VDB_BP_NLCC.UPF     adapted from the pseudopotential above
+B_VDB_PBE_NLCC.UPF    adapted from the pseudopotential above
+
+Cu_VDB_PBE_NLCC.UPF   see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/029-Cu/029-Cu-gpbe-n-bm/
+Cu_VDB_BP_NLCC.UPF    adapted from the pseudopotential above
+Cu_VDB_GGA_NLCC.UPF   adapted from the pseudopotential above
+Cu_VDB_LDA_NLCC.UPF   see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/029-Cu/029-Cu-ca-n-bm/
+
+C_VDB_PBE.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/006-C/006-C-gpbe--bm/
+C_VDB_BLYP.UPF        adapted from the pseudopotential above
+C_VDB_BP.UPF          adapted from the pseudopotential above
+C_VDB_GGA.UPF         adapted from the pseudopotential above
+C_VDB_LDA.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/006-C/006-C-ca--bm/
+
+Fe_VDB_PBE_SEMI.UPF   http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/026-Fe/026-Fe-gpbe-sp-bm/
+Fe_VDB_BLYP_SEMI.UPF  adapted from the pseudopotential above
+Fe_VDB_BP_SEMI.UPF    adapted from the pseudopotential above
+Fe_VDB_GGA_SEMI.UPF   adapted from the pseudopotential above
+Fe_VDB_LDA_SEMI.UPF   adapted from the pseudopotential above
+
+H_VDB_PBE.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/001-H/001-H-gpbe--bm/
+H_VDB_BLYP.UPF        adapted from the pseudopotential above
+H_VDB_BP.UPF          adapted from the pseudopotential above
+H_VDB_GGA.UPF         adapted from the pseudopotential above
+H_VDB_LDA.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/001-H/001-H-ca--bm/
+
+N_VDB_PBE.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/007-N/007-N-gpbe--bm/
+N_VDB_BLYP.UPF        adapted from the pseudopotential above
+N_VDB_BP.UPF          adapted from the pseudopotential above
+N_VDB_GGA.UPF         adapted from the pseudopotential above
+N_VDB_LDA.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/007-N/007-N-ca--bm/
+
+O_VDB_PBE.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/008-O/008-O-gpbe--bm/
+                      additionally rc has been changed from 1.1 to 1.2. for l=0 and l=1
+O_VDB_BLYP.UPF        adapted from the pseudopotential above
+O_VDB_BP.UPF          adapted from the pseudopotential above
+O_VDB_GGA.UPF         adapted from the pseudopotential above
+O_VDB_LDA.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/008-O/008-O-ca--bm/
+                      additionally rc has been changed from 1.1 to 1.2. for l=0 and l=1
+
+P_VDB_GGA.UPF         B. Meyer, based on http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/015-P/015-P-gpw-n-campos/
+P_VDB_BLYP.UPF        adapted from the pseudopotential above
+P_VDB_BP.UPF          adapted from the pseudopotential above
+P_VDB_LDA.UPF         adapted from the pseudopotential above
+P_VDB_PBE.UPF         adapted from the pseudopotential above
+
+S_VDB_PBE.UPF         see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/016-S/016-S-gpbe--bm/
+S_VDB_BLYP.UPF        adapted from the pseudopotential above
+S_VDB_BP.UPF          adapted from the pseudopotential above
+S_VDB_GGA.UPF         adapted from the pseudopotential above
+S_VDB_LDA.UPF         adapted from the pseudopotential above
+
+Zn_VDB_PBE.UPF        see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/030-Zn/030-Zn-gpbe--bm/
+Zn_VDB_BLYP.UPF       adapted from the pseudopotential above
+Zn_VDB_BP.UPF         adapted from the pseudopotential above
+Zn_VDB_GGA.UPF        adapted from the pseudopotential above
+Zn_VDB_LDA.UPF        see http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/030-Zn/030-Zn-ca--bm/

@@ -1,0 +1,28 @@
+Fcc Ir: a0=3.90 A, B0=340 GPa (exp: a0=3.84 A, B0=320 GPa)
+Generated using the following data (espresso v 3.1):
+
+ &input
+        atom='Ir',
+        rel=1,
+        iswitch=3,
+        rlderiv=2.50,
+        eminld=-4.0,
+        emaxld=4.0,
+        deld=0.02,
+        nld=5,
+        config='[Xe] 4f14 5d7 6s2 6p0',
+        dft='PBE'
+ /
+ &inputp
+        pseudotype=3,
+        lloc=0,
+        file_pseudopw='Ir.pbe-n-rrkjus.UPF',
+        nlcc=.true.,
+        rcore=1.2,
+        rcloc=2.5
+ /
+4
+5D  3  2  7.00  0.00  2.10  2.40
+5D  3  2  0.00 -0.20  2.10  2.40
+6P  2  1  0.00  0.00  2.40  2.40
+6S  1  0  2.00  0.00  2.60  2.60

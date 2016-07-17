@@ -1,0 +1,16 @@
+Valence configuration: 3s0.5 3p0.05
+Nonlinear core correction enabled, smoothing for rho_core*0.5 > rho_valence
+
+Results of PP tests:
+
+Bulk Na lattice parameter, bulk modulus:
+PP: 7.919 au, 75 kbar
+Experiment: 8.108 au, 63 kbar
+
+NaI:
+PP: 12.482 au
+Exp: 12.227 au
+
+NaCl:
+PP: 11.054 au
+Experiment: 10.658 au

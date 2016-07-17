@@ -1,0 +1,56 @@
+# Makefile for the software source codes
+
+QE_PATH=/home/sy0302/works/espresso
+include $(QE_PATH)/make.sys
+
+######################################################################################################################################
+# Targets for compiling fortran codes
+# Location of needed modules MOD_FLAG defined in $(QE_PATH)/make.sys
+MODFLAGS = $(MOD_FLAG)$(QE_PATH)/iotk/src $(MOD_FLAG)$(QE_PATH)/Modules \
+           $(MOD_FLAG)$(QE_PATH)/PW/src $(MOD_FLAG).
+# New fortain objects to be compiled
+TDDFT_OBJS = tddft_version.o tddft_module.o tddft_main.o tddft_routines.o \
+	     tddft_setup.o tddft_ch_psi_all.o tddft_cgsolver.o \
+	     update_ham.o apply_efield.o molecule_optical_absorption.o \
+	     molecule_operators.o 
+# Fortran and C Library objects to be linked
+LIBOBJS = $(QE_PATH)/flib/ptools.a $(QE_PATH)/flib/flib.a $(QE_PATH)/clib/clib.a \
+ 	  $(QE_PATH)/iotk/src/libiotk.a
+# Quantum Espresso Modules
+ifeq ($(wildcard $(QE_PATH)/Environ),)
+  QEMODS = $(QE_PATH)/Modules/libqemod.a
+else
+  QEMODS = $(QE_PATH)/Environ/src/libenviron.a $(QE_PATH)/Modules/libqemod.a
+endif
+# Software need PW code library
+PWOBJS  = $(QE_PATH)/PW/src/libpw.a
+
+# Targets for compiling C++ codes
+# Identify all CPP source codes and headfiles
+TDDFT_CSRC =	$(wildcard *.cpp)
+TDDFT_CINC =	$(wildcard *.h)
+# Create target object list
+TDDFT_COBJS = 	$(TDDFT_CSRC:.cpp=.o)
+
+######################################################################################################################################
+# Make options
+install:	build distclean
+
+build:	$(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS)  $(TDDFT_COBJS)
+	$(LD) $(LDFLAGS) -o tddft.x $(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
+	@echo "Linking executables..."
+	( cd ../../bin; ln -fs ../RT-tddft/src/tddft.x . )
+
+clean:
+	-/bin/rm -rf tddft.* *.o *.d *.mod *.i *.L
+
+distclean:
+	-/bin/rm -rf Makefile make.depend
+
+# Compilation rules
+%.o:%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
+%.d:%.cpp
+	$(CPP) $(CPPFLAGS) $< > $@
+
+include make.depend

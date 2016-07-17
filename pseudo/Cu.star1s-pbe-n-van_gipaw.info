@@ -1,0 +1,26 @@
+Ultrasoft pseudopotential with nlcc, gipaw reconstruction
+with 2 projectors in p and d channels. 
+A 1s core-hole is added in the pseudopotential.
+
+This pseudopotential has been used to calculate Cu K-edge
+XAS spectra in High-Tc compounds with a 
+core-hole in the final state using the XSPECTRA code.
+
+Results are published in 
+
+"First-principles calculations of x-ray absorption in a scheme 
+based on ultrasoft pseudopotentials: 
+From alpha-quartz to high-Tc compounds",
+Christos Gougoussis, Matteo Calandra, Ari P. Seitsonen, and Francesco Mauri
+Phys. Rev. B 80, 075102 (2009) 
+
+http://link.aps.org/doi/10.1103/PhysRevB.80.075102
+
+and in 
+
+"Multiple pre-edge structures in Cu K-edge of high Tc cuprates 
+revealed by high resolution x-ray absorption spectroscopy",
+C. Gougoussis, J.-P. Rueff, M. Calandra, M. d'Astuto, I. Jarrige, H. Ishii, A. Shukla
+arXiv:0909.0894
+http://xxx.lanl.gov/abs/0909.0894
+
