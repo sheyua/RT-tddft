@@ -58,7 +58,6 @@ SUBROUTINE from_scratch( )
                                      vpot, ht0, edft, becdr_bgrp, dbec, drhor, drhog
     USE mp_global,            ONLY : np_ortho, me_ortho, ortho_comm, inter_bgrp_comm, nbgrp
     USE mp,                   ONLY : mp_sum
-    USE matrix_inversion
     !
     IMPLICIT NONE
     !
@@ -116,10 +115,6 @@ SUBROUTINE from_scratch( )
        CALL initbox ( tau0, alat, at, ainv, taub, irb )
        CALL phbox( taub, iverbosity, eigrb )
     END IF
-    !
-    !     pass ions informations to plugins
-    !
-    CALL plugin_init_ions( tau0 )
     !
     !     wfc initialization with random numbers
     !     

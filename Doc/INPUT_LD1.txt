@@ -1,1 +1,0 @@
-../atomic/Doc/INPUT_LD1.txt

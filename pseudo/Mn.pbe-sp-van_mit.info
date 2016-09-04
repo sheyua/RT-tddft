@@ -1,0 +1,12 @@
+This ultrasoft pseudopotential has been generated in the
+Mn 2+ configuration (3d4.5 4s0.4 4p0.1), with uspp-7.3.6,
+and converted to UPF. This pseudopotential has been tested
+succesfully on simple solids (Mn-fcc, MnO) as well as on
+some Mn organic complexes, by D. Ceresoli and E. Li.
+
+Convergence tests:
+LINK|http://www.quantum-espresso.org/pseudo/1.3/optinfo/Mn.pbe-sp-van_mit.pdf|
+
+Generation data:
+LINK|http://www.quantum-espresso.org/pseudo/1.3/optinfo/Mn.pbe-sp-van_mit.tgz|
+

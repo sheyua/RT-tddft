@@ -1,3 +1,67 @@
+# Copy espresso 5.2.0 to you dir
+# cp -r /home/Archive/espresso $your_dir/
+
+# Edit bashrc file to use intel compiler and openmpi. Add the following lines to ~/.bashrc
+# vi ~/.bashrc
+# 'source /opt/intel/fce/11/bin/ifortvars.sh intel 64'
+# 'source /opt/open-mpi/tcp-intel11/mpivars.sh'
+# 'source /opt/intel/mkl/10.1/tools/environment/mklvarsem64t.sh'
+
+# Souce and new bashrc file
+# source ~/.bashrc
+
+# Eneter espresso folder and configure
+# cd $your_dir/espresso
+# ./configure --prefix=`pwd`
+
+# Edit make.sys
+# vi make.sys
+# line 67  'F77			= ifort'
+
+# Install epsresso pw code
+# make pw
+
+# Install ce-tddft (the original one with no modifications)
+# cd ce-tddft
+# autoconf
+# ./configure --with-qe-source=..
+# The executable tddft.x is in the folder ce-tddft/bin
+
+# Configure the runscript on the PBS on centurion
+# cd espresso/bin/
+# vi run_espresso
+# line 43 'echo "mpirun -bynode -np $nproc $your_dir/espresso/bin/pw.x  < $input >& `pwd`/$output" >> $script'
+# cd ce-tddft/bin/
+# vi run_cetddft
+# line 43 'echo "mpirun -bynode -np $nproc $your_dir/espresso/ce-tddft/bin/tddft.x  < $input >& `pwd`/$output" >> $script'
+
+# Run graphene example: z-direction E-field, Spin-degenerate, 16*16*1 k-point mesh, 25 Ry ecut
+# cd ce-tddft/examples/graphene
+# please read the run_espresso file carefully to make sure you understand how to run jobs on the PBS
+# ../../../bin/run_espresso 1 16 graphene.pw-in graphene.pw-out 
+# for now, the ce-tddft code is still serial but you can nevertheless run the following command when the PW is finished
+# please use a reasonable number of time steps for time propagation
+# ../../bin/run_cetddft 1 16 graphene.tddft-in graphene.tddft-out
+# grep ^DIP graphene.tddft-out > dip_z.dat
+# python ../../tools/plot_optical_absorption.py z
+# compare your results with the ones in examples/graphene/compare_results
+
+# Run 2H-MoS2 and 1Tprime-MoS2 examples: z-direction E-field, Spin-degenerate, 16*16*1 k-point mesh, 26 Ry (350 eV) ecut
+# Atomic positions are relaxed with spin-orbital coupling, however Norm-Consering pseudo-potentials are used instead of 
+# PAW which is required for spin-orbital coupling but not supported in ce-tddft yet
+# examples can be run in the same way as the graphene case
+
+# Different Time-Schemes in reed-tddft
+# This code (for now) cannot be compiled on centurion because a higher version of autoconf 
+# (which I used on sherlock) is required and I don't have the time yet to translate it to 
+# fit the lower version on centurion.
+# However, different time integration schemes can be found in the file 
+# molecule_optical_absorption.yuanchange starting from line 194 and the attached codes are
+# in the folder src/attached.
+# The default method in for molecule_optical_absorption.yuanchange is Crank-Nicolson + 
+# Iterative Method, It need to commented out when other schemes are chosen.
+
+## Quantum Espresso Readme
 This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO: 
 opEn-Source Package for Research in Electronic Structure, Simulation, 
 and Optimization), promoted by the IOM-DEMOCRITOS National Simulation Center 

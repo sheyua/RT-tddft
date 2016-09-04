@@ -1,0 +1,12 @@
+*****  Na_VDB_BP_SEMI from CPMD
+Ultrasoft Na with 2s and 2p states in valence
+Info by Axel Kohlmeyer:
+
+   the sodium potential is an adapted version of the LDA
+   potential in the vanderbilt library, but tweaked to 
+   remove one small flaw (negative density) and to be
+   compatible with CPMD which (for historic reasons?) needs 
+   the same number of projectors for each angular momentum.
+   this has been tested on bulk sodium and gives again excellent
+   agreement with other codes/potentials.
+

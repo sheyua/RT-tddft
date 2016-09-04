@@ -11,7 +11,7 @@ MODULE orthogonalize_base
 
 
       USE kinds
-      USE dspev_module, ONLY: diagonalize_serial, diagonalize_parallel
+      USE dspev_module, ONLY: pdspev_drv, dspev_drv
 
       IMPLICIT NONE
 
@@ -34,16 +34,113 @@ MODULE orthogonalize_base
       PUBLIC :: ortho_iterate
       PUBLIC :: ortho_alt_iterate
       PUBLIC :: updatc, calphi_bgrp
-      PUBLIC :: mesure_diag_perf, mesure_mmul_perf
+      PUBLIC :: mesure_diag_perf
+      PUBLIC :: mesure_mmul_perf
+      PUBLIC :: diagonalize_parallel
+      PUBLIC :: diagonalize_serial
       PUBLIC :: use_parallel_diag
       PUBLIC :: bec_bgrp2ortho
 
 CONTAINS
 
+
+!  ----------------------------------------------
+
+
+   SUBROUTINE diagonalize_serial( n, rhos, rhod )
+      IMPLICIT NONE
+      INTEGER,  INTENT(IN)  :: n
+      REAL(DP)              :: rhos(:,:) 
+      REAL(DP)              :: rhod(:)   
+      !
+      ! inputs:
+      ! n     size of the eigenproblem
+      ! rhos  the symmetric matrix
+      ! outputs:  
+      ! rhos  eigenvectors
+      ! rhod  eigenvalues
+      !
+      REAL(DP), ALLOCATABLE :: aux(:)
+      INTEGER :: i, j, k
+
+      IF( n < 1 ) RETURN
+
+      ALLOCATE( aux( n * ( n + 1 ) / 2 ) )
+
+      !  pack lower triangle of rho into aux
+      !
+      k = 0
+      DO j = 1, n
+         DO i = j, n
+            k = k + 1
+            aux( k ) = rhos( i, j )
+         END DO
+      END DO
+
+      CALL dspev_drv( 'V', 'L', n, aux, rhod, rhos, SIZE(rhos,1) )
+
+      DEALLOCATE( aux )
+
+      RETURN
+
+   END SUBROUTINE diagonalize_serial
+
+
+!  ----------------------------------------------
+
+
+SUBROUTINE diagonalize_parallel( n, rhos, rhod, s, desc )
+
+      USE descriptors
+#ifdef __SCALAPACK
+      USE mp_global,    ONLY: ortho_cntx
+      USE dspev_module, ONLY: pdsyevd_drv
+#endif
+
+      IMPLICIT NONE
+      REAL(DP), INTENT(IN)  :: rhos(:,:) !  input symmetric matrix
+      REAL(DP)              :: rhod(:)   !  output eigenvalues
+      REAL(DP)              :: s(:,:)    !  output eigenvectors
+      INTEGER,   INTENT(IN) :: n         !  size of the global matrix
+      TYPE(la_descriptor), INTENT(IN) :: desc
+
+      IF( n < 1 ) RETURN
+
+      !  Matrix is distributed on the same processors group
+      !  used for parallel matrix multiplication
+      !
+      IF( SIZE(s,1) /= SIZE(rhos,1) .OR. SIZE(s,2) /= SIZE(rhos,2) ) &
+         CALL errore( " diagonalize_parallel ", " inconsistent dimension for s and rhos ", 1 )
+
+      IF ( desc%active_node > 0 ) THEN
+         !
+         IF( SIZE(s,1) /= desc%nrcx ) &
+            CALL errore( " diagonalize_parallel ", " inconsistent dimension ", 1 )
+         !
+         !  Compute local dimension of the cyclically distributed matrix
+         !
+         s = rhos
+         !
+#ifdef __SCALAPACK
+         CALL pdsyevd_drv( .true. , n, desc%nrcx, s, SIZE(s,1), rhod, ortho_cntx )
+#else
+         CALL qe_pdsyevd( .true., n, desc, s, SIZE(s,1), rhod )
+#endif
+         !
+      END IF
+
+      RETURN
+
+END SUBROUTINE diagonalize_parallel
+
+
+!  ----------------------------------------------
+
+
    SUBROUTINE mesure_diag_perf( n )
       !
       USE mp_global,   ONLY: nproc_bgrp, me_bgrp, intra_bgrp_comm, root_bgrp
-      USE mp_global,   ONLY: nproc_ortho, np_ortho, me_ortho, ortho_comm, ortho_cntx, ortho_comm_id
+      USE mp_global,   ONLY: nproc_ortho, np_ortho, me_ortho, ortho_comm, ortho_comm_id
       USE io_global,   ONLY: ionode, stdout
       USE mp,          ONLY: mp_sum, mp_bcast, mp_barrier
       USE mp,          ONLY: mp_max
@@ -69,7 +166,7 @@ CONTAINS
 
       ALLOCATE( d( n ) )
       !
-      CALL descla_init( desc, n, n, np_ortho, me_ortho, ortho_comm, ortho_cntx, ortho_comm_id )
+      CALL descla_init( desc, n, n, np_ortho, me_ortho, ortho_comm, ortho_comm_id )
 
       nx = 1
       IF( desc%active_node > 0 ) nx = desc%nrcx
@@ -178,6 +275,7 @@ CONTAINS
       END SUBROUTINE set_a
 
    END SUBROUTINE mesure_diag_perf
+   
 
 !  ----------------------------------------------
 
@@ -185,10 +283,9 @@ CONTAINS
    SUBROUTINE mesure_mmul_perf( n )
       !
       USE mp_bands,    ONLY: nproc_bgrp, me_bgrp, intra_bgrp_comm, &
-                             root_bgrp, my_bgrp_id, nbgrp
-      USE mp_images,   ONLY: nimage, my_image_id
+                             root_bgrp
       USE mp_diag,     ONLY: ortho_comm, nproc_ortho, np_ortho, &
-                             me_ortho, init_ortho_group, ortho_comm_id, ortho_cntx
+                             me_ortho, init_ortho_group, ortho_comm_id
       USE io_global,   ONLY: ionode, stdout
       USE mp,          ONLY: mp_sum, mp_bcast, mp_barrier
       USE mp,          ONLY: mp_max
@@ -214,9 +311,9 @@ CONTAINS
       !
       !  Now re-define the ortho group and test the performance
       !
-      CALL init_ortho_group( np * np, intra_bgrp_comm, nimage*nbgrp, my_bgrp_id + nbgrp * my_image_id )
+      CALL init_ortho_group( np * np, intra_bgrp_comm )
 
-      CALL descla_init( desc, n, n, np_ortho, me_ortho, ortho_comm, ortho_cntx, ortho_comm_id )
+      CALL descla_init( desc, n, n, np_ortho, me_ortho, ortho_comm, ortho_comm_id )
 
       nr = desc%nr
       nc = desc%nc
@@ -652,7 +749,7 @@ CONTAINS
             coor_ip(1) = ipr - 1
             coor_ip(2) = ipc - 1
 
-            CALL descla_init( desc_ip, desc%n, desc%nx, np, coor_ip, desc%comm, desc%cntx, 1 )
+            CALL descla_init( desc_ip, desc%n, desc%nx, np, coor_ip, desc%comm, 1 )
 
             nr = desc_ip%nr
             nc = desc_ip%nc
@@ -792,7 +889,7 @@ CONTAINS
             coor_ip(1) = ipr - 1
             coor_ip(2) = ipc - 1
 
-            CALL descla_init( desc_ip, desc%n, desc%nx, np, coor_ip, desc%comm, desc%cntx, 1 )
+            CALL descla_init( desc_ip, desc%n, desc%nx, np, coor_ip, desc%comm, 1 )
 
             nr = desc_ip%nr
             nc = desc_ip%nc
@@ -930,7 +1027,7 @@ CONTAINS
             coor_ip(1) = ipr - 1
             coor_ip(2) = ipc - 1
 
-            CALL descla_init( desc_ip, desc%n, desc%nx, np, coor_ip, desc%comm, desc%cntx, 1 )
+            CALL descla_init( desc_ip, desc%n, desc%nx, np, coor_ip, desc%comm, 1 )
 
             nr = desc_ip%nr
             nc = desc_ip%nc
@@ -1116,7 +1213,7 @@ CONTAINS
                coor_ip(1) = ipr - 1
                coor_ip(2) = ipc - 1
    
-               CALL descla_init( desc_ip, desc( iss )%n, desc( iss )%nx, np, coor_ip, desc( iss )%comm, desc( iss )%cntx, 1 )
+               CALL descla_init( desc_ip, desc( iss )%n, desc( iss )%nx, np, coor_ip, desc( iss )%comm, 1 )
    
                nr = desc_ip%nr
                nc = desc_ip%nc

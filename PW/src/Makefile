@@ -3,7 +3,7 @@
 include ../../make.sys
 
 # location of needed modules and included files (if any)
-MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules $(MOD_FLAG)../../FFTXlib $(MOD_FLAG)../../LAXlib
+MODFLAGS= $(MOD_FLAG)../../iotk/src $(MOD_FLAG)../../Modules
 IFLAGS=
 
 PWOBJS = \
@@ -73,11 +73,9 @@ efermit.o \
 electrons.o \
 eqvect.o \
 esm.o \
-esm_cft.o \
 ewald.o \
 ewald_dipole.o \
 exx.o \
-fcp.o \
 find_group.o \
 forces_bp_efield.o \
 force_cc.o \
@@ -132,6 +130,7 @@ n_plane_waves.o \
 new_ns.o \
 new_occ.o \
 ns_adj.o \
+nonloccorr.o \
 non_scf.o \
 offset_atom_wfc.o \
 openfil.o \
@@ -246,11 +245,11 @@ wannier_occ.o \
 wannier_enrg.o \
 wyckoff.o       
 
-QEMODS=../../Modules/libqemod.a ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a
+QEMODS=../../Modules/libqemod.a
 
 TLDEPS=bindir mods libs liblapack libblas
 
-LIBOBJS	= ../../clib/clib.a ../../iotk/src/libiotk.a
+LIBOBJS	= ../../flib/ptools.a ../../flib/flib.a ../../clib/clib.a ../../iotk/src/libiotk.a
 
 all : tldeps pw.x manypw.x generate_vdW_kernel_table.x generate_rVV10_kernel_table.x
 

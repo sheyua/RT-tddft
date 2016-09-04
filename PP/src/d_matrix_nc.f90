@@ -15,7 +15,6 @@ SUBROUTINE d_matrix_nc (dy012, dy112, dy212, dy312)
   USE kinds, ONLY: DP
   USE symm_base, ONLY:  nsym, sr
   USE random_numbers, ONLY : randy
-  USE matrix_inversion
   !
   IMPLICIT NONE
   !
@@ -73,7 +72,7 @@ SUBROUTINE d_matrix_nc (dy012, dy112, dy212, dy312)
         yl1 (m, n) = ylm (n, 1+m)
      ENDDO
   ENDDO
-  CALL invmat (3, yl1, yl1_inv)
+  CALL invmat (3, yl1, yl1_inv, capel)
   !
   !  l = 2 block
   !
@@ -82,7 +81,7 @@ SUBROUTINE d_matrix_nc (dy012, dy112, dy212, dy312)
         yl2 (m, n) = ylm (n, 4+m)
      ENDDO
   ENDDO
-  CALL invmat (5, yl2, yl2_inv)
+  CALL invmat (5, yl2, yl2_inv, capel)
   !
   !  l = 3 block
   !
@@ -91,7 +90,7 @@ SUBROUTINE d_matrix_nc (dy012, dy112, dy212, dy312)
         yl3 (m, n) = ylm (n, 9+m)
      ENDDO
   ENDDO
-  CALL invmat (7, yl3, yl3_inv )
+  CALL invmat (7, yl3, yl3_inv, capel)
   !
   ! now for each symmetry operation of the point-group ...
   !

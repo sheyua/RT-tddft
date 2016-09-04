@@ -1,0 +1,11 @@
+Ultrasoft pseudopotential for Cobalt, non-linear 
+core-corrections, gipaw reconstruction included
+with two projectors for p and d channels.
+A 1s core-hole is included in the pseudopotential.
+
+The pseudopotential has been used succesfully to 
+compute XAS K-edge in  LiCoO2 with a
+core-hole in the final state using the XSPECTRA 
+code.
+
+Matteo Calandra.

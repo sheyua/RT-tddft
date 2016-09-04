@@ -1,5 +1,5 @@
 
-! Copyright (C) 2002-2016 Quantum ESPRESSO group
+! Copyright (C) 2002-2009 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -7,65 +7,6 @@
 !
 !----------------------------------------------------------------------------
 SUBROUTINE h_psi( lda, n, m, psi, hpsi )
-  !----------------------------------------------------------------------------
-  !
-  ! ... This routine computes the product of the Hamiltonian
-  ! ... matrix with m wavefunctions contained in psi
-  !
-  ! ... input:
-  ! ...    lda   leading dimension of arrays psi, spsi, hpsi
-  ! ...    n     true dimension of psi, spsi, hpsi
-  ! ...    m     number of states psi
-  ! ...    psi
-  !
-  ! ... output:
-  ! ...    hpsi  H*psi
-  !
-  ! --- Wrapper routine: performs bgrp parallelization on non-distributed bands
-  ! --- if suitable and required, calls old H\psi routine h_psi_
-  !
-  USE kinds,            ONLY : DP
-  USE noncollin_module, ONLY : npol
-  USE funct,            ONLY : exx_is_active
-  USE mp_bands,         ONLY : use_bgrp_in_hpsi, set_bgrp_indices, inter_bgrp_comm
-  USE mp,               ONLY : mp_sum
-  !
-  IMPLICIT NONE
-  !
-  INTEGER, INTENT(IN)      :: lda, n, m
-  COMPLEX(DP), INTENT(IN)  :: psi(lda*npol,m) 
-  COMPLEX(DP), INTENT(OUT) :: hpsi(lda*npol,m)   
-  !
-  INTEGER     :: m_start, m_end
-  !
-  CALL start_clock( 'h_psi_bgrp' )
-
-  ! band parallelization with non-distributed bands is performed if
-  ! 1. enabled (variable use_bgrp_in_hpsi must be set to .T.)
-  ! 2. exact exchange is not active (if it is, band parallelization is already
-  !    used in exx routines called by Hpsi)
-  ! 3. there is more than one band, otherwise there is nothing to parallelize
-  !
-  IF (use_bgrp_in_hpsi .AND. .NOT. exx_is_active() .AND. m > 1) THEN
-     ! use band parallelization here
-     hpsi(:,:) = (0.d0,0.d0)
-     CALL set_bgrp_indices(m,m_start,m_end)
-     ! Check if there at least one band in this band group
-     IF (m_end >= m_start) &
-        CALL h_psi_( lda, n, m_end-m_start+1, psi(1,m_start), hpsi(1,m_start) )
-     CALL mp_sum(hpsi,inter_bgrp_comm)
-  ELSE
-     ! don't use band parallelization here
-     CALL h_psi_( lda, n, m, psi, hpsi )
-  END IF
-
-  CALL stop_clock( 'h_psi_bgrp' )
-  RETURN
-  !
-END SUBROUTINE h_psi
-!
-!----------------------------------------------------------------------------
-SUBROUTINE h_psi_( lda, n, m, psi, hpsi )
   !----------------------------------------------------------------------------
   !
   ! ... This routine computes the product of the Hamiltonian
@@ -218,4 +159,4 @@ SUBROUTINE h_psi_( lda, n, m, psi, hpsi )
   !
   RETURN
   !
-END SUBROUTINE h_psi_
+END SUBROUTINE h_psi

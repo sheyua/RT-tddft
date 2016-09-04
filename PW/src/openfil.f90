@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2016 Quantum ESPRESSO group
+! Copyright (C) 2001-2013 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -16,11 +16,12 @@ SUBROUTINE openfil()
   USE kinds,            ONLY : DP
   USE buffers,          ONLY : open_buffer
   USE control_flags,    ONLY : io_level
-  USE basis,            ONLY : natomwfc
+  USE io_global,        ONLY : stdout
+  USE basis,            ONLY : natomwfc, starting_wfc
   USE wvfct,            ONLY : nbnd, npwx
   USE fixed_occ,        ONLY : one_atom_occupations
   USE ldaU,             ONLY : lda_plus_U, U_projection, nwfcU
-  USE io_files,         ONLY : prefix, iunpun, iunsat, &
+  USE io_files,         ONLY : prefix, iunpun, iunsat, iunigk,  &
                                iunhub, nwordwfcU, nwordwfc, nwordatwfc,&
                                iunefield, iunefieldm, iunefieldp, seqopn
   USE noncollin_module, ONLY : npol
@@ -37,7 +38,7 @@ SUBROUTINE openfil()
   !
   ! ... nwordwfc is the record length (IN COMPLEX WORDS)
   ! ... for the direct-access file containing wavefunctions
-  ! ... nwordatwfc/nwordwfcU as above for atomic/U-manifold wavefunctions
+  ! ... nwordatwfc as above (IN REAL WORDS) for atomic wavefunctions
   !
   nwordwfc  = nbnd*npwx*npol
   nwordatwfc= npwx*natomwfc*npol
@@ -47,6 +48,10 @@ SUBROUTINE openfil()
      CALL open_buffer ( iunhub, 'hub',    nwordwfcU, io_level, exst )
   IF ( use_wannier .OR. one_atom_occupations ) &
      CALL open_buffer ( iunsat, 'satwfc', nwordatwfc, io_level, exst )
+  !
+  ! ... iunigk contains the number of PW and the indices igk
+  !
+  CALL seqopn( iunigk, 'igk', 'UNFORMATTED', exst )
   !
   ! ... open units for electric field calculations
   !

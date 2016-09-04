@@ -54,9 +54,7 @@ CONTAINS
   !
   !
   lcheckxml = PRESENT(lxmlinput)
-  IF ( PRESENT(attr) ) THEN
-     attr=' '
-  ELSE IF ( lcheckxml ) THEN
+  IF ( lcheckxml .AND. .NOT.PRESENT(attr) ) THEN
      open_input_file = 1
      RETURN
   ENDIF

@@ -17,7 +17,6 @@ SUBROUTINE d_matrix_so (dyj12, dyj32, dyj52, dyj72)
   USE symm_base, ONLY:  nsym, sr
   USE spin_orb,   ONLY : rot_ylm
   USE random_numbers, ONLY : randy
-  USE matrix_inversion
   !
   IMPLICIT NONE
   !
@@ -101,7 +100,7 @@ SUBROUTINE d_matrix_so (dyj12, dyj32, dyj52, dyj72)
         Ul1 (m, n) = Ulall (1, m, n)
      ENDDO
   ENDDO
-  CALL invmat (6, Ul1, Ul1_inv)
+  CALL invmat (6, Ul1, Ul1_inv, capel)
   Ul1C (:,:) = cmplx(Ul1 (:,:), 0.d0,kind=DP)
   Ul1C_inv (:,:) = cmplx(Ul1_inv (:,:), 0.d0,kind=DP)
   !
@@ -112,7 +111,7 @@ SUBROUTINE d_matrix_so (dyj12, dyj32, dyj52, dyj72)
         Ul3 (m, n) = Ulall (3, m, n)
      ENDDO
   ENDDO
-  CALL invmat (14, Ul3, Ul3_inv)
+  CALL invmat (14, Ul3, Ul3_inv, capel)
   Ul3C (:,:) = cmplx(Ul3 (:,:), 0.d0,kind=DP)
   Ul3C_inv (:,:) = cmplx(Ul3_inv (:,:), 0.d0,kind=DP)
   !
@@ -150,7 +149,7 @@ SUBROUTINE d_matrix_so (dyj12, dyj32, dyj52, dyj72)
         yl1 (m, n) = ylm_compl (n, 1+m)
      ENDDO
   ENDDO
-  CALL invmat (3, yl1, yl1_inv)
+  CALL invmat_complex (3, yl1, yl1_inv, capel)
   !
   !  l = 2 block
   !
@@ -159,7 +158,7 @@ SUBROUTINE d_matrix_so (dyj12, dyj32, dyj52, dyj72)
         yl2 (m, n) = ylm_compl (n, 4+m)
      ENDDO
   ENDDO
-  CALL invmat (5, yl2, yl2_inv)
+  CALL invmat_complex (5, yl2, yl2_inv, capel)
   !
   !  l = 3 block
   !
@@ -168,7 +167,7 @@ SUBROUTINE d_matrix_so (dyj12, dyj32, dyj52, dyj72)
         yl3 (m, n) = ylm_compl (n, 9+m)
      ENDDO
   ENDDO
-  CALL invmat (7, yl3, yl3_inv)
+  CALL invmat_complex (7, yl3, yl3_inv, capel)
   !
   ! now for each symmetry operation of the point-group ...
   !

@@ -9,8 +9,12 @@
 # labels from external_latex_labels array.
 
 
-$key = q/_/;
-$external_latex_labels{$key} = q|<|; 
+$key = q//;
+$external_latex_labels{$key} = q|\fi|; 
+$noresave{$key} = "$nosave";
+
+$key = q/_newlabelxx/;
+$external_latex_labels{$key} = q|\ifx|; 
 $noresave{$key} = "$nosave";
 
 1;

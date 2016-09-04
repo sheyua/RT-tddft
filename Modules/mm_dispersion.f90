@@ -22,12 +22,12 @@ MODULE london_module
   SAVE
   !
   !
-  REAL ( DP ) , ALLOCATABLE :: C6_i  ( : ) ,     &
-                               R_vdw ( : ) ,     &
-                               C6_ij ( : , : ) , &
-                               R_sum ( : , : ) , &
-                               r     ( : , : ) , &
-                               dist2 ( : )
+  REAL ( DP ) , ALLOCATABLE , PRIVATE :: C6_i  ( : ) ,     &
+                                         R_vdw ( : ) ,     &
+                                         C6_ij ( : , : ) , &
+                                         R_sum ( : , : ) , &
+                                         r     ( : , : ) , &
+                                         dist2 ( : )
   !
   ! C6_i  ( ntyp )        : atomic C6 coefficient of each atom type
   ! R_vdw ( ntyp )        : Van der Waals Radii of each atom type
@@ -36,18 +36,17 @@ MODULE london_module
   ! r     ( 3 , mxr )     : ordered distance vectors
   ! dist2 ( mxr )         : ordered distances
   !
-  REAL ( DP ) , PUBLIC :: scal6=0._dp , lon_rcut=0._dp , in_C6 ( nsx ), in_rvdw( nsx )
+  REAL ( DP ) , PUBLIC :: scal6=0._dp , lon_rcut=0._dp , in_C6 ( nsx )
   !
   ! scal6    : global scaling factor
   ! lon_rcut : public cut-off radius
   ! in_C6 ( ntyp ) : input (user) specified atomic C6 coefficients
-  ! in_rvdw ( ntyp ) : input (user) specified atomic vdw radii
   !
-  INTEGER :: mxr
+  INTEGER , PRIVATE :: mxr
   !
   ! max number of r ( see rgen)
   !
-  REAL ( DP ) :: r_cut , beta = 20.0_DP
+  REAL ( DP ) , PRIVATE :: r_cut , beta = 20.0_DP
   !
   ! beta  : damping function parameter 
   ! r_cut : cut-off radius in alat units
@@ -212,11 +211,7 @@ MODULE london_module
               ELSE
                  C6_i  ( ilab )  = vdw_coeffs(1,i)
               END IF
-              IF ( in_rvdw (ilab) > 0.0_DP ) THEN
-                R_vdw ( ilab )  = in_rvdw (ilab)
-              ELSE
-                R_vdw ( ilab )  = vdw_coeffs(2,i)
-              END IF
+              R_vdw ( ilab )  = vdw_coeffs(2,i)
            ELSE
              CALL errore ( ' init_london ' ,&
                            'atom ' // atom_label(ilab) //' not found ' , ilab )
@@ -385,32 +380,21 @@ MODULE london_module
           !
           CALL rgen ( dtau, r_cut, mxr, at, bg, r, dist2, nrm )
           !
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1600)
 !$omp parallel do private(nr,dist,dist6,f_damp) default(shared), reduction(-:energy_london)
-#endif
           DO nr = 1 , nrm
             !
             dist  = alat * sqrt ( dist2 ( nr ) )
-            dist6 = beta*( dist / ( R_sum( ityp(atb), ityp(ata) ) ) - 1.0_dp )
+            dist6 = dist ** 6
             !
-            ! dist6 is used here as temporary variable to avoid computing
-            ! e^-x for too large x (for x=40, e^-x=4*10^-18)
+            f_damp = 1.d0 / ( 1.d0 + &
+            exp ( -beta * ( dist / ( R_sum ( ityp (atb) , ityp (ata) ) ) - 1 )))
             !
-            IF ( dist6 < 40.0_dp ) THEN
-               f_damp = 1.0_dp / ( 1.d0 + exp ( -dist6 ) )
-            ELSE
-               f_damp = 1.0_dp
-            END IF
-            !
-            dist6 = dist**6
             energy_london = energy_london - &
                   ( C6_ij ( ityp ( atb ) , ityp ( ata ) ) / dist6 ) * &
                   f_damp
             !
           END DO
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1600)
 !$omp end parallel do
-#endif
           !
         END DO
         !
@@ -524,9 +508,7 @@ MODULE london_module
            par = beta / ( R_sum ( ityp ( atb ) , ityp ( ata ) ) )
            !
            aux(:) = 0.d0
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1600)
 !$omp parallel do private(nr,dist,dist6,dist7,exparg,expval,fac,add,ipol) default(shared), reduction(+:aux)
-#endif
            DO nr = 1 , nrm
             !
             dist  = alat * sqrt ( dist2 ( nr ) )
@@ -549,9 +531,7 @@ MODULE london_module
             END DO
             !
            END DO
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1600)
 !$omp end parallel do 
-#endif
            DO ipol = 1 , 3
               force_london ( ipol , ata ) = force_london ( ipol , ata ) + aux(ipol)
            ENDDO

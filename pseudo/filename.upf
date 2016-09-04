@@ -1,0 +1,38 @@
+- meaning of our UPF filename syntax
+
+  upf_filename = <symbol><separator><description><separator><extension>
+
+  description  = [<field1><separator2>]<field2><separator2>[<field3><separator2>]<field4>
+
+                 fields 1 and 3 are optional
+                 field 4 can have a more complex syntax like: <method><separator3><author><separator3><date>
+
+  field 1
+     rel     = relativistic pseudopotential
+     starNl  =  one core-hole in Nl state
+     starhNl = half core-hole in Nl state
+               Nl can be 1s 2s 2p etc
+
+  field 2
+     pz      = Perdew-Zunger (LDA) exch-corr
+     vwn     = Vosko-Wilk-Nusair (LDA) exch-corr
+     pbe     = Perdew-Burke-Ernzerhof (PBE) exch-corr
+     bp      = Becke-Perdew (BP) gradient-corrected exch-corr
+     blyp    = Becke-Lee-Yang-Parr (BLYP) exch-corr
+     pw91    = Perdew-Wang 91 gradient-corrected functional
+     tpss    = Tao-Perdew-Staroverov-Scuseria (TPSS) meta-GGA 
+
+  field 3
+     s       = semicore state s in valence
+     p       = semicore state p in valence
+     d       = semicore state d in valence
+     f       = valence f state in core
+     n       = nonlinear core-correction
+
+  field 4
+     mt      = Martins-Troullier
+     bhs     = Bachelet-Hamann-Schlueter and derived
+     vbc     = Von Barth-Car (direct fit)
+     van     = Vanderbilt ultrasoft
+     rrkj    = Rabe Rappe Kaxiras Joannopoulos (norm-conserving)
+     rrkjus  = Rabe Rappe Kaxiras Joannopoulos (ultrasoft)

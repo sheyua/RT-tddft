@@ -19,8 +19,7 @@ SUBROUTINE work_function (wf)
   USE scf,       ONLY : rho, vltot, v, rho_core, rhog_core
   USE gvect
   USE cell_base, ONLY : omega, alat
-  USE fft_base,  ONLY : dfftp
-  USE scatter_mod, ONLY : gather_grid
+  USE fft_base,  ONLY : gather_grid, dfftp
   USE mp,        ONLY : mp_bcast
   USE mp_world,  ONLY : world_comm
 

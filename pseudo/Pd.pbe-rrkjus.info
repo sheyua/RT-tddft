@@ -1,0 +1,4 @@
+The original version of this pseudopotential file contained unnormalized
+atomic orbitals, which could be a source of trouble for LDA+U calculations.
+On July 24, 2006 an updated version, containing normalized atomic orbitals,
+was uploaded to the site.

@@ -140,21 +140,15 @@ for PAW calculations.
 <H4><A NAME="SECTION00051030000000000000">
 4.1.0.3 About Bader's analysis</A>
 </H4>
-In <TT>http://theory.cm.utexas.edu/henkelman/code/bader/</TT> 
-one can find a software that performs Bader's analysis starting 
-from charge on a regular grid. One should use PAW to compute the
-charge density. The required "cube" format can be produced using 
-<TT>pp.x</TT> (info by G. Lapenna who has successfully used this 
-technique, but adds: ``Problems occur with polar X-H bonds or in
-all cases where the zero-flux of density comes too close to atoms 
-described with pseudo-potentials"). This code should perform 
+In <TT>http://theory.cm.utexas.edu/bader/</TT> one can find a software 
+that performs
+Bader's analysis starting from charge on a regular grid. The required 
+"cube" format can be produced by Q<SMALL>UANTUM </SMALL>ESPRESSO using  <TT>pp.x</TT> (info by G. Lapenna
+who has successfully used this technique, but adds: ``Problems occur with polar 
+X-H bonds or in all cases where the zero-flux of density comes too close to 
+atoms described with pseudo-potentials"). This code should perform 
 decomposition into Voronoi polyhedra as well, in place of obsolete
 code  <TT>voronoy.x</TT> (removed from distribution since v.4.2).
-Alternatively, you can use <I>CRITIC2</I>, available at
-<TT>https://github.com/aoterodelaroza/critic2</TT>, which can
-read directly <TT>pw.x</TT> output and ``XSF'' files. <I>CRITIC2</I>
-functionaly include Bader's AIM, ELF, laplacian of density and
-potentials, non-covalente interaction (NCI) plots and much more.
 
 <P>
 <HR>
@@ -183,7 +177,7 @@ potentials, non-covalente interaction (NCI) plots and much more.
 <!--End of Navigation Panel-->
 <ADDRESS>
 Filippo Spiga
-2016-04-24
+2015-06-20
 </ADDRESS>
 </BODY>
 </HTML>

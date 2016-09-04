@@ -54,18 +54,19 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
    USE io_files,             ONLY : iunwfc, nwordwfc
    USE buffers,              ONLY : get_buffer
    USE ions_base,            ONLY : nat, ntyp => nsp, ityp, tau, zv, atm
-   USE cell_base,            ONLY : at, alat, tpiba, omega
+   USE cell_base,            ONLY : at, alat, tpiba, omega, tpiba2
    USE constants,            ONLY : pi, tpi
-   USE gvect,                ONLY : ngm,  g, gcutm, ngm_g, ngmx, ig_l2g
+   USE gvect,                ONLY : ngm,  g, gcutm, ngm_g,ngmx
    USE fft_base,             ONLY : dfftp
    USE uspp,                 ONLY : nkb, vkb, okvan
    USE uspp_param,           ONLY : upf, lmaxq, nbetam, nh, nhm
    USE lsda_mod,             ONLY : nspin
-   USE klist,                ONLY : nelec, degauss, nks, xk, wk, ngk, igk_k
-   USE wvfct,                ONLY : npwx, nbnd
+   USE klist,                ONLY : nelec, degauss, nks, xk, wk
+   USE wvfct,                ONLY : npwx, npw, nbnd, ecutwfc
    USE wavefunctions_module, ONLY : evc
    USE bp,                   ONLY : nppstr_3d, mapgm_global, nx_el,mapg_owner
    USE fixed_occ
+   USE gvect,   ONLY : ig_l2g
    USE mp,                   ONLY : mp_sum,mp_barrier
    USE mp_world,             ONLY : world_comm,mpime,nproc
    USE mp_bands,             ONLY : intra_bgrp_comm
@@ -83,7 +84,7 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
    REAL(DP), INTENT(in) :: e_field!initensity of the field
 
 !  --- Internal definitions ---
-   INTEGER :: i, ik
+   INTEGER :: i
    INTEGER :: igk1(npwx)
    INTEGER :: igk0(npwx)
    INTEGER :: ig
@@ -128,6 +129,7 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
    REAL(dp) :: el_loc
    REAL(dp) :: eps
    REAL(dp) :: fac
+   REAL(dp) :: g2kin_bp(npwx)
    REAL(dp) :: gpar(3)
    REAL(dp) :: gtr(3)
    REAL(dp) :: gvec
@@ -261,7 +263,7 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
    ALLOCATE(pdl_elec(nstring))
    ALLOCATE(mod_elec(nstring))
 
-   FLUSH(stdout)
+   call flush_unit(stdout)
 
 
 !  -------------------------------------------------------------------------   !
@@ -413,10 +415,8 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
             IF (kpar /= 1 ) THEN
 
 !              --- Dot wavefunctions and betas for PREVIOUS k-point ---
-               ik = nx_el(kpoint-1,pdir)
-               npw0   = ngk(ik)
-               igk0(:)= igk_k(:,ik)
- 
+               CALL gk_sort(xk(1,nx_el(kpoint-1,pdir)),ngm,g,ecutwfc/tpiba2, &
+                            npw0,igk0,g2kin_bp) 
                CALL get_buffer (psi,nwordwfc,iunwfc,nx_el(kpoint-1,pdir))
                if (okvan) then
                   CALL init_us_2 (npw0,igk0,xk(1,nx_el(kpoint-1,pdir)),vkb)
@@ -439,10 +439,8 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
 !              --- Dot wavefunctions and betas for CURRENT k-point ---
                IF (kpar /= (nppstr_3d(pdir)+1)) THEN
 
-                  ik = nx_el(kpoint,pdir)
-                  npw1   = ngk(ik)
-                  igk1(:)= igk_k(:,ik)
-
+                  CALL gk_sort(xk(1,nx_el(kpoint,pdir)),ngm,g,ecutwfc/tpiba2, &
+                               npw1,igk1,g2kin_bp)        
                   CALL get_buffer (psi1,nwordwfc,iunwfc,nx_el(kpoint,pdir))
                   if(okvan) then
                      CALL init_us_2 (npw1,igk1,xk(1,nx_el(kpoint,pdir)),vkb)
@@ -464,10 +462,8 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
                ELSE
 
                   kstart = kpoint-(nppstr_3d(pdir)+1)+1
-                  ik = nx_el(kstart,pdir)
-                  npw1   = ngk(ik)
-                  igk1(:)= igk_k(:,ik)
-
+                  CALL gk_sort(xk(1,nx_el(kstart,pdir)),ngm,g,ecutwfc/tpiba2, &
+                               npw1,igk1,g2kin_bp)  
                   CALL get_buffer (psi1,nwordwfc,iunwfc,nx_el(kstart,pdir))
                   if(okvan) then
                      CALL init_us_2 (npw1,igk1,xk(1,nx_el(kstart,pdir)),vkb)
@@ -908,7 +904,7 @@ SUBROUTINE forces_us_efield(forces_bp, pdir, e_field)
 
    USE kinds,                ONLY : DP
    USE bp,                   ONLY : efield_cart, el_pol, fc_pol,l3dstring
-   USE cell_base, ONLY: at, alat, tpiba, omega
+   USE cell_base, ONLY: at, alat, tpiba, omega, tpiba2
    USE constants, ONLY : pi
    implicit none
    

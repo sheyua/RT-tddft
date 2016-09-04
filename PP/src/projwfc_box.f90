@@ -26,10 +26,9 @@ SUBROUTINE projwave_boxes( filpdos, filproj, n_proj_boxes, irmin, irmax, plotbox
   USE constants, ONLY: rytoev
   USE gvect
   USE gvecs,     ONLY: dual
-  USE gvecw,     ONLY: gcutw, ecutwfc
   USE klist,     ONLY: xk, nks, nkstot
   USE lsda_mod,  ONLY: nspin, isk, current_spin, lsda
-  USE wvfct, ONLY: npw, npwx, nbnd, g2kin, igk, et, wg
+  USE wvfct
   USE control_flags, ONLY: gamma_only
   USE uspp,      ONLY: okvan
   USE noncollin_module, ONLY: noncolin, npol
@@ -38,8 +37,7 @@ SUBROUTINE projwave_boxes( filpdos, filproj, n_proj_boxes, irmin, irmax, plotbox
   USE io_files,             ONLY : iunwfc, nwordwfc
   USE scf,                  ONLY : rho
   USE projections_ldos,     ONLY : proj
-  USE fft_base,             ONLY : dfftp
-  USE scatter_mod,          ONLY : scatter_grid
+  USE fft_base,             ONLY : scatter_grid, dfftp
   USE fft_interfaces,       ONLY : invfft
   USE mp_global,            ONLY : intra_pool_comm
   USE mp,                   ONLY : mp_sum
@@ -225,7 +223,7 @@ SUBROUTINE projwave_boxes( filpdos, filproj, n_proj_boxes, irmin, irmax, plotbox
   k_loop: DO ik = 1, nks
      !
      IF ( lsda ) current_spin = isk(ik)
-     CALL gk_sort (xk (1, ik), ngm, g, gcutw, npw, igk, g2kin)
+     CALL gk_sort (xk (1, ik), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
      CALL davcio (evc, 2*nwordwfc, iunwfc, ik, - 1)
      !
      bnd_loop: DO ibnd = 1, nbnd
@@ -429,28 +427,28 @@ SUBROUTINE partialdos_boxes(Emin, Emax, DeltaE, kresolveddos, filpdos, n_proj_bo
        status='unknown')
 
   IF (kresolveddos) THEN
-     WRITE (4,'("# ik   ")', advance="NO")
+     WRITE (4,'("# ik   ",$)')
   ELSE
-     WRITE (4,'("#")', advance="NO")
+     WRITE (4,'("#",$)')
   ENDIF
   IF (nspin0 == 2) THEN
-     WRITE (4,'(" E (eV)  tot_up(E)  tot_dw(E)  totldos_up totldos_dw ")', advance="NO")
+     WRITE (4,'(" E (eV)  tot_up(E)  tot_dw(E)  totldos_up totldos_dw ",$)')
   ELSE
-     WRITE (4,'(" E (eV)  tot(E)     totldos    ")', advance="NO")
+     WRITE (4,'(" E (eV)  tot(E)     totldos    ",$)')
   ENDIF
   DO ibox=1, n_proj_boxes
      IF (nspin0 == 2) THEN
-        WRITE(4,'("#",i3," up(E) ")', advance="NO")  ibox
-        WRITE(4,'("#",i3," dw(E) ")', advance="NO")  ibox
+        WRITE(4,'("#",i3," up(E) ",$)')  ibox
+        WRITE(4,'("#",i3," dw(E) ",$)')  ibox
      ELSE
-        WRITE(4,'("#",i3," (E)   ")', advance="NO")  ibox
+        WRITE(4,'("#",i3," (E)   ",$)')  ibox
      ENDIF
   ENDDO
   WRITE (4,*)
   DO ik=1,nkseff
      DO ie= 0, ne
         IF (kresolveddos) THEN
-           WRITE (4,'(i5," ")', advance="NO") ik
+           WRITE (4,'(i5," ",$)') ik
         ENDIF
         etev = Emin + ie * DeltaE
         WRITE (4,'(f7.3,4(2e11.3),999(2e11.3))') etev*rytoev,  &

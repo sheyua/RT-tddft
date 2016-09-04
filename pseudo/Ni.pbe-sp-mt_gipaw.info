@@ -1,0 +1,16 @@
+Norm-conserving pseudopotential for Ni including semicore
+states in valence, gipaw reconstruction with two projectors
+in p and d channels.
+A 1s core-hole is included in the pseudopotential.
+
+This pseudopotential has been used to calculate XAS
+spectra in NiO with a core-hole in the
+final state using the XSPECTRA code.
+
+Results have been published in :
+
+"Intrinsic charge transfer gap in NiO from Ni K-edge x-ray 
+absorption spectroscopy",
+C. Gougoussis, M. Calandra, A. Seitsonen, Ch. Brouder, A. Shukla, and F. Mauri
+Phys. Rev. B 79, 045118 (2009) 
+http://link.aps.org/doi/10.1103/PhysRevB.79.045118

@@ -102,6 +102,9 @@ CONTAINS
     USE control_flags, only: tsde, tsdp, tfor, tcp, tnosep, isave,iprint,&
                              tconvthrs, tolp, &
                              ekin_conv_thr, forc_conv_thr, etot_conv_thr
+    USE control_flags, only: tsteepdesc_    => tsteepdesc, &
+                             tdamp_         => tdamp,      &
+                             tdampions_ => tdampions
     use wave_base, only: frice
     use ions_base, only: fricp
     USE ions_nose, ONLY: ions_nose_init
@@ -150,6 +153,8 @@ CONTAINS
     ! electron_dynamics = 'sd' | 'verlet' | 'damp' | 'none'
     if (event_electron_dynamics(event_index)) then
        electron_dynamics= rule_electron_dynamics(event_index)
+      tdamp_          = .FALSE.
+      tsteepdesc_     = .FALSE.
       frice = 0.d0
        select case ( electron_dynamics ) 
        case ('SD')
@@ -158,6 +163,7 @@ CONTAINS
           tsde  = .false.
        case ('DAMP')
           tsde  = .false.
+          tdamp_  = .TRUE.
           frice = electron_damping
        case ('NONE')
           tsde  = .false.
@@ -187,6 +193,7 @@ CONTAINS
     ! ion_dynamics = 'sd' | 'verlet' | 'damp' | 'none'
     if (event_ion_dynamics(event_index)) then
       ion_dynamics= rule_ion_dynamics(event_index)
+      tdampions_       = .FALSE.
       tconvthrs%active = .FALSE.
       tconvthrs%nstep  = 1
       tconvthrs%ekin   = 0.0d0
@@ -210,6 +217,7 @@ CONTAINS
        case ('DAMP')
           tsdp = .false.
           tfor = .true.
+          tdampions_ = .TRUE.
           fricp= ion_damping
           tconvthrs%ekin   = ekin_conv_thr
           tconvthrs%derho  = etot_conv_thr
@@ -295,10 +303,6 @@ CONTAINS
     USE io_global, ONLY: ionode, ionode_id
     USE mp,        ONLY : mp_bcast, mp_barrier
     USE mp_world,  ONLY : world_comm
-#if defined (__NAG)
-    USE f90_unix_proc
-#endif
-
     IMPLICIT NONE
     INTEGER :: nfi
     LOGICAL :: file_p
@@ -334,7 +338,7 @@ CONTAINS
             WRITE(*,*) '****************************************************'
             WRITE(*,*) '  Autopilot: Mailbox found at nfi=', current_nfi
           END IF
-          FLUSH(6)
+          call flush_unit(6)
 
           ! Open the mailbox
           IF ( ionode ) OPEN( UNIT = pilot_unit, FILE = TRIM( mbfile ) )

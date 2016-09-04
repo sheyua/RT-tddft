@@ -13,7 +13,7 @@ MODULE rVV10
   USE constants,         ONLY : pi, e2
   USE kernel_table,      ONLY : q_mesh, Nr_points, Nqs, r_max
   USE mp,                ONLY : mp_bcast, mp_sum, mp_barrier
-  USE mp_bands,          ONLY : intra_bgrp_comm
+  USE mp_global,         ONLY : me_pool, nproc_pool, intra_pool_comm, root_pool
   USE io_global,         ONLY : ionode
   USE fft_base,          ONLY : dfftp
   USE fft_interfaces,    ONLY : fwfft, invfft 
@@ -101,15 +101,18 @@ CONTAINS
       
        if (ionode .and. iverbosity > -1 ) then
 
-          WRITE(stdout,'(/ /A )') "---------------------------------------------------------------------------------"
-          WRITE(stdout,'(A)') "Carrying out rVV10 run using the following parameters:"
-          WRITE(stdout,'(A,I6,A,I6,A,F8.3)') "Nqs =  ",Nqs, "    Nr_points =  ", Nr_points,"   r_max =  ",r_max
-          WRITE(stdout, '(A, F8.5, A, F8.5 )') "b_value = ", b_value, "    beta = ", beta        
-          WRITE(stdout,'(5X,"q_mesh =",4F12.8)') (q_mesh(I), I=1, 4)
-          WRITE(stdout,'(13X,4F12.8)') (q_mesh(I), I=5, Nqs)
+          
+          write(*,'(/ /A )') "---------------------------------------------------------------------------------"
+          write(*,'(A /)') "Carrying out rVV10 run using the following parameters:"
+          
+          write(*,'(A,I6,A,I6,A,F8.3)') "Nqs =  ",Nqs, "    Nr_points =  ", Nr_points,"   r_max =  ",r_max
+          write(*, '(A, F8.5)') "b_value = ", b_value         
+          write(*, '(A, F8.5)') "beta = ", beta        
+          write(*,'(A)',advance='no') "q_mesh =  "
+          write(*,'(F15.8)') (q_mesh(I), I=1, Nqs)
                  
-          WRITE(stdout,'(/ A )') "Gradients computed in Reciprocal space"
-          WRITE(stdout,'(/ A / /)') "---------------------------------------------------------------------------------"
+          write(*,'(/ A )') "Gradients computed in Reciprocal space"
+          write(*,'(/ A / /)') "---------------------------------------------------------------------------------"
 
           
        end if
@@ -163,7 +166,7 @@ CONTAINS
     !!
     if (iverbosity > 1) then
 
-       call mp_sum(Ec_nl,intra_bgrp_comm)
+       call mp_sum(Ec_nl,intra_pool_comm)
        if (ionode) write(*,'(/ / A /)') "     ----------------------------------------------------------------"
        if (ionode) write(*,'(A, F22.15 /)') "     Non-local correlation energy =         ", Ec_nl
        if (ionode) write(*,'(A /)') "     ----------------------------------------------------------------"
@@ -473,7 +476,7 @@ CONTAINS
            
       end do
 
-      call mp_sum(  sigma, intra_bgrp_comm )
+      call mp_sum(  sigma, intra_pool_comm )
 
       call dscal (9, 1.d0 / (dfftp%nr1 * dfftp%nr2 * dfftp%nr3), sigma, 1)
 
@@ -552,7 +555,7 @@ CONTAINS
          
       enddo
 
-      call mp_sum(  sigma, intra_bgrp_comm )
+      call mp_sum(  sigma, intra_pool_comm )
       
       deallocate( dkernel_of_dk )
       

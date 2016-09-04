@@ -44,11 +44,10 @@ MODULE bfgs_module
    !
    USE kinds,     ONLY : DP
    USE io_files,  ONLY : iunbfgs, prefix
-   USE constants, ONLY : eps8, eps16
+   USE constants, ONLY : eps16
    USE cell_base, ONLY : iforceh
    !
    USE basic_algebra_routines
-   USE matrix_inversion
    !
    IMPLICIT NONE
    !
@@ -124,7 +123,7 @@ CONTAINS
    !------------------------------------------------------------------------
    SUBROUTINE bfgs( pos_in, h, energy, grad_in, fcell, fixion, scratch, stdout,&
                  energy_thr, grad_thr, cell_thr, energy_error, grad_error,     &
-                 cell_error, lmovecell, step_accepted, stop_bfgs, istep )
+                 cell_error, istep, nstep, step_accepted, stop_bfgs, lmovecell )
       !------------------------------------------------------------------------
       !
       ! ... list of input/output arguments :
@@ -142,6 +141,7 @@ CONTAINS
       !  grad_error     : the largest component of
       !                         | grad(V(x_i)) - grad(V(x_i-1)) |
       !  cell_error     : the largest component of: omega*(stress-press*I)
+      !  nstep          : the maximun nuber of scf-steps
       !  step_accepted  : .TRUE. if a new BFGS step is done
       !  stop_bfgs      : .TRUE. if BFGS convergence has been achieved
       !
@@ -156,16 +156,17 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)    :: scratch
       INTEGER,          INTENT(IN)    :: stdout
       REAL(DP),         INTENT(IN)    :: energy_thr, grad_thr, cell_thr
-      LOGICAL,          INTENT(IN)    :: lmovecell
+      INTEGER,          INTENT(OUT)   :: istep
+      INTEGER,          INTENT(IN)    :: nstep
       REAL(DP),         INTENT(OUT)   :: energy_error, grad_error, cell_error
       LOGICAL,          INTENT(OUT)   :: step_accepted, stop_bfgs
-      INTEGER,          INTENT(OUT)   :: istep
+      LOGICAL,          INTENT(IN)    :: lmovecell
       !
       INTEGER  :: n, i, j, k, nat
       LOGICAL  :: lwolfe
       REAL(DP) :: dE0s, den
       ! ... for scaled coordinates
-      REAL(DP) :: hinv(3,3),g(3,3),ginv(3,3), omega
+      REAL(DP) :: hinv(3,3),g(3,3),ginv(3,3),garbage, omega
       !
       !
       lwolfe=.false.
@@ -196,7 +197,7 @@ CONTAINS
       ! ... the BFGS file read (pos & grad) in scaled coordinates
       !
       call invmat(3, h, hinv, omega)
-      ! volume is defined to be positive even for left-handed vector triplet
+      ! volume is defined to be positve even for left-handed vector triplet
       omega = abs(omega) 
       !
       hinv_block = 0.d0
@@ -204,7 +205,7 @@ CONTAINS
       !
       ! ... generate metric to work with scaled ionic coordinates
       g = MATMUL(TRANSPOSE(h),h)
-      call invmat(3,g,ginv)
+      call invmat(3,g,ginv,garbage)
       metric = 0.d0
       FORALL ( k=0:nat-1,   i=1:3, j=1:3 ) metric(i+3*k,j+3*k) = g(i,j)
       FORALL ( k=nat:nat+2, i=1:3, j=1:3 ) metric(i+3*k,j+3*k) = 0.04 * omega * ginv(i,j)
@@ -299,7 +300,7 @@ CONTAINS
               & FMT = '(5X,"new trust radius",T30,"= ",F18.10," bohr")' ) &
               trust_radius
          !
-         ! ... values from the last successful bfgs step are restored
+         ! ... values from the last succeseful bfgs step are restored
          !
          pos(:)  = pos_p(:)
          energy  = energy_p
@@ -427,7 +428,7 @@ CONTAINS
       !
       pos(:) = pos(:) + trust_radius * step(:)
       !
-1000  stop_bfgs = conv_bfgs
+1000  stop_bfgs = conv_bfgs .OR. ( scf_iter >= nstep ) 
       ! ... input ions+cell variables
       IF ( lmovecell ) FORALL( i=1:3, j=1:3) h(i,j) = pos( n-9 + j+3*(i-1) )
       pos_in = pos(1:n-9)
@@ -555,7 +556,9 @@ CONTAINS
       !
       INTEGER, INTENT(IN) :: n
       !
-      call invmat(n, metric, inv_hess)
+      REAL(DP) :: garbage
+      !
+      call invmat(n, metric, inv_hess, garbage)
       !
       gdiis_iter = 0
       !
@@ -577,6 +580,7 @@ CONTAINS
       !
       CHARACTER(LEN=256) :: bfgs_file
       LOGICAL            :: file_exists
+      REAL(DP) :: garbage
       !
       !
       bfgs_file = TRIM( scratch ) // TRIM( prefix ) // '.bfgs'
@@ -615,7 +619,7 @@ CONTAINS
          WRITE( UNIT = stdout, FMT = '(/,5X,"BFGS Geometry Optimization")' )
          !
          ! initialize the inv_hess to the inverse of the metric
-         call invmat(n, metric, inv_hess)
+         call invmat(n, metric, inv_hess, garbage)
          !
          pos_p      = 0.0_DP
          grad_p     = 0.0_DP
@@ -797,7 +801,7 @@ CONTAINS
    !
    !------------------------------------------------------------------------
    SUBROUTINE compute_trust_radius( lwolfe, energy, grad, n, stdout )
-      !-----------------------------------------------------------------------
+      !------------------------------------------------------------------------
       !
       IMPLICIT NONE
       !
@@ -811,14 +815,7 @@ CONTAINS
       LOGICAL  :: ltest
       !
       ltest = ( energy - energy_p ) < w_1 * ( grad_p .dot. step_old ) * trust_radius_old
-      !
-      ! The instruction below replaces the original instruction:
-      !    ltest = ltest .AND. ( nr_step_length_old > trust_radius_old )
-      ! which gives a random result if trust_radius was set equal to 
-      ! nr_step_length at previous step. I am not sure what the best 
-      ! action should be in that case, though (PG)
-      !
-      ltest = ltest .AND. ( nr_step_length_old > trust_radius_old + eps8 )
+      ltest = ltest .AND. ( nr_step_length_old > trust_radius_old )
       !
       IF ( ltest ) THEN
          a = 1.5_DP

@@ -20,7 +20,7 @@ subroutine h_epsi_her_set(pdir, e_field)
   USE spin_orb, ONLY: lspinorb
   USE kinds,    ONLY : DP
   USE us
-  USE wvfct,    ONLY : npwx, nbnd
+  USE wvfct,    ONLY : igk, g2kin, npwx, npw, nbnd, ecutwfc
   USE ldaU,     ONLY : lda_plus_u
   USE lsda_mod, ONLY : current_spin, nspin
   USE scf,      ONLY : vrs  
@@ -31,7 +31,7 @@ subroutine h_epsi_her_set(pdir, e_field)
   USE bp,         ONLY : nppstr_3d, fact_hepsi, evcel, evcp=>evcelp, &
                          evcm=>evcelm, mapgp_global, mapgm_global, nx_el
   USE klist
-  USE cell_base, ONLY: at, alat, tpiba, omega, bg
+  USE cell_base, ONLY: at, alat, tpiba, omega, tpiba2,bg
   USE ions_base, ONLY: ityp, tau, nat,ntyp => nsp
   USE io_files,  ONLY: iunwfc, nwordwfc, iunefieldm, iunefieldp
   USE buffers,   ONLY: get_buffer, save_buffer
@@ -88,6 +88,7 @@ subroutine h_epsi_her_set(pdir, e_field)
    REAL(dp) :: dkmod
    REAL(dp) :: eps
    REAL(dp) :: fac
+   REAL(dp) :: g2kin_bp(npwx)
    REAL(dp) :: gpar(3)
    REAL(dp) :: gtr(3)
    !REAL(dp) :: gvec
@@ -115,7 +116,7 @@ subroutine h_epsi_her_set(pdir, e_field)
    COMPLEX(dp) :: ps(nkb,nbnd*npol)
    COMPLEX(dp) :: matbig(nks,nbnd,nbnd)
    INTEGER :: mdone(nks)
-   INTEGER :: ijkb0,  ibnd,jh, ih, ikb, ik, ikk
+   INTEGER :: ijkb0,  ibnd,jh, ih, ikb, ik
 
 
    LOGICAL, ALLOCATABLE :: l_cal(:) ! flag for empty/occupied states
@@ -339,10 +340,8 @@ subroutine h_epsi_her_set(pdir, e_field)
 !       
       if(ik_stringa /= 1) then
 
-         ikk = nx_el(ik-1,pdir)
-         npw0   = ngk(ikk)
-         igk0(:)= igk_k(:,ikk)
-
+         CALL gk_sort(xk(1,nx_el(ik-1,pdir)),ngm,g,ecutwfc/tpiba2, &
+              &    npw0,igk0,g2kin_bp) 
          CALL get_buffer (evct,nwordwfc,iunwfc,nx_el(ik-1,pdir))
 !        
 !           --- Calculate dot products between wavefunctions
@@ -354,10 +353,8 @@ subroutine h_epsi_her_set(pdir, e_field)
          endif
 !              --- Dot wavefunctions and betas for CURRENT k-point ---
          
-         ikk = nx_el(ik,pdir)
-         npw1   = ngk(ikk)
-         igk1(:)= igk_k(:,ikk)
-
+         CALL gk_sort(xk(1,nx_el(ik,pdir)),ngm,g,ecutwfc/tpiba2, &
+              &            npw1,igk1,g2kin_bp)        
          !  --- Recalculate FFT correspondence (see ggen.f90) ---
 
          ln0=0!set array to 0
@@ -555,10 +552,8 @@ subroutine h_epsi_her_set(pdir, e_field)
 !           --- End of dot products between wavefunctions and betas ---
       ELSE !(ik_stringa == 1)
       
-         ikk = nx_el(ik+nppstr_3d(pdir)-1,pdir)
-         npw0   = ngk(ikk)
-         igk0(:)= igk_k(:,ikk)
-
+         CALL gk_sort(xk(1,nx_el(ik+nppstr_3d(pdir)-1,pdir)),ngm,g,ecutwfc/tpiba2, &
+           &   npw0,igk0,g2kin_bp) 
          CALL get_buffer (evct,nwordwfc,iunwfc,nx_el(ik+nppstr_3d(pdir)-1,pdir))
 !        
 
@@ -572,10 +567,8 @@ subroutine h_epsi_her_set(pdir, e_field)
          endif
 !              --- Dot wavefunctions and betas for CURRENT k-point ---
          
-         ikk = nx_el(ik,pdir)
-         npw1   = ngk(ikk)
-         igk1(:)= igk_k(:,ikk)
-
+         CALL gk_sort(xk(1,nx_el(ik,pdir)),ngm,g,ecutwfc/tpiba2, &
+            &                   npw1,igk1,g2kin_bp)        
          !  --- Recalculate FFT correspondence (see ggen.f90) ---
 
          if(.not.l_para) then
@@ -872,10 +865,8 @@ subroutine h_epsi_her_set(pdir, e_field)
     
 !       
       if(ik_stringa /= nppstr_3d(pdir)) then
-         ikk = nx_el(ik+1,pdir)
-         npw0   = ngk(ikk)
-         igk0(:)= igk_k(:,ikk)
-
+         CALL gk_sort(xk(1,nx_el(ik+1,pdir)),ngm,g,ecutwfc/tpiba2, &
+           &    npw0,igk0,g2kin_bp) 
          CALL get_buffer (evct,nwordwfc,iunwfc,nx_el(ik+1,pdir))
 !        
 
@@ -889,10 +880,8 @@ subroutine h_epsi_her_set(pdir, e_field)
          endif
 !              --- Dot wavefunctions and betas for CURRENT k-point ---
          
-         ikk = nx_el(ik,pdir)
-         npw1   = ngk(ikk)
-         igk1(:)= igk_k(:,ikk)
-
+         CALL gk_sort(xk(1,nx_el(ik,pdir)),ngm,g,ecutwfc/tpiba2, &
+              &                    npw1,igk1,g2kin_bp)        
          !  --- Recalculate FFT correspondence (see ggen.f90) ---
 
          ln0=0!set to  0
@@ -1098,11 +1087,9 @@ subroutine h_epsi_her_set(pdir, e_field)
 !           --- End of dot products between wavefunctions and betas ---
      
    else
-      
-      ikk = nx_el(ik-nppstr_3d(pdir)+1,pdir)
-      npw0   = ngk(ikk)
-      igk0(:)= igk_k(:,ikk)
-
+     
+      CALL gk_sort(xk(1,nx_el(ik-nppstr_3d(pdir)+1,pdir)),ngm,g,ecutwfc/tpiba2, &
+           &    npw0,igk0,g2kin_bp) 
       CALL get_buffer (evct,nwordwfc,iunwfc,nx_el(ik-nppstr_3d(pdir)+1,pdir))
 !        
 
@@ -1116,10 +1103,8 @@ subroutine h_epsi_her_set(pdir, e_field)
       endif
 !              --- Dot wavefunctions and betas for CURRENT k-point ---
          
-      ikk = nx_el(ik,pdir)
-      npw1   = ngk(ikk)
-      igk1(:)= igk_k(:,ikk)
-
+      CALL gk_sort(xk(1,nx_el(ik,pdir)),ngm,g,ecutwfc/tpiba2, &
+                 &              npw1,igk1,g2kin_bp)        
          !  --- Recalculate FFT correspondence (see ggen.f90) ---
 
       if(.not.l_para) then

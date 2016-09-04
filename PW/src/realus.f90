@@ -5,6 +5,7 @@
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
+!
 !----------------------------------------------------------------------------
 MODULE realus
   !----------------------------------------------------------------------------
@@ -17,7 +18,6 @@ MODULE realus
   ! ... modified by P. Umari and G. Stenuit (2009)
   ! ... Cleanup, GWW-specific stuff moved out by P. Giannozzi (2015)
   ! ... Computation of dQ/dtau_i needed for forces added by P. Giannozzi (2015)
-  ! ... Some comments about the way some routines act added by S. de Gironcoli  (2015)
   !
   IMPLICIT NONE
   REAL(DP), ALLOCATABLE :: boxrad(:) ! radius of boxes, does not depend on the grid
@@ -35,6 +35,12 @@ MODULE realus
   ! init_realspace_vars sets this to 3; qpointlist adds 5; betapointlist adds 7
   ! so the value should be 15 if the real space routine is initialised properly
 
+  INTEGER, ALLOCATABLE :: &
+       igk_k(:,:),&       ! The g<->k correspondance for each k point
+       npw_k(:)           ! number of plane waves at each k point
+  ! They are (used many times, it is much better to hold them in memory
+  ! FIXME: npw_k is redundant. it is already there
+  !
   COMPLEX(DP), ALLOCATABLE :: tg_psic(:)
   COMPLEX(DP), ALLOCATABLE :: psic_temp(:),tg_psic_temp(:) !Copies of psic and tg_psic
   COMPLEX(DP), ALLOCATABLE :: tg_vrs(:) !task groups linear V memory
@@ -60,12 +66,12 @@ MODULE realus
   !
   PRIVATE
   ! variables for real-space Q, followed by routines
-  PUBLIC :: tabp, tabs, boxrad, realsp_augmentation
+  PUBLIC :: tabp, tabs, boxrad
   PUBLIC :: generate_qpointlist, qpointlist, addusdens_r, newq_r, &
        addusforce_r, real_space_dq, deallocate_realsp
   ! variables for real-space beta, followed by routines
   PUBLIC :: real_space, initialisation_level, real_space_debug, &
-       tg_psic, betasave, maxbox_beta, box_beta
+       npw_k, igk_k, tg_psic, betasave, maxbox_beta, box_beta
   PUBLIC :: betapointlist, init_realspace_vars, v_loc_psir
   PUBLIC :: invfft_orbital_gamma, fwfft_orbital_gamma, s_psir_gamma, &
             calbec_rs_gamma, add_vuspsir_gamma, invfft_orbital_k,    &
@@ -106,6 +112,10 @@ MODULE realus
     !---------------------------------------------------------------------------
     !This subroutine should be called to allocate/reset real space related variables.
     !---------------------------------------------------------------------------
+     USE wvfct,                ONLY : npwx,npw, igk, g2kin, ecutwfc
+     USE klist,                ONLY : nks, xk
+     USE gvect,                ONLY : ngm, g
+     USE cell_base,            ONLY : tpiba2
      USE control_flags,        ONLY : tqr
      USE fft_base,             ONLY : dffts
      USE io_global,            ONLY : stdout
@@ -117,8 +127,12 @@ MODULE realus
 
      !print *, "<<<<<init_realspace_vars>>>>>>>"
 
-     !real space, allocation for task group fft work arrays
+     IF ( allocated( igk_k ) )     DEALLOCATE( igk_k )
+     IF ( allocated( npw_k ) )     DEALLOCATE( npw_k )
 
+     ALLOCATE(igk_k(npwx,nks))
+     ALLOCATE(npw_k(nks))
+     !real space, allocation for task group fft work arrays
      IF( dffts%have_task_groups ) THEN
         !
         IF (allocated( tg_psic ) ) DEALLOCATE( tg_psic )
@@ -128,6 +142,14 @@ MODULE realus
         !
      ENDIF
      !
+     DO ik=1,nks
+      !
+      CALL gk_sort( xk(1,ik), ngm, g, ( ecutwfc / tpiba2 ), npw, igk, g2kin )
+      npw_k(ik) = npw
+      igk_k(:,ik) = igk(:)
+      !
+     ENDDO
+
      initialisation_level = initialisation_level + 7
      IF (real_space_debug > 20 .and. real_space_debug < 30) THEN
        real_space=.false.
@@ -306,9 +328,7 @@ MODULE realus
          !
          mbia = 0
          !
-         ! ... The do loop includes only planes that belong to this processor
-         !
-         DO ir = 1, dfft%nr1x*dfft%nr2x * dfft%npl
+         DO ir = 1, dfft%nnr
             !
             ! ... three dimensional indices (i,j,k)
             !
@@ -319,9 +339,9 @@ MODULE realus
             idx   = idx - dfft%nr1x*j
             i     = idx
             !
-            ! ... do not include points outside the physical range 
+            ! ... do not include points outside the physical range!
             !
-            IF ( i >= dfft%nr1 .OR. j >= dfft%nr2 .OR. k >= dfft%nr3 ) CYCLE
+            IF ( i >= dfft%nr1 .or. j >= dfft%nr2 .or. k >= dfft%nr3 ) CYCLE
             !
             DO ipol = 1, 3
                posi(ipol) = dble( i )*inv_nr1*at(ipol,1) + &
@@ -1320,11 +1340,11 @@ MODULE realus
     END SUBROUTINE addusforce_r
     !
     !--------------------------------------------------------------------------
-    SUBROUTINE calbec_rs_gamma ( ibnd, last, becp_r )
+    SUBROUTINE calbec_rs_gamma ( ibnd, m, becp_r )
 
   !--------------------------------------------------------------------------
   !
-  ! Subroutine written by Dario Rocca, Stefano de Gironcoli, modified by O. Baris Malcioglu
+  ! Subroutine written by Dario Rocca Stefano de Gironcoli, modified by O. Baris Malcioglu
   !
   ! Calculates becp_r in real space
   ! Requires BETASAVE (the beta functions at real space) calculated by betapointlist()
@@ -1344,14 +1364,13 @@ MODULE realus
     USE wavefunctions_module,  ONLY : psic
     USE ions_base,             ONLY : nat, ntyp => nsp, ityp
     USE uspp_param,            ONLY : nh, nhm
-    USE fft_base,              ONLY : dffts
-    USE fft_parallel,          ONLY : tg_gather
+    USE fft_base,              ONLY : tg_gather, dffts
     USE mp_bands,              ONLY : intra_bgrp_comm
     USE mp,        ONLY : mp_sum
     !
     IMPLICIT NONE
     !
-    INTEGER, INTENT(in) :: ibnd, last
+    INTEGER, INTENT(in) :: ibnd, m
     INTEGER :: ikb, nt, ia, ih, mbia
     REAL(DP) :: fac
     REAL(DP), ALLOCATABLE, DIMENSION(:) :: wr, wi
@@ -1363,7 +1382,7 @@ MODULE realus
     !
     CALL start_clock( 'calbec_rs' )
     !
-    IF( ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp ) ) THEN
+    IF( ( dffts%have_task_groups ) .and. ( m >= dffts%nogrp ) ) THEN
 
      CALL errore( 'calbec_rs_gamma', 'task_groups not implemented', 1 )
 
@@ -1372,8 +1391,8 @@ MODULE realus
     fac = sqrt(omega) / (dffts%nr1*dffts%nr2*dffts%nr3)
     !
     becp_r(:,ibnd)=0.d0
-    IF ( ibnd+1 <= last ) becp_r(:,ibnd+1)=0.d0
-    ! Clearly for an odd number of bands for ibnd=nbnd=last you don't have
+    IF ( ibnd+1 <= m ) becp_r(:,ibnd+1)=0.d0
+    ! Clearly for an odd number of bands for ibnd=nbnd=m you don't have
     ! anymore bands, and so the imaginary part equal zero
     !
        !
@@ -1412,7 +1431,7 @@ MODULE realus
                    ! in the previous two lines the real space integral is performed, using
                    ! few points of the real space mesh only
                    becp_r(ikb,ibnd)   = fac * bcr
-                   IF ( ibnd+1 <= last ) becp_r(ikb,ibnd+1) = fac * bci
+                   IF ( ibnd+1 <= m ) becp_r(ikb,ibnd+1) = fac * bci
                    ! It is necessary to multiply by fac which to obtain the integral
                    ! in real space
                    !print *, becp_r(ikb,ibnd)
@@ -1430,14 +1449,14 @@ MODULE realus
        !
     ENDIF
     CALL mp_sum( becp_r( :, ibnd ), intra_bgrp_comm )
-    IF ( ibnd+1 <= last ) CALL mp_sum( becp_r( :, ibnd+1 ), intra_bgrp_comm )
+    IF ( ibnd+1 <= m ) CALL mp_sum( becp_r( :, ibnd+1 ), intra_bgrp_comm )
     CALL stop_clock( 'calbec_rs' )
     !
     RETURN
 
   END SUBROUTINE calbec_rs_gamma
     !
-    SUBROUTINE calbec_rs_k ( ibnd, last )
+    SUBROUTINE calbec_rs_k ( ibnd, m )
     !--------------------------------------------------------------------------
     ! The k_point generalised version of calbec_rs_gamma. Basically same as above,
     ! but becp is used instead of becp_r, skipping the gamma point reduction
@@ -1448,12 +1467,11 @@ MODULE realus
     USE ions_base,             ONLY : nat, ntyp => nsp, ityp
     USE uspp_param,            ONLY : nh, nhm
     USE becmod,                ONLY : bec_type, becp
-    USE fft_base,              ONLY : dffts
-    USE fft_parallel,          ONLY : tg_gather
+    USE fft_base,              ONLY : tg_gather, dffts
     !
     IMPLICIT NONE
     !
-    INTEGER, INTENT(in) :: ibnd, last
+    INTEGER, INTENT(in) :: ibnd, m
     INTEGER :: ikb, nt, ia, ih, mbia
     REAL(DP) :: fac
     REAL(DP), ALLOCATABLE, DIMENSION(:) :: wr, wi
@@ -1466,7 +1484,7 @@ MODULE realus
     !
     CALL start_clock( 'calbec_rs' )
     !
-    IF( ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp ) ) THEN
+    IF( ( dffts%have_task_groups ) .and. ( m >= dffts%nogrp ) ) THEN
 
      CALL errore( 'calbec_rs_k', 'task_groups not implemented', 1 )
 
@@ -1512,12 +1530,11 @@ MODULE realus
 
   END SUBROUTINE calbec_rs_k
     !--------------------------------------------------------------------------
-    SUBROUTINE s_psir_gamma ( ibnd, last )
+    SUBROUTINE s_psir_gamma ( ibnd, m )
     !--------------------------------------------------------------------------
     !
-    ! ... This routine applies the S matrix to wfc ibnd (and wfc ibnd+1 if <= last)
-    ! ... stored in real space in psic, and puts the results again in psic for 
-    ! ... backtransforming.
+    ! ... This routine applies the S matrix to m wavefunctions psi in real space 
+    ! ... (in psic), and puts the results again in psic for backtransforming.
     ! ... Requires becp%r (calbecr in REAL SPACE) and betasave (from betapointlist
     ! ... in realus)
     ! Subroutine written by Dario Rocca, modified by O. Baris Malcioglu
@@ -1531,12 +1548,11 @@ MODULE realus
       USE lsda_mod,               ONLY : current_spin
       USE uspp,                   ONLY : qq
       USE becmod,                 ONLY : bec_type, becp
-      USE fft_base,               ONLY : dffts
-      USE fft_parallel,           ONLY : tg_gather
+      USE fft_base,               ONLY : tg_gather, dffts
       !
       IMPLICIT NONE
       !
-      INTEGER, INTENT(in) :: ibnd, last
+      INTEGER, INTENT(in) :: ibnd, m
       !
       INTEGER :: ih, jh, ikb, jkb, nt, ia, ir, mbia
       REAL(DP) :: fac
@@ -1545,7 +1561,7 @@ MODULE realus
       REAL(DP), EXTERNAL :: ddot
       !
       CALL start_clock( 's_psir' )
-      IF( ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp ) ) THEN
+      IF( ( dffts%have_task_groups ) .and. ( m >= dffts%nogrp ) ) THEN
          CALL errore( 's_psir_gamma', 'task_groups not implemented', 1 )
       ELSE
       ! non task groups part starts here
@@ -1570,7 +1586,7 @@ MODULE realus
                   DO jh = 1, nh(nt)
                      jkb = ikb + jh
                      w1(ih) = w1(ih) + qq(ih,jh,nt) * becp%r(jkb, ibnd)
-                     IF ( ibnd+1 <= last ) w2(ih) = w2(ih) + qq(ih,jh,nt) * becp%r(jkb, ibnd+1)
+                     IF ( ibnd+1 <= m ) w2(ih) = w2(ih) + qq(ih,jh,nt) * becp%r(jkb, ibnd+1)
                   ENDDO
                ENDDO
                !
@@ -1601,7 +1617,7 @@ MODULE realus
       !
   END SUBROUTINE s_psir_gamma
   !
-  SUBROUTINE s_psir_k ( ibnd, last )
+  SUBROUTINE s_psir_k ( ibnd, m )
   !--------------------------------------------------------------------------
   ! Same as s_psir_gamma but for generalised k point scheme i.e.:
   ! 1) Only one band is considered at a time
@@ -1615,12 +1631,11 @@ MODULE realus
       USE lsda_mod,               ONLY : current_spin
       USE uspp,                   ONLY : qq
       USE becmod,                 ONLY : bec_type, becp
-      USE fft_base,               ONLY : dffts
-      USE fft_parallel,           ONLY : tg_gather
+      USE fft_base,               ONLY : tg_gather, dffts
       !
       IMPLICIT NONE
       !
-      INTEGER, INTENT(in) :: ibnd, last
+      INTEGER, INTENT(in) :: ibnd, m
       !
       INTEGER :: ih, jh, ikb, jkb, nt, ia, ir, mbia
       REAL(DP) :: fac
@@ -1630,7 +1645,7 @@ MODULE realus
       !
 
       CALL start_clock( 's_psir' )
-      IF( ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp ) ) THEN
+      IF( ( dffts%have_task_groups ) .and. ( m >= dffts%nogrp ) ) THEN
         CALL errore( 's_psir_k', 'task_groups not implemented', 1 )
       ELSE
       !non task groups part starts here
@@ -1684,14 +1699,14 @@ MODULE realus
       !
   END SUBROUTINE s_psir_k
   !
-  SUBROUTINE add_vuspsir_gamma ( ibnd, last )
+  SUBROUTINE add_vuspsir_gamma ( ibnd, m )
   !--------------------------------------------------------------------------
   !
   !    This routine applies the Ultra-Soft Hamiltonian to a
   !    vector transformed in real space contained in psic.
-  !    ibnd is an index that runs up to band last. 
+  !    ibnd is an index that runs over the number of bands, which is given by m
   !    Requires the products of psi with all beta functions
-  !    in array becp%r(nkb,last) (calculated by calbecr in REAL SPACE)
+  !    in array becp%r(nkb,m) (calculated by calbecr in REAL SPACE)
   ! Subroutine written by Dario Rocca, modified by O. Baris Malcioglu
   ! WARNING ! for the sake of speed, no checks performed in this subroutine
 
@@ -1703,12 +1718,11 @@ MODULE realus
   USE lsda_mod,               ONLY : current_spin
   USE uspp,                   ONLY : deeq
   USE becmod,                 ONLY : bec_type, becp
-  USE fft_base,               ONLY : dffts
-  USE fft_parallel,           ONLY : tg_gather
+  USE fft_base,               ONLY : tg_gather, dffts
   !
   IMPLICIT NONE
   !
-  INTEGER, INTENT(in) :: ibnd, last
+  INTEGER, INTENT(in) :: ibnd, m
   !
   INTEGER :: ih, jh, ikb, jkb, nt, ia, ir, mbia
   REAL(DP) :: fac
@@ -1718,7 +1732,7 @@ MODULE realus
   !
   CALL start_clock( 'add_vuspsir' )
 
-  IF( ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp ) ) THEN
+  IF( ( dffts%have_task_groups ) .and. ( m >= dffts%nogrp ) ) THEN
 
     CALL errore( 'add_vuspsir_gamma', 'task_groups not implemented', 1 )
 
@@ -1747,7 +1761,7 @@ MODULE realus
                   jkb = ikb + jh
                   !
                   w1(ih) = w1(ih) + deeq(ih,jh,ia,current_spin) * becp%r(jkb,ibnd)
-                  IF ( ibnd+1 <= last )  w2(ih) = w2(ih) + deeq(ih,jh,ia,current_spin)* &
+                  IF ( ibnd+1 <= m )  w2(ih) = w2(ih) + deeq(ih,jh,ia,current_spin)* &
                        becp%r(jkb,ibnd+1)
                   !
                ENDDO
@@ -1784,14 +1798,14 @@ MODULE realus
   !
   END SUBROUTINE add_vuspsir_gamma
   !
-  SUBROUTINE add_vuspsir_k ( ibnd, last )
+  SUBROUTINE add_vuspsir_k ( ibnd, m )
   !--------------------------------------------------------------------------
   !
   !    This routine applies the Ultra-Soft Hamiltonian to a
   !    vector transformed in real space contained in psic.
-  !    ibnd is an index that runs up to band las.
+  !    ibnd is an index that runs over the number of bands, which is given by m
   !    Requires the products of psi with all beta functions
-  !    in array becp(nkb,last) (calculated by calbecr in REAL SPACE)
+  !    in array becp(nkb,m) (calculated by calbecr in REAL SPACE)
   ! Subroutine written by Stefano de Gironcoli, modified by O. Baris Malcioglu
   ! WARNING ! for the sake of speed, no checks performed in this subroutine
   !
@@ -1803,12 +1817,11 @@ MODULE realus
   USE lsda_mod,               ONLY : current_spin
   USE uspp,                   ONLY : deeq
   USE becmod,                 ONLY : bec_type, becp
-  USE fft_base,               ONLY : dffts
-  USE fft_parallel,           ONLY : tg_gather
+  USE fft_base,               ONLY : tg_gather, dffts
   !
   IMPLICIT NONE
   !
-  INTEGER, INTENT(in) :: ibnd, last
+  INTEGER, INTENT(in) :: ibnd, m
   !
   INTEGER :: ih, jh, ikb, jkb, nt, ia, ir, mbia
   REAL(DP) :: fac
@@ -1819,7 +1832,7 @@ MODULE realus
   !
   CALL start_clock( 'add_vuspsir' )
 
-  IF( ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp ) ) THEN
+  IF( ( dffts%have_task_groups ) .and. ( m >= dffts%nogrp ) ) THEN
     CALL errore( 'add_vuspsir_k', 'task_groups not implemented', 1 )
   ELSE
    ! non task groups part starts here
@@ -1878,32 +1891,26 @@ MODULE realus
   END SUBROUTINE add_vuspsir_k
 
   !--------------------------------------------------------------------------
-  SUBROUTINE invfft_orbital_gamma (orbital, ibnd, last, conserved)
+  SUBROUTINE invfft_orbital_gamma (orbital, ibnd, nbnd, conserved)
   !--------------------------------------------------------------------------
   !
   ! OBM 241008
   ! This driver subroutine transforms the given orbital using fft and puts the
   ! result in psic
   ! Warning! In order to be fast, no checks on the supplied data are performed!
-  !
-  ! orbital: the array of orbitals to be transformed
-  ! ibnd: band index of the band currently being transformed
-  ! last: index of the last band you want to transform (usually the total number 
-  !       of bands but can be different in band parallelization)
-  !
-    USE wavefunctions_module, &
-                       ONLY : psic
-    USE gvecs,         ONLY : nls,nlsm,doublegrid
-    USE klist,         ONLY : ngk, igk_k
+  ! orbital: the orbital to be transformed
+  ! ibnd: band index
+  ! nbnd: total number of bands
+    USE wavefunctions_module,     ONLY : psic
+    USE gvecs,                  ONLY : nls,nlsm,doublegrid
     USE kinds,         ONLY : DP
-    USE fft_base,      ONLY : dffts
-    USE fft_parallel,  ONLY : tg_gather
+    USE fft_base,      ONLY : dffts, tg_gather
     USE fft_interfaces,ONLY : invfft
 
     IMPLICIT NONE
 
-    INTEGER, INTENT(in) :: ibnd,& ! index of the band currently being transformed
-                           last   ! index of the last band that you want to transform
+    INTEGER, INTENT(in) :: ibnd,& ! Current index of the band currently being transformed
+                           nbnd ! Total number of bands you want to transform
 
     COMPLEX(DP),INTENT(in) :: orbital(:,:)
     LOGICAL, OPTIONAL :: conserved
@@ -1924,7 +1931,7 @@ MODULE realus
     ! the number of bands is smaller than the number of task groups
     !
     use_tg = dffts%have_task_groups
-    dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp )
+    dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( nbnd >= dffts%nogrp )
 
     IF( dffts%have_task_groups ) THEN
         !
@@ -1934,15 +1941,15 @@ MODULE realus
         !
         DO idx = 1, 2*dffts%nogrp, 2
 
-           IF( idx + ibnd - 1 < last ) THEN
-              DO j = 1, ngk(1)
+           IF( idx + ibnd - 1 < nbnd ) THEN
+              DO j = 1, npw_k(1)
                  tg_psic(nls (igk_k(j,1))+ioff) =      orbital(j,idx+ibnd-1) +&
                       (0.0d0,1.d0) * orbital(j,idx+ibnd)
                  tg_psic(nlsm(igk_k(j,1))+ioff) =conjg(orbital(j,idx+ibnd-1) -&
                       (0.0d0,1.d0) * orbital(j,idx+ibnd) )
               ENDDO
-           ELSEIF( idx + ibnd - 1 == last ) THEN
-              DO j = 1, ngk(1)
+           ELSEIF( idx + ibnd - 1 == nbnd ) THEN
+              DO j = 1, npw_k(1)
                  tg_psic(nls (igk_k(j,1))+ioff) =        orbital(j,idx+ibnd-1)
                  tg_psic(nlsm(igk_k(j,1))+ioff) = conjg( orbital(j,idx+ibnd-1))
               ENDDO
@@ -1967,14 +1974,14 @@ MODULE realus
         !
         psic(:) = (0.d0, 0.d0)
 
-        IF (ibnd < last) THEN
+        IF (ibnd < nbnd) THEN
            ! two ffts at the same time
-           DO j = 1, ngk(1)
+           DO j = 1, npw_k(1)
               psic (nls (igk_k(j,1))) =       orbital(j, ibnd) + (0.0d0,1.d0)*orbital(j, ibnd+1)
               psic (nlsm(igk_k(j,1))) = conjg(orbital(j, ibnd) - (0.0d0,1.d0)*orbital(j, ibnd+1))
            ENDDO
         ELSE
-           DO j = 1, ngk(1)
+           DO j = 1, npw_k(1)
               psic (nls (igk_k(j,1))) =       orbital(j, ibnd)
               psic (nlsm(igk_k(j,1))) = conjg(orbital(j, ibnd))
            ENDDO
@@ -1999,7 +2006,7 @@ MODULE realus
   !
   !
   !--------------------------------------------------------------------------
-  SUBROUTINE fwfft_orbital_gamma (orbital, ibnd, last,conserved)
+  SUBROUTINE fwfft_orbital_gamma (orbital, ibnd, nbnd,conserved)
   !--------------------------------------------------------------------------
   !
   ! OBM 241008
@@ -2008,26 +2015,20 @@ MODULE realus
   ! Warning! This subroutine does not reset the orbital, use carefully!
   ! Warning 2! In order to be fast, no checks on the supplied data are performed!
   ! Variables:
-  !
-  ! orbital: the array of orbitals to be transformed
-  ! ibnd: band index of the band currently being transformed
-  ! last: index of the last band you want to transform (usually the total number 
-  !       of bands but can be different in band parallelization)
-  !
-    USE wavefunctions_module, &
-                       ONLY : psic
-    USE klist,         ONLY : ngk, igk_k
-    USE gvecs,         ONLY : nls,nlsm,doublegrid
+  ! orbital: the orbital to be transformed
+  ! ibnd: band index
+  ! nbnd: total number of bands
+    USE wavefunctions_module,     ONLY : psic
+    USE gvecs,                  ONLY : nls,nlsm,doublegrid
     USE kinds,         ONLY : DP
-    USE fft_base,      ONLY : dffts
-    USE fft_parallel,  ONLY : tg_gather
+    USE fft_base,      ONLY : dffts, tg_gather
     USE fft_interfaces,ONLY : fwfft
     USE mp_bands,      ONLY : me_bgrp
 
     IMPLICIT NONE
 
-    INTEGER, INTENT(in) :: ibnd,& ! index of the band currently being transformed
-                           last   ! index of the last band that you want to transform
+    INTEGER, INTENT(in) :: ibnd,& ! Current index of the band currently being transformed
+                           nbnd ! Total number of bands you want to transform
 
     COMPLEX(DP),INTENT(out) :: orbital(:,:)
 
@@ -2045,7 +2046,7 @@ MODULE realus
     CALL start_clock( 'fwfft_orbital' )
     !New task_groups versions
     use_tg = dffts%have_task_groups
-    dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp )
+    dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( nbnd >= dffts%nogrp )
     IF( dffts%have_task_groups ) THEN
        !
         CALL fwfft ('Wave', tg_psic, dffts )
@@ -2054,8 +2055,8 @@ MODULE realus
         !
         DO idx = 1, 2*dffts%nogrp, 2
            !
-           IF( idx + ibnd - 1 < last ) THEN
-              DO j = 1, ngk(1)
+           IF( idx + ibnd - 1 < nbnd ) THEN
+              DO j = 1, npw_k(1)
                  fp= ( tg_psic( nls(igk_k(j,1)) + ioff ) +  &
                       tg_psic( nlsm(igk_k(j,1)) + ioff ) ) * 0.5d0
                  fm= ( tg_psic( nls(igk_k(j,1)) + ioff ) -  &
@@ -2063,8 +2064,8 @@ MODULE realus
                  orbital (j, ibnd+idx-1) =  cmplx( dble(fp), aimag(fm),kind=DP)
                  orbital (j, ibnd+idx  ) =  cmplx(aimag(fp),- dble(fm),kind=DP)
               ENDDO
-           ELSEIF( idx + ibnd - 1 == last ) THEN
-              DO j = 1, ngk(1)
+           ELSEIF( idx + ibnd - 1 == nbnd ) THEN
+              DO j = 1, npw_k(1)
                  orbital (j, ibnd+idx-1) =  tg_psic( nls(igk_k(j,1)) + ioff )
               ENDDO
            ENDIF
@@ -2084,17 +2085,17 @@ MODULE realus
         CALL fwfft ('Wave', psic, dffts)
 
 
-        IF (ibnd < last) THEN
+        IF (ibnd < nbnd) THEN
 
            ! two ffts at the same time
-           DO j = 1, ngk(1)
+           DO j = 1, npw_k(1)
               fp = (psic (nls(igk_k(j,1))) + psic (nlsm(igk_k(j,1))))*0.5d0
               fm = (psic (nls(igk_k(j,1))) - psic (nlsm(igk_k(j,1))))*0.5d0
               orbital( j, ibnd)   = cmplx( dble(fp), aimag(fm),kind=DP)
               orbital( j, ibnd+1) = cmplx(aimag(fp),- dble(fm),kind=DP)
            ENDDO
         ELSE
-           DO j = 1, ngk(1)
+           DO j = 1, npw_k(1)
               orbital(j, ibnd)   =  psic (nls(igk_k(j,1)))
            ENDDO
         ENDIF
@@ -2111,31 +2112,26 @@ MODULE realus
   END SUBROUTINE fwfft_orbital_gamma
   !
   !--------------------------------------------------------------------------
-  SUBROUTINE invfft_orbital_k (orbital, ibnd, last, ik, conserved)
+  SUBROUTINE invfft_orbital_k (orbital, ibnd, nbnd, ik, conserved)
   !--------------------------------------------------------------------------
   !
   ! OBM 110908
   ! This subroutine transforms the given orbital using fft and puts the result
   ! in psic
   ! Warning! In order to be fast, no checks on the supplied data are performed!
-  !
-  ! orbital: the array of orbitals to be transformed
-  ! ibnd: band index of the band currently being transformed
-  ! last: index of the last band you want to transform (usually the total number 
-  !       of bands but can be different in band parallelization)
-  ! ik:   kpoint index of the bands
-  !
+  ! orbital: the orbital to be transformed
+  ! ibnd: band index
+  ! nbnd: total number of bands
     USE kinds,                    ONLY : DP
     USE wavefunctions_module,     ONLY : psic
-    USE klist,                    ONLY : ngk, igk_k
     USE gvecs,                    ONLY : nls, nlsm, doublegrid
     USE fft_base,                 ONLY : dffts
     USE fft_interfaces,           ONLY : invfft
 
     IMPLICIT NONE
 
-    INTEGER, INTENT(in) :: ibnd,& ! index of the band currently being transformed
-                           last,& ! index of the last band that you want to transform
+    INTEGER, INTENT(in) :: ibnd,& ! Index of the band currently being transformed
+                           nbnd,& ! Total number of bands you want to transform
                            ik     ! kpoint index of the bands
 
     COMPLEX(DP),INTENT(in) :: orbital(:,:)
@@ -2148,7 +2144,7 @@ MODULE realus
 
     CALL start_clock( 'invfft_orbital' )
     use_tg = dffts%have_task_groups
-    dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp )
+    dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( nbnd >= dffts%nogrp )
 
     IF( dffts%have_task_groups ) THEN
        !
@@ -2157,7 +2153,7 @@ MODULE realus
        !
        DO idx = 1, dffts%nogrp
           !
-          IF( idx + ibnd - 1 <= last ) THEN
+          IF( idx + ibnd - 1 <= nbnd ) THEN
              !DO j = 1, size(orbital,1)
              tg_psic( nls( igk_k(:, ik) ) + ioff ) = orbital(:,idx+ibnd-1)
              !END DO
@@ -2180,7 +2176,7 @@ MODULE realus
        !
        psic(1:dffts%nnr) = ( 0.D0, 0.D0 )
        !
-       psic(nls(igk_k(1:ngk(ik), ik))) = orbital(1:ngk(ik),ibnd)
+       psic(nls(igk_k(1:npw_k(ik), ik))) = orbital(1:npw_k(ik),ibnd)
        !
        CALL invfft ('Wave', psic, dffts)
        IF (present(conserved)) THEN
@@ -2195,22 +2191,17 @@ MODULE realus
     CALL stop_clock( 'invfft_orbital' )
   END SUBROUTINE invfft_orbital_k
   !--------------------------------------------------------------------------
-  SUBROUTINE fwfft_orbital_k (orbital, ibnd, last, ik, conserved)
+  SUBROUTINE fwfft_orbital_k (orbital, ibnd, nbnd, ik, conserved)
     !--------------------------------------------------------------------------
     !
     ! OBM 110908
     ! This subroutine transforms the given orbital using fft and puts the result
     ! in psic
     ! Warning! In order to be fast, no checks on the supplied data are performed!
-    !
-    ! orbital: the array of orbitals to be transformed
-    ! ibnd: band index of the band currently being transformed
-    ! last: index of the last band you want to transform (usually the total number 
-    !       of bands but can be different in band parallelization)
-    ! ik:   kpoint index of the bands
-    !
+    ! orbital: the orbital to be transformed
+    ! ibnd: band index
+    ! nbnd: total number of bands
     USE wavefunctions_module,     ONLY : psic
-    USE klist,                    ONLY : ngk, igk_k
     USE gvecs,                    ONLY : nls, nlsm, doublegrid
     USE kinds,                    ONLY : DP
     USE fft_base,                 ONLY : dffts
@@ -2219,8 +2210,8 @@ MODULE realus
 
     IMPLICIT NONE
 
-    INTEGER, INTENT(in) :: ibnd,& ! index of the band currently being transformed
-                           last,& ! index of the last band that you want to transform
+    INTEGER, INTENT(in) :: ibnd,& ! Index of the band currently being transformed
+                           nbnd,& ! Total number of bands you want to transform
                            ik     ! kpoint index of the bands
     COMPLEX(DP),INTENT(out) :: orbital(:,:)
     LOGICAL, OPTIONAL :: conserved
@@ -2232,7 +2223,7 @@ MODULE realus
 
    CALL start_clock( 'fwfft_orbital' )
    use_tg = dffts%have_task_groups
-   dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( last >= dffts%nogrp )
+   dffts%have_task_groups = ( dffts%have_task_groups ) .and. ( nbnd >= dffts%nogrp )
 
     IF( dffts%have_task_groups ) THEN
        !
@@ -2242,7 +2233,7 @@ MODULE realus
        !
        DO idx = 1, dffts%nogrp
           !
-          IF( idx + ibnd - 1 <= last ) THEN
+          IF( idx + ibnd - 1 <= nbnd ) THEN
              orbital (:, ibnd+idx-1) = tg_psic( nls(igk_k(:,ik)) + ioff )
           ENDIF
           !
@@ -2259,7 +2250,7 @@ MODULE realus
        !
        CALL fwfft ('Wave', psic, dffts)
        !
-       orbital(1:ngk(ik),ibnd) = psic(nls(igk_k(1:ngk(ik),ik)))
+       orbital(1:npw_k(ik),ibnd) = psic(nls(igk_k(1:npw_k(ik),ik)))
        !
        IF (present(conserved)) THEN
           IF (conserved .eqv. .true.) THEN
@@ -2273,18 +2264,16 @@ MODULE realus
   END SUBROUTINE fwfft_orbital_k
 
   !--------------------------------------------------------------------------
-  SUBROUTINE v_loc_psir (ibnd, last)
+  SUBROUTINE v_loc_psir (ibnd, nbnd)
     !--------------------------------------------------------------------------
     ! Basically the same thing as v_loc but without implicit fft
     ! modified for real space implementation
     ! OBM 241008
     !
-    USE wavefunctions_module, &
-                       ONLY : psic
-    USE gvecs,         ONLY : nls,nlsm,doublegrid
+    USE wavefunctions_module,     ONLY : psic
+    USE gvecs,       ONLY : nls,nlsm,doublegrid
     USE kinds,         ONLY : DP
-    USE fft_base,      ONLY : dffts
-    USE fft_parallel,  ONLY : tg_gather
+    USE fft_base,      ONLY : dffts, tg_gather
     USE mp_bands,      ONLY : me_bgrp
     USE scf,           ONLY : vrs
     USE lsda_mod,      ONLY : current_spin
@@ -2292,8 +2281,8 @@ MODULE realus
 
     IMPLICIT NONE
 
-    INTEGER, INTENT(in) :: ibnd,& ! index of the band currently being operated on
-                           last   ! index of the last band that you want to operate on
+    INTEGER, INTENT(in) :: ibnd,& ! Current index of the band currently being transformed
+                           nbnd ! Total number of bands you want to transform
     !Internal temporary variables
     INTEGER :: j
     !Task groups
@@ -2301,7 +2290,7 @@ MODULE realus
     INTEGER :: v_siz
     CALL start_clock( 'v_loc_psir' )
 
-    IF( dffts%have_task_groups .and. last >= dffts%nogrp  ) THEN
+    IF( dffts%have_task_groups .and. nbnd >= dffts%nogrp  ) THEN
         IF (ibnd == 1 ) THEN
           CALL tg_gather( dffts, vrs(:,current_spin), tg_v )
           !if ibnd==1 this is a new calculation, and tg_v should be distributed.

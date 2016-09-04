@@ -30,11 +30,6 @@ MODULE dynamics_module
    IMPLICIT NONE
    !
    SAVE
-   PRIVATE
-   PUBLIC :: verlet, proj_verlet, terminate_verlet, &
-             langevin_md, smart_MC, allocate_dyn_vars, deallocate_dyn_vars
-   PUBLIC :: temperature, refold_pos, vel
-   PUBLIC :: dt, delta_t, nraise, control_temp, thermostat
    !
    REAL(DP) :: &
          dt,          &! time step
@@ -129,7 +124,7 @@ CONTAINS
       USE cell_base,      ONLY : alat, omega
       USE ener,           ONLY : etot
       USE force_mod,      ONLY : force, lstres
-      USE control_flags,  ONLY : istep, lconstrain, tv0rd
+      USE control_flags,  ONLY : istep, nstep, conv_ions, lconstrain, tv0rd
       !
       USE constraints_module, ONLY : nconstr, check_constraint
       USE constraints_module, ONLY : remove_constr_force, remove_constr_vec
@@ -140,7 +135,9 @@ CONTAINS
       REAL(DP) :: total_mass, temp_new, temp_av, elapsed_time
       REAL(DP) :: delta(3), ml(3), mlt
       INTEGER  :: na
-      ! istep counts all MD steps, including those of previous runs
+      ! istep0 counts MD steps done during this run
+      ! (istep counts instead all MD steps, including those of previous runs)
+      INTEGER, SAVE :: istep0 = 0 
 #if defined (__NPT)
       REAL(DP) :: chi, press_new
 #endif
@@ -151,7 +148,7 @@ CONTAINS
       !
       ! ... the number of degrees of freedom
       !
-      IF ( any( if_pos(:,:) == 0 ) ) THEN
+      IF ( ANY( if_pos(:,:) == 0 ) ) THEN
          !
          ndof = 3*nat - count( if_pos(:,:) == 0 ) - nconstr
          !
@@ -200,10 +197,24 @@ CONTAINS
          !
       ENDIF
       !
+      IF ( istep0 >= nstep ) THEN
+         !
+         conv_ions = .true.
+         !
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"The maximum number of steps has been reached.")' )
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"End of molecular dynamics calculation")' )
+         !
+         CALL print_averages()
+         !
+      ENDIF
+      !
       ! ... elapsed_time is in picoseconds
       !
       elapsed_time = elapsed_time + dt*2.D0*au_ps
       !
+      istep0= istep0+ 1
       istep = istep + 1
       !
       WRITE( UNIT = stdout, &
@@ -243,7 +254,7 @@ CONTAINS
          !
       ENDIF
       !
-      IF ( .not. any( if_pos(:,:) == 0 ) ) THEN
+      IF ( .NOT. ANY( if_pos(:,:) == 0 ) ) THEN
          !
          ! ... if no atom has been fixed  we compute the displacement of the
          ! ... center of mass and we subtract it from the displaced positions
@@ -271,7 +282,7 @@ CONTAINS
          ! ... check if the new positions satisfy the constrain equation
          !
          CALL check_constraint( nat, tau_new, tau, &
-                                force, if_pos, ityp, alat, dt, amu_ry )
+                                force, if_pos, ityp, alat, dt**2, amu_ry )
          !
 #if ! defined (__REDUCE_OUTPUT)
          !
@@ -291,7 +302,7 @@ CONTAINS
 
          IF (vel_defined) THEN
             CALL check_constraint( nat, tau_old, tau, &
-                                   force, if_pos, ityp, alat, dt, amu_ry )
+                                   force, if_pos, ityp, alat, dt**2, amu_ry )
          ENDIF
          !
       ENDIF
@@ -309,11 +320,11 @@ CONTAINS
          ml(:) = ml(:) + vel(:,na) * mass(na)
          ekin  = ekin + 0.5D0 * mass(na) * &
                         ( vel(1,na)**2 + vel(2,na)**2 + vel(3,na)**2 )
-         DO i = 1, 3
-             DO j = 1, 3
+         do i = 1, 3
+             do j = 1, 3
                  kstress(i,j) = kstress(i,j) + mass(na)*vel(i,na)*vel(j,na)
-             ENDDO
-         ENDDO
+             enddo
+         enddo
          !
       ENDDO
       !
@@ -375,7 +386,7 @@ CONTAINS
               ((kstress(1,1)+kstress(2,2)+kstress(3,3))/3.d0*ry_kbar), &
               (kstress(i,1)*ry_kbar,kstress(i,2)*ry_kbar,kstress(i,3)*ry_kbar, i=1,3)
       !
-      IF ( .not.( lconstrain .or. any( if_pos(:,:) == 0 ) ) ) THEN
+      IF ( .not.( lconstrain .or. ANY( if_pos(:,:) == 0 ) ) ) THEN
          !
          ! ... total linear momentum must be zero if all atoms move
          !
@@ -633,7 +644,7 @@ CONTAINS
          ! ... next command prevents different MD runs to start
          ! ... with exactly the same "random" velocities
          !
-         CALL set_random_seed ( )
+         call set_random_seed ( )
          kt = temperature / ry_to_kelvin
          !
          ! ... starting velocities have a Maxwell-Boltzmann distribution
@@ -685,9 +696,9 @@ CONTAINS
             !
             ml(:) = 0.D0
             !
-            IF ( .not. any( if_pos(:,:) == 0 ) ) THEN
+            IF ( .NOT. ANY( if_pos(:,:) == 0 ) ) THEN
                !
-               total_mass = sum ( mass(1:nat) )
+               total_mass = SUM ( mass(1:nat) )
                DO na = 1, nat
                   ml(:) = ml(:) + mass(na)*vel(:,na)
                ENDDO
@@ -721,22 +732,7 @@ CONTAINS
    END SUBROUTINE verlet
    !
    !------------------------------------------------------------------------
-   SUBROUTINE terminate_verlet
-     !------------------------------------------------------------------------
-     !
-     USE io_global, ONLY : stdout
-     !
-     WRITE( UNIT = stdout, &
-          FMT = '(/,5X,"The maximum number of steps has been reached.")' )
-     WRITE( UNIT = stdout, &
-          FMT = '(/,5X,"End of molecular dynamics calculation")' )
-     !
-     CALL print_averages()
-     !
-   END SUBROUTINE terminate_verlet
-   !
-   !------------------------------------------------------------------------
-   SUBROUTINE proj_verlet( conv_ions )
+   SUBROUTINE proj_verlet()
       !------------------------------------------------------------------------
       !
       ! ... This routine performs one step of structural relaxation using
@@ -747,12 +743,11 @@ CONTAINS
       USE ener,          ONLY : etot
       USE force_mod,     ONLY : force
       USE relax,         ONLY : epse, epsf
-      USE control_flags, ONLY : istep, lconstrain
+      USE control_flags, ONLY : istep, nstep, conv_ions, lconstrain
       !
       USE constraints_module, ONLY : remove_constr_force, check_constraint
       !
       IMPLICIT NONE
-      LOGICAL, INTENT(OUT) :: conv_ions
       !
       REAL(DP), ALLOCATABLE :: step(:,:)
       REAL(DP)              :: norm_step, etotold, delta(3)
@@ -770,7 +765,6 @@ CONTAINS
       tau_new(:,:) = 0.D0
       vel(:,:)     = 0.D0
       acc(:,:)     = 0.D0
-      conv_ions = .FALSE.
       !
       CALL seqopn( 4, 'md', 'FORMATTED', file_exists )
       !
@@ -791,10 +785,10 @@ CONTAINS
          IF ( refold_pos ) CALL refold_tau()
          !
          tau_old(:,:) = tau(:,:)
+         !
          etotold = etot
+         !
          istep = 0
-         WRITE( UNIT = stdout, &
-                FMT = '(/,5X,"Damped Dynamics Calculation")' )
          !
       ENDIF
       !
@@ -825,6 +819,14 @@ CONTAINS
          !
       ENDIF
       !
+      istep = istep + 1
+      !
+      IF ( istep == 1 ) THEN
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"Damped Dynamics Calculation")' )
+         conv_ions = .FALSE.
+      END IF
+      !
       ! ... check if convergence for structural minimization is achieved
       !
       conv_ions = ( etotold - etot ) < epse
@@ -842,11 +844,21 @@ CONTAINS
          !
          CALL output_tau( .true., .true. )
          !
-         RETURN
+      ENDIF
+      !
+      IF ( istep >= nstep ) THEN
+         !
+         conv_ions = .true.
+         !
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"The maximum number of steps has been reached.")' )
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"End of damped dynamics calculation")' )
+         !
+         CALL output_tau( .true., .true. )
          !
       ENDIF
       !
-      istep = istep + 1
       WRITE( stdout, '(/,5X,"Entering Dynamics:",&
                       & T28,"iteration",T37," = ",I5)' ) istep
       !
@@ -868,7 +880,7 @@ CONTAINS
       !
       tau_new(:,:) = tau(:,:) + step(:,:)*min( norm_step, step_max / alat )
       !
-      IF ( .not. any( if_pos(:,:) == 0 ) ) THEN
+      IF ( .NOT. ANY( if_pos(:,:) == 0 ) ) THEN
          !
          ! ... if no atom has been fixed  we compute the displacement of the
          ! ... center of mass and we subtract it from the displaced positions
@@ -892,7 +904,7 @@ CONTAINS
          ! ... check if the new positions satisfy the constrain equation
          !
          CALL check_constraint( nat, tau_new, tau, &
-                                force, if_pos, ityp, alat, dt, amu_ry )
+                                force, if_pos, ityp, alat, dt**2, amu_ry )
          !
       ENDIF
       !
@@ -918,6 +930,7 @@ CONTAINS
       DEALLOCATE( step )
       !
    END SUBROUTINE proj_verlet
+   !
    !------------------------------------------------------------------------
    SUBROUTINE langevin_md()
       !------------------------------------------------------------------------
@@ -928,7 +941,7 @@ CONTAINS
       USE cell_base,      ONLY : alat
       USE ener,           ONLY : etot
       USE force_mod,      ONLY : force
-      USE control_flags,  ONLY : istep, lconstrain
+      USE control_flags,  ONLY : istep, nstep, conv_ions, lconstrain
       USE random_numbers, ONLY : gauss_dist
       !
       USE constraints_module, ONLY : nconstr
@@ -973,7 +986,19 @@ CONTAINS
          !
       ENDIF
       !
+      IF ( istep >= nstep ) THEN
+         !
+         conv_ions = .true.
+         !
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"The maximum number of steps has been reached.")' )
+         WRITE( UNIT = stdout, &
+                FMT = '(/,5X,"End of Langevin Dynamics calculation")' )
+         !
+      ENDIF
+      !
       istep = istep + 1
+      !
       WRITE( UNIT = stdout, &
              FMT = '(/,5X,"Entering Dynamics:",T28, &
                     &     "iteration",T37," = ",I5,/)' ) istep
@@ -1013,7 +1038,7 @@ CONTAINS
       !
       tau_new(:,:) = tau(:,:) + ( dt*force(:,:) + chi(:,:) ) / alat
       !
-      IF ( .not. any( if_pos(:,:) == 0 ) ) THEN
+      IF ( .NOT. ANY( if_pos(:,:) == 0 ) ) THEN
          !
          ! ... here we compute the displacement of the center of mass and we
          ! ... subtract it from the displaced positions
@@ -1035,7 +1060,7 @@ CONTAINS
          ! ... check if the new positions satisfy the constrain equation
          !
          CALL check_constraint( nat, tau_new, tau, &
-                                force, if_pos, ityp, alat, dt, amu_ry )
+                                force, if_pos, ityp, alat, dt**2, amu_ry )
          !
 #if ! defined (__REDUCE_OUTPUT)
          !
@@ -1066,6 +1091,9 @@ CONTAINS
       ! ... here the tau are shifted
       !
       tau(:,:) = tau_new(:,:)
+      !
+      !!!IF ( nat == 2 ) &
+      !!!  PRINT *, "DISTANCE = ", dnrm2( 3, ( tau(:,1) - tau(:,2) ), 1 ) * ALAT
       !
 #if ! defined (__REDUCE_OUTPUT)
       !
@@ -1455,34 +1483,37 @@ CONTAINS
    !
 
    !-----------------------------------------------------------------------
-   SUBROUTINE smart_MC()
+   subroutine smart_MC()
       !-----------------------------------------------------------------------
       ! Routine to apply smart_MC
       ! Implemented by Xiaochuan Ge, Jul., 2013
       !
       ! At this moment works only with langevin dynamics !!
       ! For the formula see R.J.Rossky, JCP, 69, 4628(1978)
-
+      
      USE ions_base,      ONLY : nat, ityp, tau, if_pos,atm
      USE cell_base,      ONLY : alat
      USE ener,           ONLY : etot
      USE force_mod,      ONLY : force
-     USE control_flags,  ONLY : istep, lconstrain
+     USE control_flags,  ONLY : istep, nstep, conv_ions, lconstrain, llang
      USE constraints_module, ONLY : remove_constr_force, check_constraint
      USE random_numbers, ONLY : randy
-     USE io_files,      ONLY : prefix
-     USE io_global,      ONLY : ionode
+     use io_files,      only : prefix     
+     use io_global,      only : ionode
      USE constants, ONLY : bohr_radius_angs
 
-     IMPLICIT NONE
-
-     LOGICAL :: accept
+     implicit none
+     
+     logical :: accept
      real(dp) :: kt,sigma2,&
                  T_ij,T_ji,boltzman_ji,& ! boltzman_ji=exp[-(etot_new-etot_old)/kt]
                  temp,p_smc                  ! *_smart means *_old, the quantity of the
                                         ! previous step
+                                    
+     integer :: ia, ip
 
-     INTEGER :: ia, ip
+     if(.not. llang) call errore( ' smart_MC ', "At this moment, smart_MC works&
+      &only with langevin." )
 
       IF ( lconstrain ) THEN
          ! ... we first remove the component of the force along the
@@ -1491,73 +1522,73 @@ CONTAINS
          CALL remove_constr_force( nat, tau, if_pos, ityp, alat, force )
       ENDIF
 
-     IF(first_iter) THEN ! For the first iteration
-       ALLOCATE(tau_smart(3,nat))
-       ALLOCATE(force_smart(3,nat))
+     if(first_iter) then ! For the first iteration
+       allocate(tau_smart(3,nat))
+       allocate(force_smart(3,nat))
        tau_smart=tau
        etot_smart=etot
        force_smart=force
        first_iter=.false.
-       RETURN
-     ENDIF
+       return
+     endif
 
      kt = temperature / ry_to_kelvin
-     sigma2 =  2.D0*dt*kt
+     sigma2 =  2.D0*dt*kt 
 
      T_ij=0.0d0
      T_ji=0.0d0
-     DO ia=1,nat
-       DO ip = 1, 3
+     do ia=1,nat
+       do ip = 1, 3
          T_ij=T_ij+((tau(ip,ia)-tau_smart(ip,ia))*alat-dt*force_smart(ip,ia))**2
          T_ji=T_ji+((tau_smart(ip,ia)-tau(ip,ia))*alat-dt*force(ip,ia))**2
-       ENDDO
-     ENDDO
+       enddo
+     enddo
      T_ij=exp(-T_ij/(2*sigma2))
      T_ji=exp(-T_ji/(2*sigma2))
-
+ 
      boltzman_ji=exp(-(etot-etot_smart)/kt)
 
      p_smc=T_ji*boltzman_ji/T_ij
 
-     WRITE(stdout, '(5x,"The old energy is:",3x,F17.8," Ry")') etot_smart
-     WRITE(stdout, '(5x,"The new energy is:",3x,F17.8," Ry")') etot
-     WRITE(stdout, '(5x,"The possibility to accept this step is:",3x,F10.7/)') p_smc
-     WRITE(stdout, '(5x,"Nervously waiting for the fate ..."/)')
-
+     write(stdout, '(5x,"The old energy is:",3x,F17.8," Ry")') etot_smart
+     write(stdout, '(5x,"The new energy is:",3x,F17.8," Ry")') etot
+     write(stdout, '(5x,"The possibility to accept this step is:",3x,F10.7/)') p_smc
+     write(stdout, '(5x,"Nervously waiting for the fate ..."/)')
+     
      ! Decide if accept the new config
      temp = randy()
-     WRITE(stdout, '(5x,"The fate says:",5x,F10.7)') temp
-     IF(temp <= p_smc) THEN
-       WRITE(stdout, '(5x,"The new config is accepted")')
+     write(stdout, '(5x,"The fate says:",5x,F10.7)') temp
+     if(temp .le. p_smc) then
+       write(stdout, '(5x,"The new config is accepted")')
        num_accept=num_accept+1
        tau_smart=tau
        etot_smart=etot
        force_smart=force
-     ELSE
-       WRITE(stdout, '(5x,"The new config is not accepted")')
+     else
+       write(stdout, '(5x,"The new config is not accepted")')
        tau=tau_smart
        etot=etot_smart
        force=force_smart
-     ENDIF
+     endif
 
-     WRITE (stdout, '(5x,"The current acceptance is :",3x,F10.6)') dble(num_accept)/istep
+     write (stdout, '(5x,"The current acceptance is :",3x,F10.6)') dble(num_accept)/istep
 
      ! Print the trajectory
-#ifdef __MPI
-     IF(ionode) THEN
+#ifdef __MPI  
+     if(ionode) then
 #endif
      OPEN(117,file="trajectory-"//trim(prefix)//".xyz",status="unknown",position='APPEND')
-     WRITE(117,'(I5)') nat
-     WRITE(117,'("# Step: ",I5,5x,"Total energy: ",F17.8,5x,"Ry")') istep-1, etot
-     DO ia = 1, nat
+     write(117,'(I5)') nat
+     write(117,'("# Step: ",I5,5x,"Total energy: ",F17.8,5x,"Ry")') istep-1, etot
+     do ia = 1, nat
        WRITE( 117, '(A3,3X,3F14.9)') atm(ityp(ia)),tau(:,ia)*alat*bohr_radius_angs
-     ENDDO
-     CLOSE(117)
-#ifdef __MPI
-     ENDIF
+     enddo
+     close(117)
+#ifdef __MPI  
+     endif
 #endif
 
-     RETURN
-   END SUBROUTINE smart_MC
-
+     return
+   end subroutine smart_MC
+   
 END MODULE dynamics_module

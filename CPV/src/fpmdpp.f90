@@ -71,13 +71,15 @@ PROGRAM fpmd_postproc
   ! default values
 
   dunit = 14
-#ifdef __INTEL_COMPILER
+
+  ! ... Intel compilers v .ge.8 allocate a lot of stack space
+  ! ... Stack limit is often small, thus causing SIGSEGV and crash
   CALL remove_stack_limit ( )
-#endif
+
   !  initialize mpi
   CALL mp_startup  ( )
   !
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env( 'ESPRESSO_TMPDIR', outdir )
   IF ( TRIM( outdir ) == ' ' ) outdir = './'
   prefix    = 'cp'
   fileout   = 'out'

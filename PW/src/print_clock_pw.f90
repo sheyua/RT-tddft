@@ -19,7 +19,6 @@ SUBROUTINE print_clock_pw()
    USE realus,             ONLY : real_space
    USE ldaU,               ONLY : lda_plus_U
    USE funct,              ONLY : dft_is_hybrid
-   USE bp,                 ONLY : lelfield
    !
    IMPLICIT NONE
    !
@@ -52,7 +51,6 @@ SUBROUTINE print_clock_pw()
       CALL print_clock( 'v_xc_meta' )
    END IF
    CALL print_clock( 'newd' )
-   CALL print_clock( 'PAW_pot')
    CALL print_clock( 'mix_rho' )
 
    CALL print_clock( 'vdW_energy' )
@@ -136,7 +134,6 @@ SUBROUTINE print_clock_pw()
    CALL print_clock( 'add_vuspsi' )
    CALL print_clock( 'vhpsi' )
    CALL print_clock( 'h_psi_meta' )
-   CALL print_clock( 'h_1psi' )
    !
    WRITE( stdout, '(/5X,"General routines")' )
    !
@@ -173,23 +170,18 @@ SUBROUTINE print_clock_pw()
       CALL print_clock( 'exxinit' )
       CALL print_clock( 'vexx' )
       CALL print_clock( 'exxenergy' )
+      CALL print_clock ('cycleig')
       IF( okvan) THEN
-        WRITE( stdout, '(/,5X,"EXX+US  routines")' )
+        WRITE( stdout, '(/,5X,"EXX+US routines")' )
         CALL print_clock( 'becxx' )
         CALL print_clock( 'addusxx' )
         CALL print_clock( 'newdxx' )
         CALL print_clock( 'qvan_init' )
         CALL print_clock( 'nlxx_pot' )
       ENDIF
-      IF ( okpaw ) THEN
-        WRITE( stdout, '(/,5X,"EXX+PAW routines")' )
-        CALL print_clock('PAW_newdxx')
-        CALL print_clock('PAW_xx_nrg')
-        CALL print_clock('PAW_keeq')
-      ENDIF
    ENDIF
    !
-   IF ( okpaw .AND. iverbosity > 0 ) THEN
+   IF ( okpaw ) THEN
       WRITE( stdout, '(/,5X,"PAW routines")' )
       ! radial routines:
       CALL print_clock ('PAW_pot')
@@ -210,14 +202,17 @@ SUBROUTINE print_clock_pw()
       CALL print_clock ('PAW_gcxc_v')
       CALL print_clock ('PAW_div')
       CALL print_clock ('PAW_grad')
+      IF ( dft_is_hybrid() ) THEN
+        WRITE( stdout, '(/,5X,"PAW+EXX routines")' )
+        CALL print_clock("PAW_newdxx")
+        CALL print_clock("PAW_xx_nrg")
+        CALL print_clock('PAW_keeq')
+      ENDIF
    END IF
 
-   IF ( lelfield ) THEN
-      WRITE( stdout, '(/,5X,"Electric-field routines")' )
-      call print_clock('h_epsi_set')
-      call print_clock('h_epsi_apply')
-      call print_clock('c_phase_field')
-   END IF
+   call print_clock('h_epsi_set')
+   call print_clock('h_epsi_apply')
+   call print_clock('c_phase_field')
    !
    CALL plugin_clock()
    !

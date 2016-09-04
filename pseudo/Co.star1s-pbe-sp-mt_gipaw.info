@@ -1,0 +1,10 @@
+Pseudopotential for Cobalt including semicore states in 
+valence, local part d, gipaw reconstruction included.
+Two gipaw projectors per p and d channels, only one
+projector on s channel.
+A core-hole is included in the 1s state.
+
+This pseudo has been used succesfully to calculate 
+the XAS/XMCD in Iron using the XSPECTRA code.
+
+Matteo Calandra.

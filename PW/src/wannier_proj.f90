@@ -97,8 +97,7 @@ subroutine wannier_proj(ik, wan_func)
 
   ! Orthogonalize pp
   CALL ortho_wfc(nwan,nbnd,pp,ierr)
-  IF (ierr .NE. 0) &
-    write(stdout,'(/5x,a43,i4,a12,i2/)') 'Wannier orthogonalization failed on k-point', ik, 'with status', ierr
+  IF (ierr .EQ. 1) call errore('wannier_proj', 'wrong orthogonalization on k-point', ik)
 
   !And write ortho-pp to file
   call save_buffer( pp, nwordwpp, iunwpp, ik)

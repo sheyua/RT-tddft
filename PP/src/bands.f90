@@ -47,7 +47,7 @@ PROGRAM do_bands
   !   set default values for variables in namelist
   !
   prefix = 'pwscf'
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env( 'ESPRESSO_TMPDIR', outdir )
   IF ( trim( outdir ) == ' ' ) outdir = './'
   filband = 'bands.out'
   lsym=.false.
@@ -75,6 +75,8 @@ PROGRAM do_bands
   !
   !
   CALL mp_bcast( ios, ionode_id, world_comm )
+  IF (ios /= 0) WRITE (stdout, &
+    '("*** namelist &inputpp no longer valid: please use &bands instead")')
   IF (ios /= 0) CALL errore ('bands', 'reading bands namelist', abs(ios) )
   !
   ! ... Broadcast variables
@@ -142,14 +144,13 @@ SUBROUTINE punch_band (filband, spin_component, lsigma, no_overlap)
   !
   USE kinds,                ONLY : dp
   USE ions_base,            ONLY : nat, ityp, ntyp => nsp
-  USE cell_base,            ONLY : at
+  USE cell_base,            ONLY : at, tpiba2
   USE constants,            ONLY : rytoev
   USE gvect,                ONLY : g, ngm
   USE lsda_mod,             ONLY : nspin
   USE klist,                ONLY : xk, nks, nkstot
   USE io_files,             ONLY : iunpun, nwordwfc, iunwfc
-  USE wvfct,                ONLY : nbnd, et, igk, npw, npwx, g2kin
-  USE gvecw,                ONLY : gcutw
+  USE wvfct,                ONLY : nbnd, et, ecutwfc, igk, npw, npwx, g2kin
   USE uspp,                 ONLY : nkb, vkb, qq
   USE uspp_param,           ONLY : upf, nh, nhm
   USE noncollin_module,     ONLY : noncolin, npol
@@ -274,7 +275,8 @@ SUBROUTINE punch_band (filband, spin_component, lsigma, no_overlap)
      !    prepare the indices of this k point
      !
      IF (.not.no_overlap.or.lsigma(1).or.lsigma(2).or.lsigma(3).or.lsigma(4)) THEN
-        CALL gk_sort (xk (1, ik), ngm, g, gcutw, npw, igk, g2kin)
+        CALL gk_sort (xk (1, ik), ngm, g, ecutwfc / tpiba2, npw, &
+             igk, g2kin)
         !
         !   read eigenfunctions
         !
@@ -669,7 +671,7 @@ SUBROUTINE punch_plottable_bands ( filband, nks1tot, nks2tot, nkstot, nbnd, &
         !
         !   save the typical length of dk
         !
-        IF (n==nks1tot+1) dxmod_save = sqrt( k1(1)**2 + k1(2)**2 + k1(3)**2)
+        IF (n==2) dxmod_save = sqrt( k1(1)**2 + k1(2)**2 + k1(3)**2)
      ENDIF
   ENDDO
 

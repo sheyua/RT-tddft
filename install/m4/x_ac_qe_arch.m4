@@ -1,4 +1,4 @@
-# Copyright (C) 2001-2016 Quantum ESPRESSO Foundation
+# Copyright (C) 2001-2014 Quantum ESPRESSO Foundation
 
 AC_DEFUN([X_AC_QE_ARCH], [
 
@@ -28,8 +28,7 @@ then
                 *-ibm-aix* )            arch=aix    ;;
                 sparc-sun-* )           arch=sparc  ;;
                 i386-pc-solaris* )      arch=solaris;;
-                *86-apple-darwin* )     arch=mac686 ;;
-                *-apple-darwin* )       arch=mac686 ;;
+                i*86-apple-darwin* )    arch=mac686 ;;
                 *-pc-cygwin )           arch=cygwin ;;
                 sx*-nec* )              arch=necsx  ;;
                 powerpc64-*-linux-gnu ) arch=ppc64  ;;
@@ -46,6 +45,5 @@ then
 fi
 
   AC_MSG_RESULT(${arch})
-  AC_SUBST(arch)
 
 ])

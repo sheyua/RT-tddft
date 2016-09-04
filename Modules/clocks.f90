@@ -38,7 +38,7 @@ MODULE mytime
   !
   SAVE
   !
-  INTEGER,  PARAMETER :: maxclock = 101
+  INTEGER,  PARAMETER :: maxclock = 100
   REAL(DP), PARAMETER :: notrunning = - 1.0_DP
   !
   REAL(DP)          :: cputime(maxclock), t0cpu(maxclock)
@@ -48,9 +48,7 @@ MODULE mytime
   !
   INTEGER :: nclock = 0
   LOGICAL :: no
-#if defined (__TRACE)
   INTEGER :: trace_depth = 0
-#endif
   !
 END MODULE mytime
 !
@@ -96,10 +94,9 @@ SUBROUTINE start_clock( label )
   USE io_global, ONLY : stdout
 #if defined (__TRACE)
   USE mp_world,  ONLY : mpime
-  USE mytime,    ONLY : trace_depth
 #endif
   USE mytime,    ONLY : nclock, clock_label, notrunning, no, maxclock, &
-                        t0cpu, t0wall
+                        t0cpu, t0wall, trace_depth
   !
   IMPLICIT NONE
   !
@@ -145,7 +142,7 @@ SUBROUTINE start_clock( label )
   !
   IF ( nclock == maxclock ) THEN
      !
-     WRITE( stdout, '("start_clock(",A,"): Too many clocks! call ignored")' ) label
+     WRITE( stdout, '("start_clock: Too many clocks! call ignored")' )
      !
   ELSE
      !
@@ -168,10 +165,9 @@ SUBROUTINE stop_clock( label )
   USE io_global, ONLY : stdout
 #if defined (__TRACE)
   USE mp_world,  ONLY : mpime
-  USE mytime,    ONLY : trace_depth
 #endif
   USE mytime,    ONLY : no, nclock, clock_label, cputime, walltime, &
-                        notrunning, called, t0cpu, t0wall
+                        notrunning, called, t0cpu, t0wall, trace_depth
   !
   IMPLICIT NONE
   !
@@ -232,6 +228,7 @@ END SUBROUTINE stop_clock
 SUBROUTINE print_clock( label )
   !----------------------------------------------------------------------------
   !
+  USE kinds,     ONLY : DP
   USE io_global, ONLY : stdout
   USE mytime,    ONLY : nclock, clock_label
   !
@@ -282,7 +279,7 @@ SUBROUTINE print_this_clock( n )
   !
   USE kinds,     ONLY : DP
   USE io_global, ONLY : stdout
-  USE mytime,    ONLY : clock_label, cputime, walltime, &
+  USE mytime,    ONLY : no, nclock, clock_label, cputime, walltime, &
                         notrunning, called, t0cpu, t0wall
 !
 ! ... See comments below about parallel case
@@ -425,8 +422,9 @@ FUNCTION get_clock( label )
   !----------------------------------------------------------------------------
   !
   USE kinds,     ONLY : DP
+  USE io_global, ONLY : stdout
   USE mytime,    ONLY : no, nclock, clock_label, walltime, &
-                        notrunning, t0wall, t0cpu
+                        notrunning, called, t0wall, t0cpu
 !
 ! ... See comments in subroutine print_this_clock about parallel case
 !

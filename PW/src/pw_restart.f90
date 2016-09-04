@@ -17,10 +17,6 @@ MODULE pw_restart
   !
   USE iotk_module
   !
-#ifdef __XSD
-  USE qexml_xsd_module, ONLY : qexml_init_schema, qexml_openschema, qexml_closeschema, qexml_write_convergence_info, qexml_write_output
-  USE qexml_xsd_module, ONLY : convergence_info_type, output_type, scf_conv_type
-#endif
   USE qexml_module,ONLY : qexml_init,qexml_openfile, qexml_closefile, &
                           qexml_write_header, qexml_write_control ,   &
                           qexml_write_cell, qexml_write_moving_cell,  &
@@ -29,29 +25,22 @@ MODULE pw_restart
                           qexml_write_spin, qexml_write_magnetization, &
                           qexml_write_xc, qexml_write_exx, qexml_write_occ, &
                           qexml_write_bz,qexml_write_para, qexml_write_bands_info, &
-                          qexml_write_bands_pw, qexml_write_esm, qexml_wfc_filename, &
+                          qexml_write_bands_pw, qexml_wfc_filename, &
                           default_fmt_version => qexml_default_version, &
-                          qexml_kpoint_dirname, &
+                          qexml_save_history, qexml_kpoint_dirname, &
                           qexml_read_header, qexml_read_cell, qexml_read_moving_cell, &
                           qexml_read_planewaves, qexml_read_ions, qexml_read_spin, &
                           qexml_read_magnetization, qexml_read_xc, qexml_read_occ, qexml_read_bz, &
                           qexml_read_bands_info, qexml_read_bands_pw, qexml_read_symmetry, &
-                          qexml_read_efield, qexml_read_para, qexml_read_exx, qexml_read_esm
+                          qexml_read_efield, qexml_read_para, qexml_read_exx
   !
   USE xml_io_base, ONLY :  rho_binary,read_wfc, write_wfc, create_directory
   !
   !
   USE kinds,     ONLY : DP
   USE constants, ONLY : e2, PI
-
-#ifdef __XSD
-  USE io_files,  ONLY : tmp_dir, prefix, iunpun, iunpun_xsd, xmlpun, xmlpun_schema, &
-                        delete_if_present, qexml_version, qexml_version_init, pseudo_dir
-#else
   USE io_files,  ONLY : tmp_dir, prefix, iunpun, xmlpun, delete_if_present, &
                         qexml_version, qexml_version_init, pseudo_dir
-#endif
-
   USE io_global, ONLY : ionode, ionode_id
   USE mp_images, ONLY : intra_image_comm
   USE mp_pools,  ONLY : my_pool_id
@@ -69,9 +58,6 @@ MODULE pw_restart
   PRIVATE
   !
   PUBLIC :: pw_writefile, pw_readfile
-#ifdef __XSD
-  PUBLIC :: pw_write_schema
-#endif
   !
   INTEGER, PRIVATE :: iunout
   !
@@ -91,12 +77,11 @@ MODULE pw_restart
   !
   CONTAINS
     !
-#ifdef __XSD
     !------------------------------------------------------------------------
-    SUBROUTINE pw_write_schema( what )
+    SUBROUTINE pw_writefile( what )
       !------------------------------------------------------------------------
       !
-      USE control_flags,        ONLY : twfcollect, conv_ions, &
+      USE control_flags,        ONLY : istep, twfcollect, conv_ions, &
                                        lscf, lkpoint_dir, gamma_only, &
                                        tqr, noinv, do_makov_payne, smallmem, &
                                        llondon, lxdm, ts_vdw
@@ -107,7 +92,7 @@ MODULE pw_restart
       USE gvect,                ONLY : ig_l2g
       USE ions_base,            ONLY : nsp, ityp, atm, nat, tau, if_pos
       USE noncollin_module,     ONLY : noncolin, npol
-      USE io_files,             ONLY : nwordwfc, iunwfc, psfile
+      USE io_files,             ONLY : nwordwfc, iunwfc, iunigk, psfile
       USE buffers,              ONLY : get_buffer
       USE wavefunctions_module, ONLY : evc
       USE klist,                ONLY : nks, nkstot, xk, ngk, wk, qnorm, &
@@ -121,7 +106,8 @@ MODULE pw_restart
       USE basis,                ONLY : natomwfc
       USE gvecs,                ONLY : ngms_g, dual
       USE fft_base,             ONLY : dffts
-      USE wvfct,                ONLY : npw, npwx, et, wg, igk, nbnd
+      USE wvfct,                ONLY : npw, npwx, g2kin, et, wg, &
+                                       igk, nbnd, ecutwfc
       USE ener,                 ONLY : ef, ef_up, ef_dw
       USE fixed_occ,            ONLY : tfixed_occ, f_inp
       USE ldaU,                 ONLY : lda_plus_u, lda_plus_u_kind, U_projection, &
@@ -145,7 +131,9 @@ MODULE pw_restart
       USE mp_pools,             ONLY : kunit, nproc_pool, me_pool, root_pool, &
                                        intra_pool_comm, inter_pool_comm
       USE mp_bands,             ONLY : nproc_bgrp, me_bgrp, root_bgrp, &
-                                       intra_bgrp_comm, nbgrp, ntask_groups
+                                       intra_bgrp_comm, inter_bgrp_comm, &
+                                       nbgrp, ntask_groups
+      USE mp_pots,              ONLY : nproc_pot
       USE mp_diag,              ONLY : nproc_ortho
       USE funct,                ONLY : get_exx_fraction, dft_is_hybrid, &
                                        get_gau_parameter, &
@@ -154,8 +142,7 @@ MODULE pw_restart
                                        exxdiv_treatment, yukawa, ecutvcut, ecutfock
       USE cellmd,               ONLY : lmovecell, cell_factor 
       USE martyna_tuckerman,    ONLY : do_comp_mt
-      USE esm,                  ONLY : do_comp_esm, esm_nfit, esm_efield, esm_w, &
-                                       esm_a, esm_bc
+      USE esm,                  ONLY : do_comp_esm
       USE london_module,        ONLY : scal6, lon_rcut
       USE tsvdw_module,         ONLY : vdw_isolated
       
@@ -171,165 +158,7 @@ MODULE pw_restart
       INTEGER               :: ike, iks, npw_g, ispin, inlc
       INTEGER,  ALLOCATABLE :: ngk_g(:)
       INTEGER,  ALLOCATABLE :: igk_l2g(:,:), igk_l2g_kdip(:,:), mill_g(:,:)
-      LOGICAL               :: lwfc, lrho, lxsd
-      CHARACTER(iotk_attlenx)  :: attr
-      !
-      ! the following variables are just to test the new xml output
-      !
-      TYPE(output_type) :: output
-      !
-      TYPE(convergence_info_type) :: convergence_info
-      !
-      TYPE(scf_conv_type) :: scf_conv
-      !
-      scf_conv%n_scf_steps=8
-      scf_conv%scf_error=0.0000001
-      convergence_info%scf_conv=scf_conv
-      output%convergence_info=convergence_info
-      !
-      IF ( ionode ) THEN
-         !
-         ! ... look for an empty unit (only ionode needs it)
-         !
-         CALL iotk_free_unit( iunout, ierr )
-         !
-      END IF
-      !
-      CALL mp_bcast( ierr, ionode_id, intra_image_comm )
-      !
-      CALL errore( 'pw_writefile ', &
-                   'no free units to write wavefunctions', ierr )
-      !
-      dirname = TRIM( tmp_dir ) // TRIM( prefix ) // '.save'
-      !
-      ! ... create the main restart directory
-      !
-      !
-      IF ( ionode ) THEN
-         !
-         ! ... open XML descriptor
-         !
-         CALL qexml_init_schema( iunpun_xsd )
-         ierr=0
-         !
-      END IF
-      !
-      !
-      CALL mp_bcast( ierr, ionode_id, intra_image_comm )
-      !
-      CALL errore( 'pw_write_schema ', &
-                   'cannot open restart file for writing', ierr )
-      !
-      IF ( ionode ) THEN  
-         !
-         ! ... here we start writing the punch-file
-         !
-!-------------------------------------------------------------------------------
-! ... HEADER
-!-------------------------------------------------------------------------------
-         !
-         CALL qexml_openschema(TRIM( dirname ) // '/' // TRIM( xmlpun_schema ))
-         !
-         
-         CALL qexml_write_output(output)
-!-------------------------------------------------------------------------------
-! ... CLOSING
-!-------------------------------------------------------------------------------
-         !
-         CALL qexml_closeschema()
-         !
-         CALL errore( 'pw_write_schema ', &
-                     'cannot write schema', ierr )
-         !
-      END IF
-      !
-      RETURN
-       !
-    END SUBROUTINE pw_write_schema
-    !
-#endif
-    !------------------------------------------------------------------------
-    SUBROUTINE pw_writefile( what )
-      !------------------------------------------------------------------------
-      !
-      USE control_flags,        ONLY : twfcollect, conv_ions, &
-                                       lscf, lkpoint_dir, gamma_only, &
-                                       tqr, noinv, do_makov_payne, smallmem, &
-                                       llondon, lxdm, ts_vdw
-      USE realus,               ONLY : real_space
-      USE global_version,       ONLY : version_number
-      USE cell_base,            ONLY : at, bg, alat, tpiba, tpiba2, &
-                                       ibrav, celldm
-      USE gvect,                ONLY : ig_l2g
-      USE ions_base,            ONLY : nsp, ityp, atm, nat, tau, if_pos
-      USE noncollin_module,     ONLY : noncolin, npol
-      USE io_files,             ONLY : nwordwfc, iunwfc, psfile
-      USE buffers,              ONLY : get_buffer
-      USE wavefunctions_module, ONLY : evc
-      USE klist,                ONLY : nks, nkstot, xk, ngk, igk_k, wk, qnorm, &
-                                       lgauss, ngauss, degauss, nelec, &
-                                       two_fermi_energies, nelup, neldw
-      USE start_k,              ONLY : nk1, nk2, nk3, k1, k2, k3, &
-                                       nks_start, xk_start, wk_start
-      USE ktetra,               ONLY : ntetra, tetra, ltetra
-      USE gvect,                ONLY : ngm, ngm_g, g, mill
-      USE fft_base,             ONLY : dfftp
-      USE basis,                ONLY : natomwfc
-      USE gvecs,                ONLY : ngms_g, dual
-      USE fft_base,             ONLY : dffts
-      USE wvfct,                ONLY : npw, npwx, et, wg, nbnd
-      USE gvecw,                ONLY : ecutwfc
-      USE ener,                 ONLY : ef, ef_up, ef_dw
-      USE fixed_occ,            ONLY : tfixed_occ, f_inp
-      USE ldaU,                 ONLY : lda_plus_u, lda_plus_u_kind, U_projection, &
-                                       Hubbard_lmax, Hubbard_l, Hubbard_U, Hubbard_J, &
-                                       Hubbard_alpha, Hubbard_J0, Hubbard_beta
-      USE spin_orb,             ONLY : lspinorb, domag, lforcet
-      USE symm_base,            ONLY : nrot, nsym, invsym, s, ft, irt, &
-                                       t_rev, sname, time_reversal, no_t_rev
-      USE lsda_mod,             ONLY : nspin, isk, lsda, starting_magnetization
-      USE noncollin_module,     ONLY : angle1, angle2, i_cons, mcons, bfield, &
-                                       lambda
-      USE ions_base,            ONLY : amass
-      USE funct,                ONLY : get_dft_name, get_inlc
-      USE kernel_table,         ONLY : vdw_table_name
-      USE scf,                  ONLY : rho
-      USE extfield,             ONLY : tefield, dipfield, edir, &
-                                       emaxpos, eopreg, eamp
-      USE io_rho_xml,           ONLY : write_rho
-      USE mp_world,             ONLY : nproc
-      USE mp_images,            ONLY : nproc_image
-      USE mp_pools,             ONLY : kunit, nproc_pool, me_pool, root_pool, &
-                                       intra_pool_comm, inter_pool_comm
-      USE mp_bands,             ONLY : nproc_bgrp, me_bgrp, root_bgrp, &
-                                       intra_bgrp_comm, nbgrp, ntask_groups
-      USE mp_diag,              ONLY : nproc_ortho
-      USE funct,                ONLY : get_exx_fraction, dft_is_hybrid, &
-                                       get_gau_parameter, &
-                                       get_screening_parameter, exx_is_active
-      USE exx,                  ONLY : x_gamma_extrapolation, nq1, nq2, nq3, &
-                                       exxdiv_treatment, yukawa, ecutvcut, ecutfock
-      USE cellmd,               ONLY : lmovecell, cell_factor 
-      USE martyna_tuckerman,    ONLY : do_comp_mt
-      USE esm,                  ONLY : do_comp_esm, esm_nfit, esm_efield, esm_w, &
-                                       esm_a, esm_bc
-      USE acfdt_ener,           ONLY : acfdt_in_pw 
-      USE london_module,        ONLY : scal6, lon_rcut
-      USE tsvdw_module,         ONLY : vdw_isolated
-
-      !
-      IMPLICIT NONE
-      !
-      CHARACTER(LEN=*), INTENT(IN) :: what
-      !
-      CHARACTER(LEN=20)     :: dft_name
-      CHARACTER(LEN=256)    :: dirname, filename
-      INTEGER               :: i, ig, ik, ngg, ierr, ipol, num_k_points
-      INTEGER               :: npool, nkbl, nkl, nkr, npwx_g
-      INTEGER               :: ike, iks, npw_g, ispin, inlc
-      INTEGER,  ALLOCATABLE :: ngk_g(:)
-      INTEGER,  ALLOCATABLE :: igk_l2g(:,:), igk_l2g_kdip(:,:), mill_g(:,:)
-      LOGICAL               :: lwfc, lrho, lxsd
+      LOGICAL               :: lwfc, lrho
       CHARACTER(iotk_attlenx)  :: attr
       !
       !
@@ -337,10 +166,8 @@ MODULE pw_restart
       CASE( "all" )
          !
          ! ... do not overwrite the scf charge density with a non-scf one
-         ! ... (except in the 'force theorem' calculation of MAE where the
-         ! ...  charge density differs from the one read from disk)
          !
-         lrho  = lscf .OR. lforcet
+         lrho  = lscf
          lwfc  = twfcollect
          !
       CASE( "config" )
@@ -456,11 +283,18 @@ MODULE pw_restart
       ! ... k+G vectors
       !
       ALLOCATE ( igk_l2g( npwx, nks ) )
+      !
       igk_l2g = 0
       !
+      IF ( nks > 1 ) REWIND( iunigk )
+      !
       DO ik = 1, nks
+         !
          npw = ngk (ik)
-         CALL gk_l2gmap( ngm, ig_l2g(1), npw, igk_k(1,ik), igk_l2g(1,ik) )
+         IF ( nks > 1 ) READ( iunigk ) igk
+         !
+         CALL gk_l2gmap( ngm, ig_l2g(1), npw, igk(1), igk_l2g(1,ik) )
+         !
       END DO
       !
       ! ... compute the global number of G+k vectors for each k point
@@ -509,7 +343,6 @@ MODULE pw_restart
          IF (.NOT.(lkpoint_dir)) &
             CALL iotk_open_write( iunout, FILE = TRIM( dirname ) // '/' // &
                     & TRIM( xmlpun )//'.eig', BINARY = .FALSE., IERR = ierr )
-         !
       END IF
       !
       !
@@ -602,8 +435,7 @@ MODULE pw_restart
                         HUBBARD_J0 = Hubbard_J0, HUBBARD_BETA = Hubbard_beta, &
                         HUBBARD_ALPHA = Hubbard_alpha, &
                         INLC = inlc, VDW_TABLE_NAME = vdw_table_name, &
-                        PSEUDO_DIR = pseudo_dir, DIRNAME = dirname, &
-                        ACFDT_IN_PW = acfdt_in_pw, &
+                        PSEUDO_DIR = pseudo_dir, DIRNAME = dirname,   &
                         LLONDON = llondon, LONDON_S6 = scal6,         &
                         LONDON_RCUT = lon_rcut, LXDM = lxdm,          &
                         TS_VDW = ts_vdw, VDW_ISOLATED = vdw_isolated )
@@ -614,12 +446,6 @@ MODULE pw_restart
                          exxdiv_treatment, yukawa, ecutvcut, &
                          get_exx_fraction(), get_gau_parameter(), &
                          get_screening_parameter(), exx_is_active(), ecutfock )
-         !
-!-------------------------------------------------------------------------------
-! ... ESM
-!-------------------------------------------------------------------------------
-         !
-         CALL qexml_write_esm( esm_nfit, esm_efield, esm_w, esm_a, esm_bc )
          !
 !-------------------------------------------------------------------------------
 ! ... OCCUPATIONS
@@ -642,8 +468,8 @@ MODULE pw_restart
 !-------------------------------------------------------------------------------
          !
          !
-         CALL qexml_write_para( kunit, nproc, nproc_pool, nproc_image, &
-                                ntask_groups, nproc_bgrp, nproc_ortho )
+         CALL qexml_write_para( kunit, nproc, nproc_pool, nproc_image, ntask_groups,&
+                          nproc_pot, nproc_bgrp, nproc_ortho )
          !
 !-------------------------------------------------------------------------------
 ! ... CHARGE DENSITY
@@ -743,9 +569,10 @@ MODULE pw_restart
 ! ... CHARGE-DENSITY FILES
 !-------------------------------------------------------------------------------
       !
+      ! ... do not overwrite the scf charge density with a non-scf one
       ! ... also writes rho%ns if lda+U and rho%bec if PAW
       !
-      IF ( lrho ) CALL write_rho( rho, nspin )
+      IF ( lscf ) CALL write_rho( rho, nspin )
 !-------------------------------------------------------------------------------
 ! ... END RESTART SECTIONS
 !-------------------------------------------------------------------------------
@@ -753,9 +580,12 @@ MODULE pw_restart
       DEALLOCATE( mill_g )
       DEALLOCATE( ngk_g )
       !
+      IF (ionode) CALL qexml_save_history( dirname, istep, ierr )
+      !
       CALL mp_bcast( ierr, ionode_id, intra_image_comm )
       !
-      CALL errore( 'pw_writefile ', 'cannot save history', ierr )
+      CALL errore( 'pw_writefile ', &
+                   'cannot save history', ierr )
       !
       RETURN
       !
@@ -990,8 +820,9 @@ MODULE pw_restart
       LOGICAL            :: lcell, lpw, lions, lspin, linit_mag, &
                             lxc, locc, lbz, lbs, lwfc, lheader,          &
                             lsymm, lrho, lefield, ldim, &
-                            lef, lexx, lesm
+                            lef, lexx
       !
+      LOGICAL            :: need_qexml
       INTEGER            :: tmp
       !
       ierr = 0
@@ -1005,7 +836,10 @@ MODULE pw_restart
       CALL errore( 'pw_readfile', &
                    'no free units to read wavefunctions', ierr )
       !
+      need_qexml = .FALSE.
+      !
       lheader = .NOT. qexml_version_init
+      IF (lheader) need_qexml = .TRUE.
       !
       ldim    = .FALSE.
       lcell   = .FALSE.
@@ -1023,31 +857,39 @@ MODULE pw_restart
       lefield = .FALSE.
       lef     = .FALSE.
       lexx    = .FALSE.
-      lesm    = .FALSE.
       !
       SELECT CASE( what )
       CASE( 'header' )
          !
          lheader = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'dim' )
          !
          ldim = .TRUE.
          lbz  = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'pseudo' )
          !
          lions = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'config' )
          !
          lcell = .TRUE.
          lions = .TRUE.
+         need_qexml = .TRUE.
+         !
+      CASE( 'rho' )
+         !
+         lrho  = .TRUE.
          !
       CASE( 'wave' )
          !
          lpw   = .TRUE.
          lwfc  = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'nowavenobs' )
          !
@@ -1061,7 +903,8 @@ MODULE pw_restart
          lbz     = .TRUE.
          lsymm   = .TRUE.
          lefield = .TRUE.
-         !
+         need_qexml = .TRUE.
+
       CASE( 'nowave' )
          !
          lcell   = .TRUE.
@@ -1075,6 +918,7 @@ MODULE pw_restart
          lbs     = .TRUE.
          lsymm   = .TRUE.
          lefield = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'all' )
          !
@@ -1091,6 +935,7 @@ MODULE pw_restart
          lsymm   = .TRUE.
          lefield = .TRUE.
          lrho    = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'reset' )
          !
@@ -1110,25 +955,19 @@ MODULE pw_restart
       CASE( 'ef' )
          !
          lef        = .TRUE.
+         need_qexml = .TRUE.
          !
       CASE( 'exx' )
          !
          lexx       = .TRUE.
-         !
-      CASE( 'esm' )
-         !
-         lesm       = .TRUE.
-         !
-      CASE DEFAULT
-         !
-         CALL errore( 'pw_readfile', 'unknown case '//TRIM(what), 1 )
+         need_qexml = .TRUE.
          !
       END SELECT
       !
       IF ( .NOT. lheader .AND. .NOT. qexml_version_init) &
          CALL errore( 'pw_readfile', 'qexml version not set', 71 )
       !
-      IF (  ionode ) THEN
+      IF (  ionode .AND. need_qexml ) THEN
          !
          CALL qexml_init( iunpun )
          CALL qexml_openfile( TRIM( dirname ) // '/' // TRIM( xmlpun ), &
@@ -1270,7 +1109,6 @@ MODULE pw_restart
          END IF
          !
       END IF
-
       IF ( lrho ) THEN
          !
          ! ... to read the charge-density we use the routine from io_rho_xml 
@@ -1279,12 +1117,11 @@ MODULE pw_restart
          CALL read_rho( rho, nspin )
          !
       END IF
-
       IF ( lef ) THEN
          !
          CALL read_ef( ierr )
          IF ( ierr > 0 ) THEN
-            errmsg='error reading Fermi energy and number of electrons in xml data file'
+            errmsg='error reading Fermi energy in xml data file'
             GOTO 100
          END IF
          !
@@ -1298,17 +1135,8 @@ MODULE pw_restart
          END IF
          !
       END IF
-      IF ( lesm ) THEN
-         !
-         CALL read_esm( ierr )
-         IF ( ierr > 0 ) THEN
-            errmsg='error reading ESM restart data in xml data file'
-            GOTO 100
-         END IF
-         !
-      END IF
       !
-      IF (ionode) THEN
+      IF (ionode .AND. need_qexml) THEN
          !
          CALL qexml_closefile( 'read', IERR=ierr)
          !
@@ -1320,20 +1148,15 @@ MODULE pw_restart
          GOTO 100
       END IF
       !
-
       RETURN
       !
       ! uncomment to continue execution after an error occurs
-      ! 100 IF (ionode) THEN
+      ! 100 IF (ionode .AND. need_qexml) THEN
       !        CALL qexml_closefile( 'read', IERR=tmp)
       !     ENDIF
       !     RETURN
       ! comment to continue execution after an error occurs
-
-
 100   CALL errore('pw_readfile',TRIM(errmsg),ierr)
-
-
       !
     END SUBROUTINE pw_readfile
     !
@@ -1386,13 +1209,13 @@ MODULE pw_restart
       USE noncollin_module, ONLY : noncolin
       USE ktetra,           ONLY : ntetra
       USE klist,            ONLY : nkstot, nelec
-      USE wvfct,            ONLY : nbnd, npwx
-      USE gvecw,            ONLY : ecutwfc
+      USE wvfct,            ONLY : nbnd, npwx, ecutwfc
       USE control_flags,    ONLY : gamma_only
       USE mp_pools,         ONLY : kunit
       USE mp_global,        ONLY : nproc_file, nproc_pool_file, &
                                    nproc_image_file, ntask_groups_file, &
-                                   nproc_bgrp_file, nproc_ortho_file
+                                   nproc_pot_file, nproc_bgrp_file, &
+                                   nproc_ortho_file
       !
       IMPLICIT NONE
       !
@@ -1451,7 +1274,7 @@ MODULE pw_restart
          !
          CALL qexml_read_para( KUNIT=kunit, NPROC=nproc_file, NPROC_POOL=nproc_pool_file, &
               NPROC_IMAGE=nproc_image_file, NTASK_GROUPS = ntask_groups_file, &
-              NPROC_BGRP=nproc_bgrp_file, NPROC_ORTHO=nproc_ortho_file, FOUND=found, IERR=ierr )
+              NPROC_POT=nproc_pot_file, NPROC_BGRP=nproc_bgrp_file, NPROC_ORTHO=nproc_ortho_file, FOUND=found, IERR=ierr )
          IF ( ierr /= 0) GOTO 100
          !
          IF ( .NOT. found ) THEN
@@ -1461,6 +1284,7 @@ MODULE pw_restart
             nproc_pool_file=1
             nproc_image_file=1
             ntask_groups_file=1
+            nproc_pot_file=1
             nproc_bgrp_file=1
             nproc_ortho_file=1
             !
@@ -1499,6 +1323,7 @@ MODULE pw_restart
       CALL mp_bcast( nproc_pool_file,    ionode_id, intra_image_comm )
       CALL mp_bcast( nproc_image_file,   ionode_id, intra_image_comm )
       CALL mp_bcast( ntask_groups_file,  ionode_id, intra_image_comm )
+      CALL mp_bcast( nproc_pot_file,     ionode_id, intra_image_comm )
       CALL mp_bcast( nproc_bgrp_file,    ionode_id, intra_image_comm )
       CALL mp_bcast( nproc_ortho_file,   ionode_id, intra_image_comm )
       !
@@ -1863,10 +1688,9 @@ MODULE pw_restart
       !
       USE gvect,           ONLY : ngm_g, ecutrho
       USE gvecs,           ONLY : ngms_g, dual
-      USE gvecw,           ONLY : ecutwfc
       USE fft_base,        ONLY : dfftp
       USE fft_base,        ONLY : dffts
-      USE wvfct,           ONLY : npwx
+      USE wvfct,           ONLY : npwx, g2kin, ecutwfc
       USE control_flags,   ONLY : gamma_only
       !
       IMPLICIT NONE
@@ -2044,7 +1868,6 @@ MODULE pw_restart
                             Hubbard_l, Hubbard_U, Hubbard_J, Hubbard_alpha, &
                             Hubbard_J0, Hubbard_beta, U_projection
       USE kernel_table, ONLY : vdw_table_name
-      USE acfdt_ener,   ONLY : acfdt_in_pw
       USE control_flags,ONLY : llondon, lxdm, ts_vdw
       USE london_module,ONLY : scal6, lon_rcut
       USE tsvdw_module, ONLY : vdw_isolated
@@ -2068,7 +1891,7 @@ MODULE pw_restart
          CALL qexml_read_xc( dft_name, lda_plus_u, lda_plus_u_kind, U_projection,&
                              Hubbard_lmax, Hubbard_l, nsp_, Hubbard_U, Hubbard_J, &
                              Hubbard_J0, Hubbard_alpha, Hubbard_beta, &
-                             inlc, vdw_table_name,  acfdt_in_pw, llondon, scal6, &
+                             inlc, vdw_table_name, llondon, scal6, &
                              lon_rcut, lxdm, ts_vdw, vdw_isolated, ierr )
          !
       END IF
@@ -2076,9 +1899,6 @@ MODULE pw_restart
       CALL mp_bcast( dft_name,   ionode_id, intra_image_comm )
       CALL mp_bcast( lda_plus_u, ionode_id, intra_image_comm )
       CALL mp_bcast( inlc, ionode_id, intra_image_comm )
-      CALL mp_bcast( llondon,    ionode_id, intra_image_comm )
-      CALL mp_bcast( lxdm,       ionode_id, intra_image_comm )
-      CALL mp_bcast( ts_vdw,     ionode_id, intra_image_comm )
       !
       IF ( lda_plus_u ) THEN
          !
@@ -2097,21 +1917,6 @@ MODULE pw_restart
       IF ( inlc == 1 .OR. inlc == 2 ) THEN
          CALL mp_bcast( vdw_table_name,  ionode_id, intra_image_comm )
       END IF
-      !
-      IF ( llondon ) THEN
-         CALL mp_bcast( scal6, ionode_id, intra_image_comm )
-         CALL mp_bcast( lon_rcut, ionode_id, intra_image_comm )
-      END IF
-      !
-      IF ( ts_vdw ) THEN
-         CALL mp_bcast( vdw_isolated, ionode_id, intra_image_comm )
-      END IF
-      !
-      ! SCF EXX/RPA
-      !
-      CALL mp_bcast( acfdt_in_pw, ionode_id, intra_image_comm )
-      !
-      IF (acfdt_in_pw) dft_name = 'NOX-NOC'
 
       ! discard any further attempt to set a different dft
       CALL enforce_input_dft( dft_name, nomsg )
@@ -2430,8 +2235,7 @@ MODULE pw_restart
       USE cell_base,            ONLY : tpiba2
       USE lsda_mod,             ONLY : nspin, isk
       USE klist,                ONLY : nkstot, wk, nks, xk, ngk
-      USE wvfct,                ONLY : npw, npwx, et, wg, nbnd
-      USE gvecw,                ONLY : ecutwfc
+      USE wvfct,                ONLY : npw, npwx, g2kin, et, wg, nbnd, ecutwfc
       USE wavefunctions_module, ONLY : evc
       USE io_files,             ONLY : nwordwfc, iunwfc
       USE buffers,              ONLY : save_buffer
@@ -2441,7 +2245,7 @@ MODULE pw_restart
       USE mp_pools,             ONLY : kunit, nproc_pool, me_pool, root_pool, &
                                        intra_pool_comm, inter_pool_comm
       USE mp_bands,             ONLY : me_bgrp, nbgrp, root_bgrp, &
-                                       intra_bgrp_comm
+                                       intra_bgrp_comm,  inter_bgrp_comm
       !
       IMPLICIT NONE
       !
@@ -2456,7 +2260,6 @@ MODULE pw_restart
       INTEGER, ALLOCATABLE :: ngk_g(:)
       INTEGER, ALLOCATABLE :: igk_l2g(:,:), igk_l2g_kdip(:,:)
       LOGICAL              :: opnd
-      REAL(DP),ALLOCATABLE :: gk(:)
       REAL(DP)             :: scalef
 
       !
@@ -2472,6 +2275,19 @@ MODULE pw_restart
          IF ( .NOT. opnd ) CALL errore( 'read_wavefunctions', &
                     & 'wavefunctions unit (iunwfc) is not opened', 1 )
       END IF
+      !
+      IF ( ionode ) THEN
+         !
+         !CALL iotk_open_read( iunpun+1, FILE = TRIM( dirname ) // '/' // &
+         !                   & TRIM( xmlpun ), IERR = ierr )
+         !
+         !PRINT*,TRIM( dirname ) // '/' // &
+         !                   & TRIM( xmlpun )
+      END IF
+      !
+      !CALL mp_bcast( ierr, ionode_id, intra_image_comm )
+      !
+      !IF ( ierr > 0 ) RETURN
       !
       IF ( nkstot > 0 ) THEN
          !
@@ -2519,7 +2335,7 @@ MODULE pw_restart
       ALLOCATE ( igk_l2g( npwx, nks ) )
       igk_l2g = 0
       !
-      ALLOCATE( kisort( npwx ), gk(npwx) )
+      ALLOCATE( kisort( npwx ) )
       !
       DO ik = 1, nks
          !
@@ -2527,7 +2343,7 @@ MODULE pw_restart
          npw    = npwx
          !
          CALL gk_sort( xk(1,ik+iks-1), ngm, g, &
-                       ecutwfc/tpiba2, npw, kisort(1), gk )
+                       ecutwfc/tpiba2, npw, kisort(1), g2kin )
          !
          CALL gk_l2gmap( ngm, ig_l2g(1), npw, kisort(1), igk_l2g(1,ik) )
          !
@@ -2535,7 +2351,7 @@ MODULE pw_restart
          !
       END DO
       !
-      DEALLOCATE( gk, kisort )
+      DEALLOCATE( kisort )
       !
       ! ... compute the global number of G+k vectors for each k point
       !
@@ -2707,10 +2523,6 @@ MODULE pw_restart
                   !
                END IF
                !
-               ! workaround for pot parallelization ( Viet Nguyen / SdG )
-               ! -pot parallelization uses mp_image communicators
-               ! note that ionode must be also reset in the similar way 
-               ! to image parallelization
                CALL read_wfc( iunout, ik, nkstot, kunit, ispin, nspin,         &
                               evc, npw_g, nbnd, igk_l2g_kdip(:,ik-iks+1),      &
                               ngk(ik-iks+1), filename, scalef, &
@@ -2757,10 +2569,10 @@ MODULE pw_restart
     SUBROUTINE read_ef( ierr )
       !------------------------------------------------------------------------
       !
-      ! ... this routine reads the Fermi energy and the number of electrons
+      ! ... this routine reads only the Fermi energy
       !
       USE ener,  ONLY : ef, ef_up, ef_dw
-      USE klist, ONLY : two_fermi_energies, nelec
+      USE klist, ONLY : two_fermi_energies
       !
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: ierr
@@ -2769,8 +2581,7 @@ MODULE pw_restart
       !
       IF ( ionode ) THEN
          !
-         CALL qexml_read_bands_info( EF = ef, EF_UP=ef_up, EF_DW=ef_dw, &
-            TWO_FERMI_ENERGIES=two_fermi_energies, NELEC=nelec, IERR=ierr )
+         CALL qexml_read_bands_info( EF = ef , TWO_FERMI_ENERGIES=two_fermi_energies, EF_UP=ef_up, EF_DW=ef_dw, IERR=ierr )
          !
       END IF
       !
@@ -2795,7 +2606,6 @@ MODULE pw_restart
       CALL mp_bcast( ef, ionode_id, intra_image_comm )
       CALL mp_bcast( ef_up, ionode_id, intra_image_comm )
       CALL mp_bcast( ef_dw, ionode_id, intra_image_comm )
-      CALL mp_bcast( nelec, ionode_id, intra_image_comm )
       !
       RETURN
       !
@@ -2854,39 +2664,6 @@ MODULE pw_restart
       RETURN
       !
     END SUBROUTINE read_exx
-    !
-    !------------------------------------------------------------------------
-    SUBROUTINE read_esm( ierr )
-      !------------------------------------------------------------------------
-      !
-      ! ... this routine reads only nelec and ef
-      !
-      USE esm, ONLY : esm_nfit, esm_efield, esm_w, esm_a, esm_bc
-      !
-      IMPLICIT NONE
-      INTEGER, INTENT(OUT) :: ierr
-      !
-      ! ... then selected tags are read from the other sections
-      !
-      IF ( ionode ) THEN
-         !
-         CALL qexml_read_esm( ESM_NFIT = esm_nfit, ESM_EFIELD = esm_efield, &
-           ESM_W = esm_w, ESM_A = esm_a, ESM_BC = esm_bc, IERR=ierr )
-         !
-      END IF
-      !
-      CALL mp_bcast( ierr, ionode_id, intra_image_comm )
-      IF ( ierr > 0 ) RETURN
-      !
-      CALL mp_bcast( esm_nfit,    ionode_id, intra_image_comm )
-      CALL mp_bcast( esm_efield,  ionode_id, intra_image_comm )
-      CALL mp_bcast( esm_w,       ionode_id, intra_image_comm )
-      CALL mp_bcast( esm_a,       ionode_id, intra_image_comm )
-      CALL mp_bcast( esm_bc,      ionode_id, intra_image_comm )
-      !
-      RETURN
-      !
-    END SUBROUTINE read_esm
     !
     !------------------------------------------------------------------------
     SUBROUTINE read_( dirname, ierr )

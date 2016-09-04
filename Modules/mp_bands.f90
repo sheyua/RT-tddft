@@ -25,14 +25,15 @@ MODULE mp_bands
   INTEGER :: my_bgrp_id  = 0  ! index of my band group
   INTEGER :: inter_bgrp_comm  = 0  ! inter band group communicator
   INTEGER :: intra_bgrp_comm  = 0  ! intra band group communicator  
-  ! Next variable is .T. if band parallelization is performed inside H\psi 
-  ! and S\psi, .F. otherwise (band parallelization can be performed outside
-  ! H\psi and S\psi, though)  
-  LOGICAL :: use_bgrp_in_hpsi = .FALSE.
   !
   ! ... "task" groups (for band parallelization of FFT)
   !
   INTEGER :: ntask_groups = 1  ! number of proc. in an orbital "task group"
+  !
+  ! ... The following variables not set during initialization but later
+  !
+  INTEGER :: ibnd_start = 0 ! starting band index
+  INTEGER :: ibnd_end = 0   ! ending band index
   !
 CONTAINS
   !
@@ -66,11 +67,6 @@ CONTAINS
                           'invalid number of band groups, out of range', 1 )
     IF ( MOD( parent_nproc, nbgrp ) /= 0 ) CALL errore( 'mp_start_bands', &
         'n. of band groups  must be divisor of parent_nproc', 1 )
-    !
-    ! set logical flag so that band parallelization in H\psi is allowed
-    ! (can be disabled before calling H\psi if not desired)
-    !
-    use_bgrp_in_hpsi = ( nbgrp > 1 )
     ! 
     ! ... Set number of processors per band group
     !
@@ -105,74 +101,32 @@ CONTAINS
     !
   END SUBROUTINE mp_start_bands
   !
-  SUBROUTINE set_bgrp_indices(nbnd, ib_start, ib_end)
+  SUBROUTINE init_index_over_band (comm,nbnd)
     !
     IMPLICIT NONE
-    INTEGER, INTENT(IN) :: nbnd
-    INTEGER, INTENT(OUT) :: ib_start, ib_end
+    INTEGER, INTENT(IN) :: comm, nbnd
 
-    INTEGER :: rest, nbnd_per_bgrp
+    INTEGER :: npe, myrank, rest, k
 
-    rest = mod ( nbnd, nbgrp )
-    nbnd_per_bgrp = int( nbnd / nbgrp ) 
+    myrank = mp_rank(comm)
+    npe = mp_size(comm)
 
-    IF (rest > my_bgrp_id) THEN 
-       ib_start =  my_bgrp_id    * (nbnd_per_bgrp+1) + 1
-       ib_end   = (my_bgrp_id+1) * (nbnd_per_bgrp+1) 
+    rest = mod(nbnd, npe)
+    k = int(nbnd/npe)
+
+    IF ( k >= 1) THEN
+       IF (rest > myrank) THEN
+          ibnd_start = (myrank)*k + (myrank+1)
+          ibnd_end  =  (myrank+1)*k + (myrank+1)
+       ELSE
+          ibnd_start = (myrank)*k + rest + 1
+          ibnd_end  =  (myrank+1)*k + rest
+       ENDIF
     ELSE
-       ib_start =  my_bgrp_id    * nbnd_per_bgrp + rest + 1
-       ib_end   = (my_bgrp_id+1) * nbnd_per_bgrp + rest 
+       ibnd_start = 1
+       ibnd_end = nbnd
     ENDIF
 
-  END SUBROUTINE set_bgrp_indices
-
-  INTEGER FUNCTION bgrp_start(nbnd)
-    !
-    IMPLICIT NONE
-    INTEGER, INTENT(IN) :: nbnd
-
-    INTEGER :: rest, nbnd_per_bgrp
-
-    rest = mod ( nbnd, nbgrp )
-    nbnd_per_bgrp = int( nbnd / nbgrp ) 
-
-    IF (rest > my_bgrp_id) THEN 
-       bgrp_start =  my_bgrp_id    * (nbnd_per_bgrp+1) + 1
-    ELSE
-       bgrp_start =  my_bgrp_id    * nbnd_per_bgrp + rest + 1
-    ENDIF
-
-  END FUNCTION bgrp_start
-
-  INTEGER FUNCTION bgrp_end(nbnd)
-    !
-    IMPLICIT NONE
-    INTEGER, INTENT(IN) :: nbnd
-
-    INTEGER :: rest, nbnd_per_bgrp
-
-    rest = mod ( nbnd, nbgrp )
-    nbnd_per_bgrp = int( nbnd / nbgrp ) 
-
-    IF (rest > my_bgrp_id) THEN 
-       bgrp_end   = (my_bgrp_id+1) * (nbnd_per_bgrp+1) 
-    ELSE
-       bgrp_end   = (my_bgrp_id+1) * nbnd_per_bgrp + rest 
-    ENDIF
-
-  END FUNCTION bgrp_end
-
+  END SUBROUTINE init_index_over_band
+  !
 END MODULE mp_bands
-!
-!     
-MODULE mp_bands_TDDFPT
-!
-! NB: These two varialbles used to be in mp_bands and are loaded from mp_global in TDDFPT 
-!     I think they would better stay in a TDDFPT specific module but leave them here not to
-!     be too invasive on a code I don't know well. SdG
-!     
-  INTEGER :: ibnd_start = 0              ! starting band index used in bgrp parallelization
-  INTEGER :: ibnd_end = 0                ! ending band index used in bgrp parallelization
-!     
-END MODULE mp_bands_TDDFPT
-!     

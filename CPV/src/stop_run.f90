@@ -26,8 +26,6 @@ SUBROUTINE stop_run()
   !
   IF ( lconstrain ) CALL deallocate_constraint()
   !
-  CALL plugin_clean()
-  !
   CALL mp_global_end()
   !
 END SUBROUTINE stop_run

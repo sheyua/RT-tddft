@@ -236,9 +236,9 @@ SUBROUTINE convert_fhi (upf)
   upf%rel = 'scalar'  ! just guessing
   IF (nint(Zatom) > 0) THEN
      upf%psd = atom_name(nint(Zatom))
-     IF (nint(Zatom) < 18) upf%rel = 'no' ! just guessing
+     IF (nint(Zatom) > 18) upf%rel = 'no' ! just guessing
   ELSE
-     WRITE(*,'("Atom name > ")', advance="NO")
+     PRINT '("Atom name > ",$)'
      READ (5,'(a)') upf%psd
   ENDIF
   upf%typ = 'SL'
@@ -255,7 +255,7 @@ SUBROUTINE convert_fhi (upf)
      IF (pspxc > 0) THEN
         PRINT '("DFT read from abinit file: ",i1)', pspxc
      ENDIF
-     WRITE(*,'("DFT > ")', advance="NO")
+     PRINT '("DFT > ",$)'
      READ (5,'(a)') upf%dft
   ENDIF
   !
@@ -268,7 +268,7 @@ SUBROUTINE convert_fhi (upf)
 ! Use lloc (from fhi module) here, otherwise the user input has not effect on the vloc assignment below.
 ! In case of a .cpi file (i.e. direct output from Martin Fuchs's FHI98PP code), which does not include information about lloc,
 ! a proper conversion could actually never have been achieved in the past.
-  WRITE(*,'("Confirm or modify l max, l loc (read:",2i3,") > ")', advance="NO") lmax, lloc
+  PRINT '("Confirm or modify l max, l loc (read:",2i3,") > ",$)', lmax, lloc
   READ (5,*) lmax, lloc
   !
   IF ( lmax == lloc) THEN
@@ -293,7 +293,7 @@ SUBROUTINE convert_fhi (upf)
   PRINT '("If unknown: list valence wfcts and occupancies for the atomic ground state ", &
          &"in increasing l order: s,p,d,f")'
   DO i=1, upf%nwfc
-10   WRITE(*,'("Wavefunction # ",i1,": label (e.g. 4s), occupancy > ")', advance="NO") i
+10   PRINT '("Wavefunction # ",i1,": label (e.g. 4s), occupancy > ",$)', i
      READ (5,*) label, upf%oc(i)
      READ (label(1:1),*, err=10) l
      upf%els(i)  = label

@@ -65,7 +65,7 @@ PROGRAM plotband
   IF (nks <= 0 .or. nbnd <= 0 .or. ios /= 0) THEN
      STOP 'Error reading file header'
   ELSE
-     WRITE(*,'("Reading ",i4," bands at ",i6," k-points")') nbnd, nks
+     PRINT '("Reading ",i4," bands at ",i6," k-points")', nbnd, nks
   ENDIF
 
   filename1=trim(filename)//".rap"
@@ -163,7 +163,7 @@ PROGRAM plotband
   !!!
   IF (exist_proj) THEN
      atwfclst(:) = -1
-     WRITE(*,'("List of atomic wavefunctions: ")', advance="NO")
+     PRINT '("List of atomic wavefunctions: ",$)'
      READ (5,'(A)') line
      CALL field_count( nprojwfc, line )
      DO nwfc = 1,nprojwfc
@@ -246,7 +246,7 @@ PROGRAM plotband
         emax = max(emax, e(i,n))
      ENDDO
   ENDDO
-  WRITE(*,'("Range:",2f10.4,"eV  Emin, Emax > ")', advance="NO") emin, emax
+  PRINT '("Range:",2f10.4,"eV  Emin, Emax > ",$)', emin, emax
   READ(5,*) emin, emax
 !
 !  Since the minimum and miximum energies are given in input we can
@@ -306,10 +306,10 @@ PROGRAM plotband
      ENDIF
   ENDDO
   !
-  WRITE(*,'("output file (xmgr) > ")', advance="NO")
+  PRINT '("output file (xmgr) > ",$)'
   READ(5,'(a)', end=25, err=25)  filename
   IF (filename == ' ' ) THEN
-     WRITE(*,'("skipping ...")')
+     PRINT '("skipping ...")'
      GOTO 25
   ENDIF
   IF (.NOT.exist_rap) THEN
@@ -487,7 +487,7 @@ PROGRAM plotband
         ENDDO
      ENDDO
   ENDIF
-  WRITE(*,'("bands in xmgr format written to file ",a)') filename
+  PRINT '("bands in xmgr format written to file ",a)', filename
   !
 25 CONTINUE
   IF (exist_rap) THEN
@@ -502,17 +502,17 @@ PROGRAM plotband
      DEALLOCATE(sumproj)
      DEALLOCATE(p_rap)
   ENDIF
-  WRITE(*,'("output file (ps) > ")', advance="NO")
+  PRINT '("output file (ps) > ",$)'
   READ(5,'(a)',end=30,err=30)  filename
   IF (filename == ' ' ) THEN
-     WRITE(*,'("stopping ...")')
+     PRINT '("stopping ...")'
      GOTO 30
   ENDIF
   OPEN (unit=1,file=TRIM(filename),form='formatted',status='unknown',&
        iostat=ios)
-  WRITE(*,'("Efermi > ")', advance="NO")
+  PRINT '("Efermi > ",$)'
   READ(5,*) Ef
-  WRITE(*,'("deltaE, reference E (for tics) ")', advance="NO")
+  PRINT '("deltaE, reference E (for tics) ",$)'
   READ(5,*) deltaE, eref
   !
   WRITE (1,'(a)') '%! PS-Adobe-1.0'
@@ -605,15 +605,15 @@ PROGRAM plotband
   WRITE (1,'(a)') '%%Page'
   WRITE (1,*) 'showpage'
   CLOSE (unit=1)
-  WRITE(*,'("bands in PostScript format written to file ",a)') filename
+  PRINT '("bands in PostScript format written to file ",a)', filename
 30 CONTINUE
 
   STOP
-20 WRITE(*, '("Error reading k-point # ",i4)') n
+20 PRINT '("Error reading k-point # ",i4)', n
   STOP
-22 WRITE(*, '("Error reading projection file header")')
+22 PRINT '("Error reading projection file header")'
   STOP
-23 WRITE(*, '("Error reading projections")')
+23 PRINT '("Error reading projections")'
   STOP
 
 CONTAINS

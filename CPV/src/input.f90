@@ -129,6 +129,7 @@ MODULE input
                                isave_      => isave, &
                                tstress_    => tstress, &
                                tprnfor_    => tprnfor, &
+                               tprnsfac_   => tprnsfac, &
                                ampre_      => ampre, &
                                trane_      => trane, &
                                nomore_     => nomore, &
@@ -139,17 +140,22 @@ MODULE input
                                taurdr_     => taurdr, &
                                nbeg_       => nbeg, &
                                gamma_only_ => gamma_only, &
+                               tatomicwfc_ => tatomicwfc, &
+                               printwfc_   => printwfc, &
                                tortho_     => tortho,   &
                                nstep_      => nstep
      USE control_flags, ONLY : tsde_          => tsde, &
+                               tsteepdesc_    => tsteepdesc, &
                                tzeroe_        => tzeroe, &
+                               tdamp_         => tdamp, &
                                trhor_         => trhor, &
                                trhow_         => trhow, &
                                tksw_          => tksw,  &
                                ortho_eps_     => ortho_eps, &
                                ortho_max_     => ortho_max, &
                                tnosee_        => tnosee
-     USE control_flags, ONLY : tfor_      => tfor, &
+     USE control_flags, ONLY : tdampions_ => tdampions, &
+                               tfor_      => tfor, &
                                tsdp_      => tsdp
      USE control_flags, ONLY : tnosep_ => tnosep, &
                                tcap_   => tcap, &
@@ -210,7 +216,7 @@ MODULE input
         tapos, tavel, ecutwfc, emass, emass_cutoff, taspc, trd_ht, ibrav,      &
         ortho_eps, ortho_max, ntyp, tolp, calculation, disk_io, dt,            &
         tcg, ndr, ndw, iprint, isave, tstress, k_points, tprnfor, verbosity,   &
-        ampre, nstep, restart_mode, ion_positions, startingwfc,                &
+        ampre, nstep, restart_mode, ion_positions, startingwfc, printwfc,      &
         orthogonalization, electron_velocities, nat, if_pos,                   &
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr, saverho, rd_for, assume_isolated, wf_collect,                    &
@@ -231,6 +237,7 @@ MODULE input
      tpre_          = tstress
      gamma_only_    = ( TRIM( k_points ) == 'gamma' )
      tprnfor_       = tprnfor
+     printwfc_      = printwfc
      ekin_conv_thr_ = ekin_conv_thr
      etot_conv_thr_ = etot_conv_thr
      forc_conv_thr_ = forc_conv_thr
@@ -301,6 +308,9 @@ MODULE input
           ! The code performs a memory check, write on standard
           ! output the allocated memory at each step.
           ! Architecture Dependent
+     tprnsfac_  = .FALSE.
+          ! Print on file STRUCTURE_FACTOR the structure factor
+          ! gvectors and charge density, in reciprocal space.
      !
      SELECT CASE( TRIM( verbosity ) )
        CASE( 'minimal' )
@@ -316,12 +326,14 @@ MODULE input
          !
          iverbosity_ = 1
          timing_   = .TRUE.
+         tprnsfac_ = .TRUE.
          !
        CASE( 'high' )
          !
          iverbosity_ = 2
          memchk_   = .TRUE.
          timing_   = .TRUE.
+         tprnsfac_ = .TRUE.
          !
        CASE( 'debug' )
          !
@@ -435,13 +447,17 @@ MODULE input
 
      ! ... Electronic randomization
         
+     tatomicwfc_ = .FALSE.
      SELECT CASE ( TRIM(startingwfc) )
        CASE ('default','none')
          trane_ = .FALSE.
        CASE ('random')
          trane_ = .TRUE.
+       CASE ('atomic')
+         tatomicwfc_ = .TRUE.
        CASE DEFAULT
-         CALL errore(' control_flags ',' unimplemented startingwfc='//TRIM(startingwfc), 1 )
+          PRINT*,"startingwfc",startingwfc
+         CALL errore(' control_flags ',' unknown startingwfc '//TRIM(startingwfc), 1 )
      END SELECT
      IF( ampre_ == 0 ) trane_ = .FALSE.
 
@@ -473,6 +489,8 @@ MODULE input
 
       ! ... Electron dynamics
 
+      tdamp_          = .FALSE.
+      tsteepdesc_     = .FALSE.
       frice_ = 0.d0
       SELECT CASE ( TRIM(electron_dynamics) )
         CASE ('sd', 'default')
@@ -485,6 +503,7 @@ MODULE input
           tortho_ = .FALSE.
         CASE ('damp')
           tsde_   = .FALSE.
+          tdamp_  = .TRUE.
           frice_ = electron_damping
         CASE ('diis')
           CALL errore( "iosys ", " electron_dynamics keyword diis not yet implemented ", 1 )
@@ -509,6 +528,7 @@ MODULE input
       
       ! ... Ions dynamics
 
+      tdampions_       = .FALSE.
       tconvthrs%active = .FALSE.
       tconvthrs%nstep  = 1
       tconvthrs%ekin   = 0.0d0
@@ -533,6 +553,7 @@ MODULE input
         CASE ('damp')
           tsdp_      = .FALSE.
           tfor_      = .TRUE.
+          tdampions_ = .TRUE.
           fricp_     = ion_damping
           tconvthrs%ekin   = ekin_conv_thr
           tconvthrs%derho  = etot_conv_thr
@@ -687,11 +708,6 @@ MODULE input
       ! force pairing
 
       force_pairing_ = force_pairing
-
-      ! ... having set all input keywords, read plugins' input file(s)
-
-      CALL plugin_read_input()
-
       !
       ! ... the 'ATOMIC_SPECIES' card must be present, check it
 
@@ -834,7 +850,7 @@ MODULE input
      endif
      !
      IF ( ref_cell ) THEN
-       CALL ref_cell_base_init( ref_alat, rd_ref_ht, ref_cell_units )
+       CALL ref_cell_base_init( ref_cell, ref_alat, rd_ref_ht, ref_cell_units )
        CALL gcutoffs_setup( ref_alat , tk_inp, nkstot, xk )
      ELSE
        CALL gcutoffs_setup( alat_ , tk_inp, nkstot, xk )
@@ -1116,8 +1132,6 @@ MODULE input
       IF( thdyn .AND. tnoseh ) CALL cell_nose_info (delt)
       !
       !   CALL sic_info()  ! maybe useful
-      !
-      CALL plugin_print_info( )
       !
       IF(tefield) call efield_info( ) 
       IF(tefield2) call efield_info2( )

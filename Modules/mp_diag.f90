@@ -15,6 +15,8 @@ MODULE mp_diag
   ! for scalapack
   !
   USE mp_world, ONLY : world_comm
+  USE mp_pools, ONLY : npool, nproc_pool, my_pool_id
+  USE mp_bands, ONLY : nbgrp, my_bgrp_id
   !
   USE parallel_include
   !
@@ -35,20 +37,18 @@ MODULE mp_diag
   INTEGER :: ortho_row_comm  = 0  ! communicator for the ortho row group
   INTEGER :: ortho_col_comm  = 0  ! communicator for the ortho col group
   INTEGER :: ortho_comm_id= 0 ! id of the ortho_comm
-  INTEGER :: ortho_parent_comm  = 0  ! parent communicator from which ortho group has been created
   !
 #if defined __SCALAPACK
   INTEGER :: me_blacs   =  0  ! BLACS processor index starting from 0
   INTEGER :: np_blacs   =  1  ! BLACS number of processor
-#endif
-  !
   INTEGER :: world_cntx = -1  ! BLACS context of all processor 
   INTEGER :: ortho_cntx = -1  ! BLACS context for ortho_comm
+#endif
   !
 CONTAINS
   !
   !----------------------------------------------------------------------------
-  SUBROUTINE mp_start_diag( ndiag_, parent_comm, nparent_comm, my_parent_id )
+  SUBROUTINE mp_start_diag( ndiag_, parent_comm )
     !---------------------------------------------------------------------------
     !
     ! ... Ortho/diag/linear algebra group initialization
@@ -56,8 +56,6 @@ CONTAINS
     IMPLICIT NONE
     !
     INTEGER, INTENT(IN) :: ndiag_, parent_comm
-    INTEGER, INTENT(IN) :: nparent_comm ! number of parent communicators
-    INTEGER, INTENT(IN) :: my_parent_id ! id of the parent communicator 
     !
     INTEGER :: nproc_ortho_try
     INTEGER :: parent_nproc  ! nproc of the parent group
@@ -96,29 +94,33 @@ CONTAINS
     ! the ortho group for parallel linear algebra is a sub-group of the pool,
     ! then there are as many ortho groups as pools.
     !
-    CALL init_ortho_group( nproc_ortho_try, parent_comm, nparent_comm, my_parent_id )
+    CALL init_ortho_group( nproc_ortho_try, parent_comm )
     !  
     RETURN
     !
   END SUBROUTINE mp_start_diag
   !
   !
-  SUBROUTINE init_ortho_group( nproc_try_in, comm_all, nparent_comm, my_parent_id )
+  SUBROUTINE init_ortho_group( nproc_try_in, comm_all )
     !
     IMPLICIT NONE
 
     INTEGER, INTENT(IN) :: nproc_try_in, comm_all
-    INTEGER, INTENT(IN) :: nparent_comm
-    INTEGER, INTENT(IN) :: my_parent_id ! id of the parent communicator 
 
     LOGICAL, SAVE :: first = .true.
     INTEGER :: ierr, color, key, me_all, nproc_all, nproc_try
 
 #if defined __SCALAPACK
     INTEGER, ALLOCATABLE :: blacsmap(:,:)
-    INTEGER, ALLOCATABLE :: ortho_cntx_pe(:)
+    INTEGER, ALLOCATABLE :: ortho_cntx_pe(:,:,:)
     INTEGER :: nprow, npcol, myrow, mycol, i, j, k
     INTEGER, EXTERNAL :: BLACS_PNUM
+    !
+    INTEGER :: nparent=1
+    INTEGER :: total_nproc=1
+    INTEGER :: total_mype=0
+    INTEGER :: nproc_parent=1
+    INTEGER :: my_parent_id=0
 #endif
 
 
@@ -180,10 +182,6 @@ CONTAINS
     !
     CALL mp_comm_split ( comm_all, color, key, ortho_comm )
     !
-    ! and remember where it comes from
-    !
-    ortho_parent_comm = comm_all
-    !
     !  Computes coordinates of the processors, in row maior order
     !
     me_ortho1   = mp_rank( ortho_comm )
@@ -214,17 +212,29 @@ CONTAINS
     !  SCALAPACK is now independent of whatever level of parallelization
     !  is present on top of pool parallelization
     !
-    ALLOCATE( ortho_cntx_pe( nparent_comm ) )
+    total_nproc = mp_size( world_comm )
+    total_mype = mp_rank( world_comm )
+    nparent = total_nproc/npool/nproc_pool
+    nproc_parent = total_nproc/nparent
+    my_parent_id = total_mype/nproc_parent
+    !
+    !
+    ALLOCATE( ortho_cntx_pe( npool, nbgrp, nparent ) )
     ALLOCATE( blacsmap( np_ortho(1), np_ortho(2) ) )
 
-    DO j = 1, nparent_comm
+    DO j = 1, nparent
 
-         CALL BLACS_GET(world_cntx, 10, ortho_cntx_pe( j ) ) ! retrieve communicator of world context
+     DO k = 1, nbgrp
+
+       DO i = 1, npool
+
+         CALL BLACS_GET(world_cntx, 10, ortho_cntx_pe( i, k, j)) ! retrieve communicator of world context
          blacsmap = 0
          nprow = np_ortho(1)
          npcol = np_ortho(2)
 
-         IF( ( j == ( my_parent_id + 1 ) ) .and. ( ortho_comm_id > 0 ) ) THEN
+         IF( ( j == ( my_parent_id + 1 ) ) .and. ( k == ( my_bgrp_id + 1 ) ) .and.  &
+             ( i == ( my_pool_id  + 1 ) ) .and. ( ortho_comm_id > 0 ) ) THEN
 
            blacsmap( me_ortho(1) + 1, me_ortho(2) + 1 ) = BLACS_PNUM( world_cntx, 0, me_blacs )
 
@@ -234,11 +244,12 @@ CONTAINS
 
          CALL mp_sum( blacsmap, world_comm ) 
 
-         CALL BLACS_GRIDMAP( ortho_cntx_pe( j ), blacsmap, nprow, nprow, npcol )
+         CALL BLACS_GRIDMAP( ortho_cntx_pe(i,k,j), blacsmap, nprow, nprow, npcol )
 
-         CALL BLACS_GRIDINFO( ortho_cntx_pe( j ), nprow, npcol, myrow, mycol )
+         CALL BLACS_GRIDINFO( ortho_cntx_pe(i,k,j), nprow, npcol, myrow, mycol )
 
-         IF( ( j == ( my_parent_id + 1 ) ) .and. ( ortho_comm_id > 0 ) ) THEN
+         IF( ( j == ( my_parent_id + 1 ) ) .and. ( k == ( my_bgrp_id + 1 ) ) .and. &
+             ( i == ( my_pool_id  + 1 ) ) .and. ( ortho_comm_id > 0 ) ) THEN
 
             IF(  np_ortho(1) /= nprow ) &
                CALL errore( ' init_ortho_group ', ' problem with SCALAPACK, wrong no. of task rows ', 1 )
@@ -249,9 +260,13 @@ CONTAINS
             IF(  me_ortho(2) /= mycol ) &
                CALL errore( ' init_ortho_group ', ' problem with SCALAPACK, wrong task columns ID ', 1 )
 
-            ortho_cntx = ortho_cntx_pe( j )
+            ortho_cntx = ortho_cntx_pe(i,k,j)
 
          END IF
+
+       END DO
+
+     END DO
 
     END DO 
 

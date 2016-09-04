@@ -87,16 +87,16 @@ MODULE read_namelists_module
        ! ... use the path specified as outdir and the filename prefix
        ! ... to store output data
        !
-       CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+       CALL get_env( 'ESPRESSO_TMPDIR', outdir )
        IF ( TRIM( outdir ) == ' ' ) outdir = './'
        IF( prog == 'PW' ) prefix = 'pwscf'
        IF( prog == 'CP' ) prefix = 'cp'
        !
        ! ... directory containing the pseudopotentials
        !
-       CALL get_environment_variable( 'ESPRESSO_PSEUDO', pseudo_dir )
+       CALL get_env( 'ESPRESSO_PSEUDO', pseudo_dir )
        IF ( TRIM( pseudo_dir ) == ' ') THEN
-          CALL get_environment_variable( 'HOME', pseudo_dir )
+          CALL get_env( 'HOME', pseudo_dir )
           pseudo_dir = TRIM( pseudo_dir ) // '/espresso/pseudo/'
        END IF
        !
@@ -115,6 +115,7 @@ MODULE read_namelists_module
        nppstr   = 0
        wf_collect = .FALSE.
        IF( prog == 'CP' ) wf_collect = .TRUE.  ! default for CP is true
+       printwfc = -1
        lelfield = .FALSE.
        lorbm = .FALSE.
        nberrycyc  = 1
@@ -124,13 +125,6 @@ MODULE read_namelists_module
        !
        saverho = .TRUE.
        memory = 'default'
-       !
-       lfcpopt = .FALSE.
-       lfcpdyn = .FALSE.
-       !
-       CALL get_environment_variable( 'QEXML', input_xml_schema_file )
-       IF ( TRIM(input_xml_schema_file) == ' ') &
-          input_xml_schema_file='./qes.xsd'
        !
        RETURN
        !
@@ -225,7 +219,6 @@ MODULE read_namelists_module
        ! ... non collinear program variables
        !
        lspinorb = .FALSE.
-       lforcet = .FALSE.
        starting_spin_angle=.FALSE.
        noncolin = .FALSE.
        lambda = 1.0_DP
@@ -234,7 +227,7 @@ MODULE read_namelists_module
        B_field = 0.0_DP
        angle1 = 0.0_DP
        angle2 = 0.0_DP
-       report = 100
+       report = 1
        !
        no_t_rev = .FALSE.
        !
@@ -253,7 +246,6 @@ MODULE read_namelists_module
        london_s6   = 0.75_DP
        london_rcut = 200.00_DP
        london_c6   = -1.0_DP
-       london_rvdw = -1.0_DP
        ts_vdw          = .FALSE.
        ts_vdw_isolated = .FALSE.
        ts_vdw_econv_thr = 1.E-6_DP
@@ -266,19 +258,9 @@ MODULE read_namelists_module
        esm_bc='pbc'
        esm_efield=0.0_DP
        esm_w=0.0_DP
-       esm_a=0.0_DP
-       esm_zb=-2.0_DP
        esm_nfit=4
        esm_debug=.FALSE.
        esm_debug_gpmax=0
-       !
-       ! ... FCP
-       !
-       fcp_mu          = 0.0_DP
-       fcp_mass        = 10000.0_DP
-       fcp_tempw       = 0.0_DP
-       fcp_relax_step  = 0.5_DP
-       fcp_relax_crit  = 0.001_DP
        !
        space_group=0
        uniqueb = .FALSE.
@@ -307,8 +289,8 @@ MODULE read_namelists_module
        emass = 400.0_DP
        emass_cutoff = 2.5_DP
        orthogonalization = 'ortho'
-       ortho_eps = 1.E-9_DP
-       ortho_max = 300
+       ortho_eps = 1.E-8_DP
+       ortho_max = 20
        electron_maxstep = 100
        scf_must_converge = .true.
        !
@@ -458,7 +440,7 @@ MODULE read_namelists_module
        ion_velocities = 'default'
        !
        ! ... ( 'nose' | 'not_controlled' | 'rescaling' | 'berendsen' |
-       !       'andersen' | 'initial' )
+       !       'andersen' | 'langevin' )
        !
        ion_temperature = 'not_controlled'
        !
@@ -653,22 +635,6 @@ MODULE read_namelists_module
      !
      !=----------------------------------------------------------------------=!
      !
-#ifdef __XSD
-     !-----------------------------------------------------------------------
-     SUBROUTINE xsd_bcast()
-     !-----------------------------------------------------------------------
-       !
-       USE io_global, ONLY : ionode_id
-       USE mp,        ONLY : mp_bcast
-       USE mp_images, ONLY : intra_image_comm
-       !
-       IMPLICIT NONE
-       !
-       CALL mp_bcast( input_xml_schema_file, ionode_id, intra_image_comm )
-       !
-     END SUBROUTINE
-#endif
-     !
      !-----------------------------------------------------------------------
      SUBROUTINE control_bcast()
        !-----------------------------------------------------------------------
@@ -714,6 +680,7 @@ MODULE read_namelists_module
        CALL mp_bcast( point_label_type,   ionode_id, intra_image_comm )
        CALL mp_bcast( lkpoint_dir,   ionode_id, intra_image_comm )
        CALL mp_bcast( wf_collect,    ionode_id, intra_image_comm )
+       CALL mp_bcast( printwfc,      ionode_id, intra_image_comm )
        CALL mp_bcast( lelfield,      ionode_id, intra_image_comm )
        CALL mp_bcast( lorbm,         ionode_id, intra_image_comm )
        CALL mp_bcast( nberrycyc,     ionode_id, intra_image_comm )
@@ -722,9 +689,6 @@ MODULE read_namelists_module
        CALL mp_bcast( tqmmm,         ionode_id, intra_image_comm )
        CALL mp_bcast( vdw_table_name,ionode_id, intra_image_comm )
        CALL mp_bcast( memory,        ionode_id, intra_image_comm )
-       CALL mp_bcast( lfcpopt,       ionode_id, intra_image_comm )
-       CALL mp_bcast( lfcpdyn,       ionode_id, intra_image_comm )
-       CALL mp_bcast( input_xml_schema_file, ionode_id, intra_image_comm )
        !
        RETURN
        !
@@ -819,7 +783,6 @@ MODULE read_namelists_module
        ! ... non collinear broadcast
        !
        CALL mp_bcast( lspinorb,                  ionode_id, intra_image_comm )
-       CALL mp_bcast( lforcet,                   ionode_id, intra_image_comm )
        CALL mp_bcast( starting_spin_angle,       ionode_id, intra_image_comm )
        CALL mp_bcast( noncolin,                  ionode_id, intra_image_comm )
        CALL mp_bcast( angle1,                    ionode_id, intra_image_comm )
@@ -842,7 +805,6 @@ MODULE read_namelists_module
        CALL mp_bcast( london_s6,                 ionode_id, intra_image_comm )
        CALL mp_bcast( london_rcut,               ionode_id, intra_image_comm )
        CALL mp_bcast( london_c6,                 ionode_id, intra_image_comm )
-       CALL mp_bcast( london_rvdw,               ionode_id, intra_image_comm )
        CALL mp_bcast( xdm,                       ionode_id, intra_image_comm )
        CALL mp_bcast( xdm_a1,                    ionode_id, intra_image_comm )
        CALL mp_bcast( xdm_a2,                    ionode_id, intra_image_comm )
@@ -854,20 +816,9 @@ MODULE read_namelists_module
        CALL mp_bcast( esm_bc,             ionode_id, intra_image_comm )
        CALL mp_bcast( esm_efield,         ionode_id, intra_image_comm )
        CALL mp_bcast( esm_w,              ionode_id, intra_image_comm )
-       CALL mp_bcast( esm_a,              ionode_id, intra_image_comm )
-       CALL mp_bcast( esm_zb,             ionode_id, intra_image_comm )
        CALL mp_bcast( esm_nfit,           ionode_id, intra_image_comm )
        CALL mp_bcast( esm_debug,          ionode_id, intra_image_comm )
        CALL mp_bcast( esm_debug_gpmax,    ionode_id, intra_image_comm )
-       !
-       ! ... FCP
-       !
-       CALL mp_bcast( fcp_mu,          ionode_id, intra_image_comm )
-       CALL mp_bcast( fcp_mass,        ionode_id, intra_image_comm )
-       CALL mp_bcast( fcp_tempw,       ionode_id, intra_image_comm )
-       CALL mp_bcast( fcp_relax_step,  ionode_id, intra_image_comm )
-       CALL mp_bcast( fcp_relax_crit,  ionode_id, intra_image_comm )
-       !
        !
        ! ... space group information
        !
@@ -1345,7 +1296,7 @@ MODULE read_namelists_module
        IF( nspin < 1 .OR. nspin > 4 .OR. nspin == 3 ) &
           CALL errore( sub_name ,' nspin out of range ', MAX(nspin, 1 ) )
        !
-       IF( ecutwfc < 0.0_DP ) &
+       IF( ecutwfc <= 0.0_DP ) &
           CALL errore( sub_name ,' ecutwfc out of range ',1)
        IF( ecutrho < 0.0_DP ) &
           CALL errore( sub_name ,' ecutrho out of range ',1)
@@ -1798,7 +1749,6 @@ MODULE read_namelists_module
        ENDIF
        !
        ! ... Here start reading standard input file
-       !
        !
        ! ... CONTROL namelist
        !

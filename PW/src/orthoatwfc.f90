@@ -18,12 +18,12 @@ SUBROUTINE orthoUwfc
   USE kinds,      ONLY : DP
   USE buffers,    ONLY : get_buffer, save_buffer
   USE io_global,  ONLY : stdout
-  USE io_files,   ONLY : iunhub, nwordwfcU
+  USE io_files,   ONLY : iunhub, nwordwfcU, iunigk
   USE ions_base,  ONLY : nat
   USE basis,      ONLY : natomwfc, swfcatom
-  USE klist,      ONLY : nks, xk, ngk, igk_k
+  USE klist,      ONLY : nks, xk, ngk
   USE ldaU,       ONLY : U_projection, wfcU, nwfcU, copy_U_wfc
-  USE wvfct,      ONLY : npwx
+  USE wvfct,      ONLY : npwx, npw, igk
   USE uspp,       ONLY : nkb, vkb
   USE becmod,     ONLY : allocate_bec_type, deallocate_bec_type, &
                          bec_type, becp, calbec
@@ -34,7 +34,7 @@ SUBROUTINE orthoUwfc
   !
   !
   INTEGER :: ik, ibnd, info, i, j, k, na, nb, nt, isym, n, ntemp, m, &
-       l, lm, ltot, ntot, ipol, npw
+       l, lm, ltot, ntot, ipol
   ! ik: the k point under consideration
   ! ibnd: counter on bands
   LOGICAL :: orthogonalize_wfc, normalize_only
@@ -79,15 +79,19 @@ SUBROUTINE orthoUwfc
   ! Allocate the array becp = <beta|wfcatom>
   CALL allocate_bec_type (nkb,natomwfc, becp) 
   
+  IF (nks > 1) REWIND (iunigk)
+  
   DO ik = 1, nks
+     
+     npw = ngk (ik)
+     IF (nks > 1) READ (iunigk) igk
      
      IF (noncolin) THEN
        CALL atomic_wfc_nc_updown (ik, wfcatom)
      ELSE
        CALL atomic_wfc (ik, wfcatom)
      ENDIF
-     npw = ngk (ik)
-     CALL init_us_2 (npw, igk_k(1,ik), xk (1, ik), vkb)
+     CALL init_us_2 (npw, igk, xk (1, ik), vkb)
      CALL calbec (npw, vkb, wfcatom, becp) 
      CALL s_psi (npwx, npw, natomwfc, wfcatom, swfcatom)
 
@@ -121,11 +125,11 @@ SUBROUTINE orthoatwfc (orthogonalize_wfc)
   USE kinds,      ONLY : DP
   USE buffers,    ONLY : save_buffer
   USE io_global,  ONLY : stdout
-  USE io_files,   ONLY : iunsat, nwordatwfc
+  USE io_files,   ONLY : iunsat, nwordatwfc, iunigk
   USE ions_base,  ONLY : nat
   USE basis,      ONLY : natomwfc, swfcatom
-  USE klist,      ONLY : nks, xk, ngk, igk_k
-  USE wvfct,      ONLY : npwx
+  USE klist,      ONLY : nks, xk, ngk
+  USE wvfct,      ONLY : npwx, npw, igk
   USE uspp,       ONLY : nkb, vkb
   USE becmod,     ONLY : allocate_bec_type, deallocate_bec_type, &
                          bec_type, becp, calbec
@@ -137,7 +141,7 @@ SUBROUTINE orthoatwfc (orthogonalize_wfc)
   LOGICAL, INTENT(in) :: orthogonalize_wfc
   !
   INTEGER :: ik, ibnd, info, i, j, k, na, nb, nt, isym, n, ntemp, m, &
-       l, lm, ltot, ntot, ipol, npw
+       l, lm, ltot, ntot, ipol
   ! ik: the k point under consideration
   ! ibnd: counter on bands
   LOGICAL :: normalize_only = .FALSE.
@@ -149,15 +153,19 @@ SUBROUTINE orthoatwfc (orthogonalize_wfc)
   ! Allocate the array becp = <beta|wfcatom>
   CALL allocate_bec_type (nkb,natomwfc, becp) 
   
+  IF (nks > 1) REWIND (iunigk)
+  
   DO ik = 1, nks
+     
+     npw = ngk (ik)
+     IF (nks > 1) READ (iunigk) igk
      
      IF (noncolin) THEN
        CALL atomic_wfc_nc_updown (ik, wfcatom)
      ELSE
        CALL atomic_wfc (ik, wfcatom)
      ENDIF
-     npw = ngk (ik)
-     CALL init_us_2 (npw, igk_k(1,ik), xk (1, ik), vkb)
+     CALL init_us_2 (npw, igk, xk (1, ik), vkb)
      CALL calbec (npw, vkb, wfcatom, becp) 
      CALL s_psi (npwx, npw, natomwfc, wfcatom, swfcatom)
 

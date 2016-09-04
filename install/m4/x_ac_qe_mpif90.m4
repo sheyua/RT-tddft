@@ -1,4 +1,4 @@
-# Copyright (C) 2001-2016 Quantum ESPRESSO Foundation
+# Copyright (C) 2001-2014 Quantum ESPRESSO Foundation
 
 AC_DEFUN([X_AC_QE_MPIF90], [
 
@@ -20,7 +20,7 @@ try_f90="gfortran g95 f90"
 # candidate compilers and flags based on architecture
 case $arch in
 ia32 | ia64 | x86_64 )
-        try_f90="ifort pgf90 pathf95 sunf95 openf95 nagfor $try_f90"
+        try_f90="ifort pgf90 pathf95 sunf95 openf95 $try_f90"
         ;;
 arm )
         try_f90="$try_f90"
@@ -140,7 +140,6 @@ case "$arch" in
         eko_version=`$mpif90 -v 2>&1 | grep "PathScale EKOPath"`
         pathf95_version=`$mpif90 -v 2>&1 | grep "PathScale"`
         gfortran_version=`$mpif90 -v 2>&1 | grep "gcc version"`
-        nagfor_version=`$mpif90 -v 2>&1 | grep "NAG Fortran"`
         #
         if test "$ifort_version" != ""
         then
@@ -149,8 +148,18 @@ case "$arch" in
                 ifort_version=`echo $version | sed 's/\..*//'`
                 echo "${ECHO_T}ifort $version"
                 f90_in_mpif90="ifort"
-                if test "$ifort_version" -gt 9; then
-                   MKL_FLAGS="-static-intel"
+                if test "$ifort_version" -gt 8; then
+                # flags for MKL - ifort 9 and later
+                   MKL_LIBS=""
+                   if test "$ifort_version" -gt 9; then
+                        MKL_FLAGS="-static-intel"
+                   else
+                        MKL_FLAGS="-i-static"
+                   fi
+                else
+                # flags for MKL - ifort 8 and earlier, obsolescent
+                   MKL_LIBS="-lguide -lpthread"
+                   MKL_FLAGS=""
                 fi
         elif test "$sunf95_version" != ""
         then
@@ -194,12 +203,6 @@ case "$arch" in
                 version=`echo $gfortran_version | awk '{print $3}'`
                 echo "${ECHO_T}gfortran $version"
                 f90_in_mpif90="gfortran"
-        elif test "$nagfor_version" != ""
-        then
-                # NAG 6.0 has the codename attached to version number... annoying
-                version=`echo $nagfor_version | awk '{print $5}'`
-                echo "${ECHO_T}nagfor $version"
-                f90_in_mpif90="nagfor"
         else
                 echo "${ECHO_T}unknown, assuming gfortran"
                 f90_in_mpif90="gfortran"
@@ -240,8 +243,6 @@ f90 | fc | ftn )
         f90_version=gfortran
     elif $f90 -V 2>&1 | grep -q "Cray Fortran" ; then
         f90_version=crayftn
-    elif $f90 -version 2>&1 | grep -q "NAG Fortran" ; then
-        f90_version=nagfor
     else
         echo $ECHO_N "unknown, leaving as... $ECHO_C"
         f90_version=$f90

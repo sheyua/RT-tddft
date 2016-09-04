@@ -175,6 +175,10 @@ CONTAINS
     ! Thus the simulation will stop.
     ! Either way errore will always issues a warning message.
 
+    USE io_global, ONLY : ionode_id
+    USE mp,        ONLY : mp_bcast
+    USE mp_world,  ONLY : world_comm
+
     IMPLICIT NONE
     !
     CHARACTER(LEN=*), INTENT(IN) :: calling_routine, message
@@ -307,7 +311,9 @@ CONTAINS
   ! called in READ_CARDS and in PARSE_MAILBOX
   !-----------------------------------------------------------------------  
   SUBROUTINE card_autopilot( input_line )
-    USE io_global, ONLY: ionode
+    USE io_global, ONLY: ionode, ionode_id
+    USE mp,        ONLY : mp_bcast
+    USE mp_world,  ONLY : world_comm
     IMPLICIT NONE
     INTEGER :: i, j, linelen
     CHARACTER(LEN=256) :: input_line
@@ -407,9 +413,9 @@ CONTAINS
   ! ADD RULE
   !-----------------------------------------------------------------------
   SUBROUTINE add_rule( input_line )
-    USE io_global, ONLY: ionode
+    USE io_global, ONLY: ionode, ionode_id
     IMPLICIT NONE
-    integer :: i, linelen
+    integer :: i, j, linelen
     integer :: eq1_pos, eq2_pos, plus_pos, colon_pos
     CHARACTER(LEN=256) :: input_line
     CHARACTER(LEN=32)  :: var_label
@@ -427,6 +433,7 @@ CONTAINS
 
     ! important for parsing
     i=0
+    j=0
     eq1_pos   = 0
     eq2_pos   = 0
     plus_pos  = 0
@@ -639,7 +646,7 @@ CONTAINS
 
     !IF( ionode ) write(*,*) '  Number of rules: ', n_rules
 
-    FLUSH(6)
+    CALL flush_unit(6)
 
 20  CONTINUE
 
@@ -650,7 +657,8 @@ CONTAINS
   ! ASSIGN_RULE
   !-----------------------------------------------------------------------
   SUBROUTINE assign_rule(event, var, value)
-    USE io_global, ONLY: ionode
+    USE input_parameters, ONLY : isave, iprint, dt, tempw
+    USE io_global, ONLY: ionode, ionode_id
     IMPLICIT NONE
     INTEGER :: i, event, varlen
     CHARACTER(LEN=32) :: var
@@ -754,7 +762,9 @@ CONTAINS
   ! if not the try to establish that its a variable to set right now
   !-----------------------------------------------------------------------
   SUBROUTINE parse_mailbox ()
-    USE io_global, ONLY: ionode
+    USE io_global, ONLY: ionode, ionode_id
+    USE mp,        ONLY : mp_bcast, mp_barrier
+    USE mp_world,  ONLY : world_comm
     IMPLICIT NONE
     INTEGER :: i
     CHARACTER(LEN=256) :: input_line

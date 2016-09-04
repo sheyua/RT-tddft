@@ -10,8 +10,6 @@ SUBROUTINE hinit1()
   !----------------------------------------------------------------------------
   !
   ! ... Atomic configuration dependent hamiltonian initialization
-  ! ... Important note: does not recompute structure factors,
-  ! ... they must be computed before this routine is called
   !
   USE ions_base,     ONLY : nat, nsp, ityp, tau
   USE cell_base,     ONLY : at, bg, omega, tpiba2
@@ -28,11 +26,17 @@ SUBROUTINE hinit1()
   USE scf,           ONLY : rho
   USE paw_variables, ONLY : okpaw, ddd_paw
   USE paw_onecenter, ONLY : paw_potential
+  USE paw_init,      ONLY : paw_atomic_becsum
   USE paw_symmetry,  ONLY : paw_symmetrize_ddd
   USE dfunct,        ONLY : newd
   !
   IMPLICIT NONE
   !
+  !
+  ! ... update the wavefunctions, charge density, potential
+  ! ... update_pot initializes structure factor array as well
+  !
+  CALL update_pot()
   !
   ! ... calculate the total local potential
   !

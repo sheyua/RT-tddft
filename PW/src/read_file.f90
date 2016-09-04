@@ -100,7 +100,7 @@ SUBROUTINE read_xml_file_internal(withbs)
   USE force_mod,            ONLY : force
   USE klist,                ONLY : nkstot, nks, xk, wk
   USE lsda_mod,             ONLY : lsda, nspin, current_spin, isk
-  USE wvfct,                ONLY : nbnd, nbndx, et, wg
+  USE wvfct,                ONLY : nbnd, nbndx, et, wg, ecutwfc
   USE symm_base,            ONLY : irt, d1, d2, d3, checkallsym
   USE ktetra,               ONLY : tetra, ntetra 
   USE extfield,             ONLY : forcefield, tefield
@@ -120,7 +120,6 @@ SUBROUTINE read_xml_file_internal(withbs)
   USE io_files,             ONLY : tmp_dir, prefix, iunpun, nwordwfc, iunwfc
   USE noncollin_module,     ONLY : noncolin, npol, nspin_lsda, nspin_mag, nspin_gga
   USE pw_restart,           ONLY : pw_readfile
-  USE io_rho_xml,           ONLY : read_rho
   USE read_pseudo_mod,      ONLY : readpp
   USE xml_io_base,          ONLY : pp_check_file
   USE uspp,                 ONLY : becsum
@@ -131,7 +130,7 @@ SUBROUTINE read_xml_file_internal(withbs)
   USE control_flags,        ONLY : gamma_only
   USE funct,                ONLY : get_inlc, get_dft_name
   USE kernel_table,         ONLY : initialize_kernel_table
-  USE esm,                  ONLY : do_comp_esm, esm_init
+  USE esm,                  ONLY : do_comp_esm, esm_ggen_2d
   !
   IMPLICIT NONE
 
@@ -278,10 +277,7 @@ SUBROUTINE read_xml_file_internal(withbs)
   CALL pre_init()
   CALL allocate_fft()
   CALL ggen ( gamma_only, at, bg ) 
-  IF (do_comp_esm) THEN
-    CALL pw_readfile( 'esm', ierr )
-    CALL esm_init()
-  END IF
+  IF (do_comp_esm) CALL esm_ggen_2d ()
   CALL gshells ( lmovecell ) 
   !
   ! ... allocate the potential and wavefunctions
@@ -302,7 +298,7 @@ SUBROUTINE read_xml_file_internal(withbs)
   !
   ! ... read the charge density
   !
-  CALL read_rho( rho, nspin )
+  CALL pw_readfile( 'rho', ierr )
   !
   ! ... re-calculate the local part of the pseudopotential vltot
   ! ... and the core correction charge (if any) - This is done here
@@ -344,8 +340,8 @@ SUBROUTINE read_xml_file_internal(withbs)
       USE constants, ONLY : pi
       USE cell_base, ONLY : alat, tpiba, tpiba2
       USE gvect,     ONLY : ecutrho, gcutm
+      USE wvfct,     ONLY : ecutwfc
       USE gvecs,     ONLY : gcutms, dual, doublegrid
-      USE gvecw,     ONLY : gcutw, ecutwfc
       !
       !
       ! ... Set the units in real and reciprocal space
@@ -355,7 +351,6 @@ SUBROUTINE read_xml_file_internal(withbs)
       !
       ! ... Compute the cut-off of the G vectors
       !
-      gcutw =        ecutwfc / tpiba2
       gcutm = dual * ecutwfc / tpiba2
       ecutrho=dual * ecutwfc
       !

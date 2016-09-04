@@ -31,9 +31,7 @@ MODULE klist
   REAL(DP) :: &
        qnorm= 0.0_dp      ! |q|, used in phonon+US calculations only
   INTEGER, ALLOCATABLE :: &
-       igk_k(:,:),&       ! The g<->k correspondance for each k point
-       ngk(:)             ! number of plane waves for each k point
-  !
+       ngk(:)              ! number of plane waves for each k point
   INTEGER :: &
        nks,               &! number of k points in this pool
        nkstot,            &! total number of k points
@@ -186,6 +184,11 @@ MODULE wvfct
        current_k          ! the index of k-point under consideration
   INTEGER, ALLOCATABLE, TARGET :: &
        igk(:)             ! index of G corresponding to a given index of k+G
+  REAL(DP) :: &
+       ecutwfc,       &! energy cut-off
+       ecfixed,       &!
+       qcutz = 0.0_DP,&! For the modified Ekin functional
+       q2sigma         !
   REAL(DP), ALLOCATABLE :: &
        et(:,:),          &! eigenvalues of the hamiltonian
        wg(:,:),          &! the weight of each k point and band
@@ -281,7 +284,7 @@ MODULE cellmd
   !
   CHARACTER(len=2) :: &
        calc='  '          ! main switch for variable cell shape MD
-                          ! see move_ions and vcsmd for allowed values
+                          ! see readin, vcsmd and/or INPUT files
   !
 END MODULE cellmd
 !
@@ -364,11 +367,10 @@ MODULE spin_orb
   SAVE
 
   LOGICAL :: &
-      lspinorb,            &  ! if .TRUE. this is a spin-orbit calculation
-      lforcet,             &  ! if .TRUE. apply Force Theorem to calculate MAE 
-      starting_spin_angle, &  ! if .TRUE. the initial wavefunctions are 
-                              ! spin-angle functions. 
-      domag                   ! if .TRUE. magnetization is computed
+      lspinorb,  &       ! if .TRUE. this is a spin-orbit calculation
+      starting_spin_angle, & ! if .TRUE. the initial wavefunctions are 
+                             ! spin-angle functions. 
+      domag              ! if .TRUE. magnetization is computed
 
 
   COMPLEX (DP) :: rot_ylm(2*lmaxx+1,2*lmaxx+1)  ! transform real

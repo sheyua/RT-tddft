@@ -236,6 +236,9 @@ MODULE input_parameters
           !          files
           ! Only for PW and only in the parallel case
 
+        INTEGER :: printwfc=1
+          ! if <0 do nothing, if==0 print rho and fort.47, if == nband print band
+
         LOGICAL :: saverho = .true.
           ! This flag controls the saving of charge density in CP codes:
           !  .TRUE.  save charge density to restart dir
@@ -269,21 +272,15 @@ MODULE input_parameters
 
           ! if .TRUE., perform exact exchange calculation using Wannier functions (X. Wu et al., Phys. Rev. B. 79, 085102 (2009))
 
-        LOGICAL  :: lfcpopt = .FALSE. ! FCP optimisation switch
-        LOGICAL  :: lfcpdyn = .FALSE. ! FCP thermostat enabled if .true.
-        !
-        ! location of xml input according to xsd schema
-        CHARACTER(len=256) :: input_xml_schema_file = ' '
-
         NAMELIST / control / title, calculation, verbosity, restart_mode, &
           nstep, iprint, isave, tstress, tprnfor, dt, ndr, ndw, outdir,   &
           prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,      &
           forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,  &
-          gdir, nppstr, wf_collect, lelfield, nberrycyc, refg,            &
+          gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,  &
           tefield2, saverho, tabps, lkpoint_dir, use_wannier, lecrpa,     &
           tqmmm, vdw_table_name, lorbm, memory, point_label_type,         &
-          lcalc_z2, z2_m_threshold, z2_z_threshold, lfcpopt, lfcpdyn,     &
-          input_xml_schema_file                                                  
+          lcalc_z2, z2_m_threshold, z2_z_threshold
+
 !
 !=----------------------------------------------------------------------------=!
 !  SYSTEM Namelist Input Parameters
@@ -444,7 +441,6 @@ MODULE input_parameters
           ! Various parameters for noncollinear calculations
         LOGICAL  :: noncolin = .false.
         LOGICAL  :: lspinorb = .false.
-        LOGICAL  :: lforcet=.FALSE.
         LOGICAL  :: starting_spin_angle=.FALSE.
         REAL(DP) :: lambda = 1.0_DP
         REAL(DP) :: fixed_magnetization(3) = 0.0_DP
@@ -489,11 +485,9 @@ MODULE input_parameters
           ! other DFT-D parameters ( see Modules/mm_dispersion.f90 )
           ! london_s6 = default global scaling parameter for PBE
           ! london_c6 = user specified atomic C6 coefficients
-          ! london_rvdw = user specified atomic vdw radii
         REAL ( DP ) :: london_s6   =   0.75_DP , &
                        london_rcut = 200.00_DP , &
-                       london_c6( nsx ) = -1.0_DP, &
-                       london_rvdw( nsx ) = -1.0_DP
+                       london_c6( nsx ) = -1.0_DP
 
         LOGICAL   :: ts_vdw = .false.
           ! OBSOLESCENT: same as vdw_corr='Tkatchenko-Scheffler'
@@ -524,12 +518,6 @@ MODULE input_parameters
           ! position of effective screening medium from z0=L_z/2 [a.u.]
           ! note: z1 is given by z1=z0+abs(esm_w)
 
-        REAL(DP) :: esm_a = 0.0_DP
-          ! smoothness parameter for smooth-ESM (exp(2a(z-z1)))
-
-        REAL(DP) :: esm_zb = 0.0_DP
-          ! smearing width for Ewald summation (RSUM) in smooth-ESM
-
         INTEGER :: esm_nfit = 4
           ! number of z-grid points for polynomial fitting at cell edge
 
@@ -539,17 +527,6 @@ MODULE input_parameters
         INTEGER :: esm_debug_gpmax = 0
           ! if esm_debug is .TRUE., calcualte v_hartree and v_local
           ! for abs(gp)<=esm_debug_gpmax (gp is integer and has tpiba unit)
-
-        REAL(DP) :: fcp_mu         = 0.0_DP
-          ! target Fermi energy
-        REAL(DP) :: fcp_mass       = 10000.0_DP
-          ! mass for the FCP
-        REAL(DP) :: fcp_tempw      = 300.0_DP
-          ! target temperature for the FCP dynamics
-        REAL(DP) :: fcp_relax_step = 0.5_DP
-          ! step size for steepest descent
-        REAL(DP) :: fcp_relax_crit = 0.001_DP
-          ! threshold for force acting on FCP
 
         INTEGER :: space_group = 0
           ! space group number for coordinates given in crystallographic form
@@ -584,17 +561,15 @@ MODULE input_parameters
              exxdiv_treatment, x_gamma_extrapolation, yukawa, ecutvcut,       &
              exx_fraction, screening_parameter, ref_alat,                     &
              noncolin, lspinorb, starting_spin_angle, lambda, angle1, angle2, &
-             report, lforcet,                                                 &
+             report,              &
              constrained_magnetization, B_field, fixed_magnetization,         &
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, tot_magnetization, spline_ps, one_atom_occupations,  &
-             vdw_corr, london, london_s6, london_rcut, london_c6, london_rvdw,&
+             vdw_corr, london, london_s6, london_rcut, london_c6,             &
              ts_vdw, ts_vdw_isolated, ts_vdw_econv_thr,                       &
              xdm, xdm_a1, xdm_a2,                                             &
              step_pen, A_pen, sigma_pen, alpha_pen, no_t_rev,                 &
              esm_bc, esm_efield, esm_w, esm_nfit, esm_debug, esm_debug_gpmax, &
-             esm_a, esm_zb, fcp_mu, fcp_mass, fcp_tempw, fcp_relax_step,      &
-             fcp_relax_crit,                                                  &
              space_group, uniqueb, origin_choice, rhombohedral
 
 !=----------------------------------------------------------------------------=!
@@ -618,15 +593,15 @@ MODULE input_parameters
           !  'Gram-Schmidt'  use Gram-Schmidt algorithm
           !  'ortho'         use iterative algorithm
 
-        REAL(DP) :: ortho_eps = 1.E-9_DP
+        REAL(DP) :: ortho_eps = 1.E-8_DP
           ! meaningful only if orthogonalization = 'ortho'
           ! tolerance for iterative orthonormalization,
           ! a value of 1.d-8 is usually sufficent
 
-        INTEGER   :: ortho_max = 50
+        INTEGER   :: ortho_max = 20
           ! meaningful only if orthogonalization = 'ortho'
           ! maximum number of iterations for orthonormalization
-          ! usually between 20 and 300.
+          ! usually between 15 and 30.
 
         INTEGER :: electron_maxstep = 1000
           ! maximum number of steps in electronic minimization
@@ -940,7 +915,7 @@ MODULE input_parameters
           diis_temp, diis_achmix, diis_g0chmix, diis_g1chmix,          &
           diis_nchmix, diis_nrot, diis_rothr, diis_ethr, diis_chguess, &
           mixing_mode, mixing_beta, mixing_ndim, mixing_fixed_ns,      &
-          tqr, diago_cg_maxiter, diago_david_ndim, diagonalization,    &
+          tqr, diago_cg_maxiter, diago_david_ndim, diagonalization ,   &
           startingpot, startingwfc , conv_thr,                         &
           adaptive_thr, conv_thr_init, conv_thr_multi,                 &
           diago_thr_init, n_inner, fermi_energy, rotmass, occmass,     &

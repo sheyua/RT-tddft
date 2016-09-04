@@ -123,12 +123,13 @@ SUBROUTINE protate_wfc_gamma( npwx, npw, nstart, gstart, nbnd, psi, overlap, evc
   !
   USE kinds,            ONLY : DP
   USE control_flags,    ONLY : gamma_only 
-  USE mp_bands,         ONLY : intra_bgrp_comm, nbgrp
+  USE mp_bands,         ONLY : intra_bgrp_comm
   USE mp_diag,          ONLY : ortho_comm, np_ortho, me_ortho, ortho_comm_id,&
-                               leg_ortho, ortho_parent_comm, ortho_cntx
+                               leg_ortho
   USE descriptors,      ONLY : la_descriptor, descla_init
-  USE parallel_toolkit, ONLY : dsqmsym
+  USE parallel_toolkit, ONLY : dsqmred, dsqmdst, dsqmsym
   USE mp,               ONLY : mp_bcast, mp_root_sum, mp_sum, mp_barrier
+
 
   !
   IMPLICIT NONE
@@ -232,7 +233,7 @@ CONTAINS
      INTEGER :: i, j, rank
      INTEGER :: coor_ip( 2 )
      ! 
-     CALL descla_init( desc, nsiz, nsiz, np_ortho, me_ortho, ortho_comm, ortho_cntx, ortho_comm_id )
+     CALL descla_init( desc, nsiz, nsiz, np_ortho, me_ortho, ortho_comm, ortho_comm_id )
      ! 
      nx = desc%nrcx
      !
@@ -240,7 +241,7 @@ CONTAINS
         DO i = 0, desc%npr - 1
            coor_ip( 1 ) = i
            coor_ip( 2 ) = j
-           CALL descla_init( desc_ip(i+1,j+1), desc%n, desc%nx, np_ortho, coor_ip, ortho_comm, ortho_cntx, 1 )
+           CALL descla_init( desc_ip(i+1,j+1), desc%n, desc%nx, np_ortho, coor_ip, ortho_comm, 1 )
            CALL GRID2D_RANK( 'R', desc%npr, desc%npc, i, j, rank )
            rank_ip( i+1, j+1 ) = rank * leg_ortho
         END DO
@@ -291,13 +292,11 @@ CONTAINS
 
            ! accumulate result on dm of root proc.
 
-           CALL mp_root_sum( work, dm, root, ortho_parent_comm )
+           CALL mp_root_sum( work, dm, root, intra_bgrp_comm )
 
         END DO
         !
      END DO
-
-     if (ortho_parent_comm.ne.intra_bgrp_comm .and. nbgrp > 1) dm = dm/nbgrp
      !
      CALL dsqmsym( nstart, dm, nx, desc )
      !
@@ -338,13 +337,13 @@ CONTAINS
                  !
                  !  this proc sends his block
                  ! 
-                 CALL mp_bcast( vr(:,1:nc), root, ortho_parent_comm )
+                 CALL mp_bcast( vr(:,1:nc), root, intra_bgrp_comm )
                  CALL DGEMM( 'N', 'N', 2*npw, nc, nr, 1.D0,  psi(1,ir), 2*npwx, vr, nx, beta, aux(1,ic), 2*npwx )
               ELSE
                  !
                  !  all other procs receive
                  ! 
-                 CALL mp_bcast( vtmp(:,1:nc), root, ortho_parent_comm )
+                 CALL mp_bcast( vtmp(:,1:nc), root, intra_bgrp_comm )
                  CALL DGEMM( 'N', 'N', 2*npw, nc, nr, 1.D0,  psi(1,ir), 2*npwx, vtmp, nx, beta, aux(1,ic), 2*npwx )
               END IF
               ! 

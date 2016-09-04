@@ -54,7 +54,7 @@ PROGRAM do_dos
      !
      !   set default values for variables in namelist
      !
-     CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+     CALL get_env( 'ESPRESSO_TMPDIR', outdir )
      IF ( trim( outdir ) == ' ' ) outdir = './'
      prefix ='pwscf'
      fildos =' '
@@ -76,6 +76,8 @@ PROGRAM do_dos
   ENDIF
   !
   CALL mp_bcast( ios, ionode_id, world_comm )
+  IF (ios /= 0) WRITE (stdout, &
+    '("*** namelist &inputpp no longer valid: please use &dos instead")')
   IF ( ios /= 0 ) CALL errore('dos','reading dos namelist',abs(ios))
   !
   ! ... Broadcast variables

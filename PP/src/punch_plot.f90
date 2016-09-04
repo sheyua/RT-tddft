@@ -24,8 +24,7 @@ SUBROUTINE punch_plot (filplot, plot_num, sample_bias, z, dz, &
   USE ions_base,        ONLY : nat, ntyp => nsp, ityp, tau, zv, atm
   USE run_info,         ONLY : title
   USE extfield,         ONLY : tefield, dipfield
-  USE fft_base,         ONLY : dfftp
-  USE scatter_mod,      ONLY : gather_grid
+  USE fft_base,         ONLY : dfftp, gather_grid
   USE fft_interfaces,   ONLY : fwfft, invfft
   USE gvect,            ONLY : gcutm
   USE gvecs,            ONLY : dual
@@ -34,8 +33,7 @@ SUBROUTINE punch_plot (filplot, plot_num, sample_bias, z, dz, &
   USE ener,             ONLY : ehart
   USE io_global,        ONLY : stdout, ionode
   USE scf,              ONLY : rho, vltot, v
-  USE wvfct,            ONLY : npw, nbnd, wg, igk
-  USE gvecw,            ONLY : ecutwfc
+  USE wvfct,            ONLY : npw, nbnd, wg, igk, ecutwfc
   USE noncollin_module, ONLY : noncolin
   USE paw_postproc,     ONLY : PAW_make_ae_charge
 
@@ -237,11 +235,11 @@ SUBROUTINE punch_plot (filplot, plot_num, sample_bias, z, dz, &
      ipol = plot_num - 13
      CALL polarization ( spin_component, ipol, epsilon, raux )
 
-  ELSEIF (plot_num == 17 .or. plot_num == 21) THEN
+  ELSEIF (plot_num == 17) THEN
      WRITE(stdout, '(7x,a)') "Reconstructing all-electron valence charge."
      ! code partially duplicate from plot_num=0, should be unified
      CALL init_us_1()
-     CALL PAW_make_ae_charge(rho,(plot_num==21))
+     CALL PAW_make_ae_charge(rho)
      !
      IF (spin_component == 0) THEN
          CALL dcopy (dfftp%nnr, rho%of_r (1, 1), 1, raux, 1)

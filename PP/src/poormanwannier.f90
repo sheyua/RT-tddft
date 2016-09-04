@@ -36,10 +36,8 @@ PROGRAM pmw
   CHARACTER(len=256) :: outdir
   INTEGER :: ios
   INTEGER :: first_band, last_band
-  REAL(DP) :: min_energy, max_energy, sigma
   LOGICAL :: writepp
-  NAMELIST / inputpp / outdir, prefix, first_band, last_band, writepp, &
-                      min_energy, max_energy, sigma
+  NAMELIST / inputpp / outdir, prefix, first_band, last_band, writepp
   !
   ! initialise environment
   !
@@ -52,13 +50,10 @@ PROGRAM pmw
   !   set default values for variables in namelist
   !
   prefix = 'pwscf'
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env( 'ESPRESSO_TMPDIR', outdir )
   IF ( trim( outdir ) == ' ' ) outdir = './'
   first_band=-1
-  last_band =-1
-  min_energy = -9.d99
-  max_energy =  9.d99
-  sigma      = -1.d0
+  last_band=-1
   writepp = .FALSE.
   !
   ios = 0
@@ -80,9 +75,6 @@ PROGRAM pmw
   CALL mp_bcast( prefix, ionode_id, world_comm )
   CALL mp_bcast( first_band, ionode_id, world_comm )
   CALL mp_bcast( last_band, ionode_id, world_comm )
-  CALL mp_bcast( min_energy, ionode_id, world_comm )
-  CALL mp_bcast( max_energy, ionode_id, world_comm )
-  CALL mp_bcast( sigma, ionode_id, world_comm )
   CALL mp_bcast( writepp, ionode_id, world_comm )
   !
   !   Now allocate space for pwscf variables, read and check them.
@@ -102,9 +94,6 @@ PROGRAM pmw
   IF ( first_band > last_band ) CALL errore ('pmw',' first_band > last_band',1)
   IF ( first_band < 0 ) CALL errore ('pmw',' first_band < 0 ', first_band)
   IF ( last_band > nbnd ) CALL errore ('pmw',' last_band > nbnd ', nbnd)
-  IF ( sigma > 0.d0 ) THEN
-     IF ( min_energy > max_energy ) CALL errore ('pmw',' min_energy > max_energy',1)
-  END IF
   ! Check on compatibilities
   IF ( noncolin ) CALL errore('pmw','non-colinear not implemented / not tested', 1)
   ! Currently, WF projectors are built for Hubbard species only
@@ -112,7 +101,7 @@ PROGRAM pmw
   !
   CALL openfil_pp ( )
   !
-  CALL projection( first_band, last_band, min_energy, max_energy, sigma, writepp)
+  CALL projection( first_band, last_band, writepp)
   !
   CALL environment_end ( 'PMW' )
   !
@@ -121,10 +110,9 @@ PROGRAM pmw
 END PROGRAM pmw
 
 !-----------------------------------------------------------------------
-SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iopp)
+SUBROUTINE projection (first_band, last_band, iopp)
   !-----------------------------------------------------------------------
   !
-  USE kinds,      ONLY : DP
   USE io_global,  ONLY : stdout, ionode
   USE uspp_param, ONLY : upf
   USE ions_base,  ONLY : nat, ityp
@@ -133,8 +121,7 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
   USE constants,  ONLY: rytoev
   USE gvect
   USE klist
-  USE gvecw,      ONLY : gcutw
-  USE wvfct,      ONLY : nbnd, npwx, et
+  USE wvfct
   USE ldaU,       ONLY : is_Hubbard, Hubbard_lmax, Hubbard_l, &
                          oatwfc, offsetU, nwfcU, wfcU, copy_U_wfc
   USE lsda_mod
@@ -150,17 +137,15 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
   IMPLICIT NONE
   !
   INTEGER, EXTERNAL :: find_free_unit
-  REAL(DP), EXTERNAL :: wgauss
   !
   ! I/O variables
   !
   INTEGER, INTENT(IN) :: first_band, last_band
-  REAL(DP), INTENT(IN) :: min_energy, max_energy, sigma
   LOGICAL, INTENT(IN) :: iopp
   !
   ! local variables
   !
-  INTEGER :: npw, ibnd, ik, na, nt, n, m, l, nwfc, lmax_wfc, &
+  INTEGER :: ik, na, nt, n, m, l, nwfc, lmax_wfc, &
              ldim1, ldim2, lwork, i, j, info, counter, counter_ldau
   LOGICAL :: exst
   COMPLEX(DP), ALLOCATABLE :: wfcatom (:,:)
@@ -174,11 +159,10 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
   ! left unitary matrix in the SVD of sp_m
   ! right unitary matrix in the SVD of sp_m
   ! workspace for ZGESVD
-  REAL(DP), ALLOCATABLE :: ew(:), rwork(:), gk(:)
+  REAL(DP), ALLOCATABLE :: ew(:), rwork(:)
   ! the eigenvalues of pp
   ! workspace for ZGESVD
   REAL (DP) :: capel
-  REAL (DP) :: e
   !!
   INTEGER :: iun_pp, nks1, nks1tot, nks2, nks2tot, nbase, rest
   CHARACTER(len=9) :: kptstr
@@ -209,13 +193,6 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
         'number of Wannier functions   ', ldim1, &
         'number of bands for projecting', ldim2, &
         'total number bands            ', nbnd
-     IF (sigma > 0.d0) THEN
-        WRITE( stdout, '(5x,A,/,3(5x,A,f10.4,A,/))') &
-           'projection limited to an energy window',&
-           'smoothing simgma                     ', sigma, ' eV', &
-           'minimum energy                       ', min_energy,' eV', &
-           'maximum energy                       ', max_energy,' eV'
-     END IF
   ENDIF
   !
   ! initializations needed to get correct output when npool>1
@@ -255,14 +232,15 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
   ALLOCATE(swfcatom (npwx , ldim1 ) )
   ! Allocate the array containing <beta|wfcatom>
   CALL allocate_bec_type ( nkb, ldim1, becp)
+
   !
   ! Main loop (on k-points)
   !
-  ALLOCATE (gk(npwx))
   DO ik = 1, nks
      !
-     CALL gk_sort (xk (1, ik), ngm, g, gcutw, ngk(ik), igk_k(1,ik), gk)
-     npw = ngk(ik)
+     !!DEBUG
+     !WRITE (*,*) "KPOINT =", ik
+     CALL gk_sort (xk (1, ik), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
 
      CALL davcio (evc, 2*nwordwfc, iunwfc, ik, - 1)
 
@@ -273,7 +251,7 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
      CALL copy_U_wfc (wfcatom)
      !CALL copy_U_wfc (swfcatom, noncolin) ! not yet implemented/tested
 
-     CALL init_us_2 (npw, igk_k(1,ik), xk (1, ik), vkb)
+     CALL init_us_2 (npw, igk, xk (1, ik), vkb)
 
      CALL calbec ( npw, vkb, wfcU, becp )
 
@@ -294,17 +272,6 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
         pp(:,:) = proj0(:,first_band:last_band)
         DEALLOCATE (proj0)
      ENDIF
-!
-! add a damping factor if we want to select an energy window
-!
-     if (sigma > 0.d0) then 
-        do i=1,ldim2
-           ibnd = i + first_band -1
-           e = et(ibnd,ik) * rytoev
-           pp(:,i) = pp(:,i) * wgauss((e-min_energy)/sigma,0) * &
-                               wgauss((max_energy-e)/sigma,0)
-        end do
-     end if
 
      !
      ! Use S.V.D. to make the orthonormalization of projectors
@@ -314,7 +281,6 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
      IF ( abs(info) .ne. 0 ) kstatus(ik) = -2
      !CALL errore ('projection','Singular Value Decomposition failed', abs(info))
      !!DEBUG
-!      WRITE ( * , * ) (ew(i),i=1,ldim1)
      !DO i = 1, ldim1
      !   WRITE ( * , * ) ew(i)
      !   WRITE ( * , '(8(2f5.2,2x))') u_m(:,i)
@@ -380,7 +346,6 @@ SUBROUTINE projection (first_band, last_band, min_energy, max_energy, sigma, iop
      !
      ! on k-points
   ENDDO
-  DEALLOCATE (gk)
   !
   ! Check if everything went OK (on all k-points)
   !

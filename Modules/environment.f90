@@ -46,14 +46,11 @@ CONTAINS
     INTEGER :: ios, crashunit
     INTEGER, EXTERNAL :: find_free_unit
 
-    ! ... The Intel compiler allocates a lot of stack space
+    ! ... Intel compilers v .ge.8 allocate a lot of stack space
     ! ... Stack limit is often small, thus causing SIGSEGV and crash
-    ! ... One may use "ulimit -s unlimited" but it doesn't always work
-    ! ... The following call does the same and always works
-    !
-#ifdef __INTEL_COMPILER
+  
     CALL remove_stack_limit ( )
-#endif
+
     ! ... use ".FALSE." to disable all clocks except the total cpu time clock
     ! ... use ".TRUE."  to enable clocks
 
@@ -134,7 +131,7 @@ CONTAINS
        WRITE( stdout,3335)
     END IF
 3335 FORMAT('=',78('-'),'=')
-    FLUSH(stdout)
+    CALL flush_unit(stdout)
 
     RETURN
   END SUBROUTINE environment_end
@@ -199,6 +196,11 @@ CONTAINS
     !
     WRITE( stdout, '(5X,"Threads/MPI process:               ",I7)' ) &
          omp_get_max_threads()
+#if defined(__FFTW) || defined(__ESSL)
+#else
+    IF ( omp_get_max_threads() > 1 ) &
+       WRITE( stdout, '(5X,"BEWARE: you are not using multi-threaded FFTs!")')
+#endif
 #else
     WRITE( stdout, '(/5X,"Parallel version (MPI), running on ",&
          &I5," processors")' ) nproc 

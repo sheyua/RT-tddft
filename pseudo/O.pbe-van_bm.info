@@ -1,0 +1,9 @@
+
+http://www.physics.rutgers.edu/~dhv/uspp/uspp-cur/Work/008-O/008-O-gpbe--bm
+
+Warning: this O psp has been tested in liquid water simulations by 
+Patrick Sit and Nicola Marzari. Results for the diffusion coefficient
+and pair correlation functions were at odd with those obtained with 
+other ultrasoft or norm-conserving pseudopotentials, and recently
+published results.
+

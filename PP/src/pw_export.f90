@@ -303,7 +303,7 @@ PROGRAM pw_export
   !   set default values for variables in namelist
   !
   prefix='export'
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env( 'ESPRESSO_TMPDIR', outdir )
   IF ( trim( outdir ) == ' ' ) outdir = './'
   pp_file= ' '
   uspp_spsi = .false.
@@ -378,7 +378,6 @@ SUBROUTINE write_export (pp_file,kunit,uspp_spsi, ascii, single_file, raw)
 
   USE kinds,          ONLY : DP
   USE pwcom
-  USE gvecw,          ONLY : ecutwfc, gcutw
   USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
   USE control_flags,  ONLY : gamma_only
   USE global_version, ONLY : version_number
@@ -506,7 +505,7 @@ SUBROUTINE write_export (pp_file,kunit,uspp_spsi, ascii, single_file, raw)
   DO ik = 1, nks
      kisort = 0
      npw = npwx
-     CALL gk_sort (xk (1, ik+iks-1), ngm, g, gcutw, npw, kisort(1), g2kin)
+     CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
      !
      ! mapping between local and global G vector index, for this kpoint
      !
@@ -859,7 +858,7 @@ SUBROUTINE write_export (pp_file,kunit,uspp_spsi, ascii, single_file, raw)
            local_pw = 0
            IF( (ik >= iks) .and. (ik <= ike) ) THEN
 
-               CALL gk_sort (xk (1, ik+iks-1), ngm, g, gcutw, npw, igk, g2kin)
+               CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
                CALL davcio (evc, 2*nwordwfc, iunwfc, (ik-iks+1), - 1)
 
                CALL init_us_2(npw, igk, xk(1, ik), vkb)

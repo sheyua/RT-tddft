@@ -1,0 +1,62 @@
+
+This pseudopotential has been generated with an ionized configuration 
+3s2 3p6 3d5.5 4s0.4 4p0.1. 
+ 
+Cutoff of 25 Ry and dual 8 are used. 
+ 
+Atomic transferablility Test 
+ 
+configuration: 3s2 3p6 3d6 4s0 
+ comparison of all-electron and pseudo eigenvalues (Ry) 
+ 
+   nlm    all-elec      pseudo        diff 
+ 
+   300   -8.266307   -8.258614   -0.007693 
+   310   -5.770685   -5.764265   -0.006420 
+   320   -1.890181   -1.887744   -0.002437 
+   400   -1.484510   -1.485130    0.000620 
+   410   -1.050770   -1.051173    0.000404 
+ 
+configuration: 3s2 3p6 3d5 4s1 
+ comparison of all-electron and pseudo eigenvalues (Ry) 
+ 
+   nlm    all-elec      pseudo        diff 
+ 
+   300   -8.787525   -8.798444    0.010919 
+   310   -6.275404   -6.284638    0.009234 
+   320   -2.340669   -2.344810    0.004141 
+   400   -1.643982   -1.643729   -0.000253 
+   410   -1.177147   -1.176849   -0.000298 
+ 
+configuration: 3s2 3p6 3d5 4s0 
+ comparison of all-electron and pseudo eigenvalues (Ry) 
+ 
+   nlm    all-elec      pseudo        diff 
+ 
+   300   -9.640528   -9.651860    0.011331 
+   310   -7.126528   -7.136016    0.009488 
+   320   -3.176267   -3.181319    0.005052 
+   400   -2.300356   -2.300761    0.000405 
+   410   -1.773648   -1.773237   -0.000410 
+ 
+Cutoff Test 
+(Bulk modulus of BCC Iron) 
+ 
+ Cutoff(Ryd)     Bulk Modulus(Mbar) 
+ 18              1.47 
+ 20              1.61 
+ 22              1.71 
+ 25              1.71 
+ 28              1.72 
+ 30              1.72 
+ 35              1.72
+
+Ionization energy (cutoff = 25 Ry)
+
+     Pseudopotential          Experiments 
+     Calculations (kJ/mol)    (kJ/mol)
+
+1st  758                      765.5
+2nd  1616                     1561.9
+3rd  2968                     2957
+

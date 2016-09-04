@@ -3,10 +3,10 @@
 include ../make.sys
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)../iotk/src $(MOD_FLAG)../Modules $(MOD_FLAG)../FFTXlib $(MOD_FLAG)../LAXlib $(MOD_FLAG).
+MODFLAGS= $(MOD_FLAG)../iotk/src $(MOD_FLAG)../Modules $(MOD_FLAG).
 
 OBJS = write_upf.o
-QEMODS = ../Modules/libqemod.a ../FFTXlib/libqefft.a
+QEMODS = ../Modules/libqemod.a
 
 TLDEPS = mods libs libiotk
 
@@ -38,7 +38,7 @@ oldcp2upf.x : oldcp2upf.o $(OBJS) $(QEMODS) $(LIBOBJS)
 read_upf.x : read_upf.o
 	$(LD) $(LDFLAGS) -o $@ read_upf.o $(LIBS)
 
-read_upf_tofile.x : read_upf_tofile.o $(OBJS) $(QEMODS) $(LIBOBJS)
+read_upf_tofile.x : read_upf_tofile.o $(QEMODS) 
 	$(LD) $(LDFLAGS) -o $@ read_upf_tofile.o $(OBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 
 rrkj2upf.x : rrkj2upf.o $(OBJS) $(QEMODS) $(LIBOBJS)
@@ -65,7 +65,7 @@ interpolate.x : interpolate.o $(OBJS) $(QEMODS) $(LIBOBJS)
 
 tldeps:
 	if test -n "$(TLDEPS)" ; then \
-	( cd ../ ; $(MAKE) $(TLDEPS) || exit 1 ) ; fi
+	( cd ../.. ; $(MAKE) $(TLDEPS) || exit 1 ) ; fi
 
 clean :
 	- /bin/rm -f  *.x *.o *~ *.F90 *.mod *.d *.i *.L

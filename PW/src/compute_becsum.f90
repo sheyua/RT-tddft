@@ -16,17 +16,17 @@ SUBROUTINE compute_becsum ( iflag )
   !
   USE kinds,                ONLY : DP
   USE control_flags,        ONLY : gamma_only
-  USE klist,                ONLY : nks, xk, ngk, igk_k
+  USE klist,                ONLY : nks, xk, ngk
   USE lsda_mod,             ONLY : lsda, nspin, current_spin, isk
-  USE io_files,             ONLY : iunwfc, nwordwfc
+  USE io_files,             ONLY : iunwfc, nwordwfc, iunigk
   USE buffers,              ONLY : get_buffer
   USE scf,                  ONLY : rho
   USE uspp,                 ONLY : nkb, vkb, becsum, okvan
   USE wavefunctions_module, ONLY : evc
   USE noncollin_module,     ONLY : noncolin
-  USE wvfct,                ONLY : nbnd, npwx, wg
+  USE wvfct,                ONLY : nbnd, npwx, npw, wg, igk
   USE mp_pools,             ONLY : inter_pool_comm
-  USE mp_bands,             ONLY : intra_bgrp_comm, set_bgrp_indices, inter_bgrp_comm 
+  USE mp_bands,             ONLY : intra_bgrp_comm
   USE mp,                   ONLY : mp_sum, mp_get_comm_null
   USE paw_symmetry,         ONLY : PAW_symmetrize
   USE paw_variables,        ONLY : okpaw
@@ -37,8 +37,7 @@ SUBROUTINE compute_becsum ( iflag )
   !
   INTEGER, INTENT(IN) :: iflag
   !
-  INTEGER :: ik,& ! counter on k points
-             ibnd_start, ibnd_end, this_bgrp_nbnd ! first, last and number of band in this bgrp
+  INTEGER :: ik ! counter on k points
   !
   !
   IF ( .NOT. okvan ) RETURN
@@ -51,20 +50,23 @@ SUBROUTINE compute_becsum ( iflag )
   !
   becsum(:,:,:) = 0.D0
   CALL allocate_bec_type (nkb,nbnd, becp,intra_bgrp_comm)
-  call set_bgrp_indices ( nbnd, ibnd_start, ibnd_end )
-  this_bgrp_nbnd = ibnd_end - ibnd_start + 1
+  !
+  IF ( nks > 1 ) REWIND( iunigk )
   !
   k_loop: DO ik = 1, nks
      !
      IF ( lsda ) current_spin = isk(ik)
-     IF ( nks > 1 ) &
+     npw = ngk(ik)
+     IF ( nks > 1 ) THEN
+        READ( iunigk ) igk
         CALL get_buffer ( evc, nwordwfc, iunwfc, ik )
+     END IF
      IF ( nkb > 0 ) &
-          CALL init_us_2( ngk(ik), igk_k(1,ik), xk(1,ik), vkb )
+          CALL init_us_2( npw, igk, xk(1,ik), vkb )
      !
      ! ... actual calculation is performed inside routine "sum_bec"
      !
-     CALL sum_bec ( ik, current_spin, ibnd_start,ibnd_end,this_bgrp_nbnd  )
+     CALL sum_bec ( ik, current_spin )
      !
   END DO k_loop
   !
@@ -81,7 +83,6 @@ SUBROUTINE compute_becsum ( iflag )
   IF( okpaw )  THEN
      rho%bec(:,:,:) = becsum(:,:,:) ! becsum is filled in sum_band_{k|gamma}
      CALL mp_sum(rho%bec, inter_pool_comm )
-     call mp_sum(rho%bec, inter_bgrp_comm )
      CALL PAW_symmetrize(rho%bec)
   ENDIF
   !

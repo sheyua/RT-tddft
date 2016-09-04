@@ -38,6 +38,8 @@ subroutine wannier_clean()
      INQUIRE( UNIT = iunsat, OPENED = opnd )  
      IF ( opnd ) CALL close_buffer( iunsat, 'delete' )
   END IF
+  INQUIRE( UNIT = iunigk, OPENED = opnd )  
+  IF ( opnd ) CALL close_buffer( iunigk, 'delete' )
   
   IF(ALLOCATED(swfcatom)) DEALLOCATE(swfcatom)
 

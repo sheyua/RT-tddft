@@ -1,5 +1,5 @@
 \documentclass[12pt,a4paper]{article}
-\def\version{5.3}
+\def\version{5.2.0}
 \def\qe{{\sc Quantum ESPRESSO}}
 
 \usepackage{html}
@@ -22,7 +22,7 @@
 \def\PHonon{\texttt{PHonon}}
 \def\CP{\texttt{CP}}
 \def\PostProc{\texttt{PostProc}}
-\def\NEB{\texttt{PWneb}}
+\def\NEB{\texttt{PWneb}} % to be decided
 \def\make{\texttt{make}}
 
 \begin{document} 
@@ -30,12 +30,32 @@
 \date{}
 
 \def\qeImage{../../Doc/quantum_espresso.pdf}
+\def\democritosImage{../../Doc/democritos.pdf}
+
+\begin{htmlonly}
+\def\qeImage{quantum_espresso.png}
+\def\democritosImage{democritos.png}
+\end{htmlonly}
 
 \title{
-  \includegraphics[width=5cm]{\qeImage} \\
+  \includegraphics[width=5cm]{\qeImage} \hskip 2cm
+  \includegraphics[width=6cm]{\democritosImage}\\
+  \vskip 1cm
   % title
-  \Huge \PostProc\ User's Guide (v.\version) 
+  \Huge User's Guide for \PostProc\
+  \Large (version \version)
 }
+%\endhtmlonly
+
+%\latexonly
+%\title{
+% \epsfig{figure=quantum_espresso.png,width=5cm}\hskip 2cm
+% \epsfig{figure=democritos.png,width=6cm}\vskip 1cm
+%  % title
+%  \Huge User's Guide for \qe \smallskip
+%  \Large (version \version)
+%}
+%\endlatexonly
 
 \maketitle
 
@@ -70,16 +90,11 @@ The \PostProc\ package was originally developed by Stefano Baroni,
 Stefano de Gironcoli, Andrea Dal Corso (SISSA), Paolo Giannozzi 
 (Univ. Udine), and many others. We mention in particular: 
 \begin{itemize}
-\item Andrea Benassi (SISSA) for the \texttt{epsilon} utility,
-      Tae Yun Kim and Cheol-Hwan Park (Seoul National University)
-      for fixes to it;
+\item Andrea Benassi (SISSA) for the \texttt{epsilon} utility;
 \item Dmitry Korotin (Inst. Met. Phys. Ekaterinburg) for the
-      \texttt{wannier\_ham} utility;
+\texttt{wannier\_ham} utility;
 \item Georgy Samsonidze (Bosch Research) for the interface
-      with the Berkeley GW code;
-\item The late Prof. Eyvaz Isaev for the Fermi Surface code;
-\item Natalie Holzwarth (WFU) for the PAW projection in code
-     \texttt{projwfc.f90}.
+      with the Berkeley GW code.
 \end{itemize}
 
 \PostProc\ is free software, released under the 
@@ -174,21 +189,15 @@ and in \texttt{examples/dipole\_example/}.
 for PAW calculations.
 
 \paragraph{About Bader's analysis}
-In \texttt{http://theory.cm.utexas.edu/henkelman/code/bader/} 
-one can find a software that performs Bader's analysis starting 
-from charge on a regular grid. One should use PAW to compute the
-charge density. The required "cube" format can be produced using 
-\texttt{pp.x} (info by G. Lapenna who has successfully used this 
-technique, but adds: ``Problems occur with polar X-H bonds or in
-all cases where the zero-flux of density comes too close to atoms 
-described with pseudo-potentials"). This code should perform 
+In \texttt{http://theory.cm.utexas.edu/bader/} one can find a software 
+that performs
+Bader's analysis starting from charge on a regular grid. The required 
+"cube" format can be produced by \qe\ using  \texttt{pp.x} (info by G. Lapenna
+who has successfully used this technique, but adds: ``Problems occur with polar 
+X-H bonds or in all cases where the zero-flux of density comes too close to 
+atoms described with pseudo-potentials"). This code should perform 
 decomposition into Voronoi polyhedra as well, in place of obsolete
 code  \texttt{voronoy.x} (removed from distribution since v.4.2).
-Alternatively, you can use \textsl{CRITIC2}, available at
-\texttt{https://github.com/aoterodelaroza/critic2}, which can
-read directly \texttt{pw.x} output and ``XSF'' files. \textsl{CRITIC2}
-functionaly include Bader's AIM, ELF, laplacian of density and
-potentials, non-covalente interaction (NCI) plots and much more.
 
 \subsection{Band structure, Fermi surface}
 
@@ -204,8 +213,9 @@ symmetry analysis of the band structure. For a complete input description,
 see\texttt{Doc/INPUT\_bands.*}. See Example 01, Example 04 and Example 06 
 for simple band plots.
 
-The calculation of Fermi surface can be performed using code \texttt{fs.x}.
-The resulting file in .bxsf format can be read and plotted
+The calculation of Fermi surface can be performed using 
+\texttt{kvecs\_FS.x} and
+\texttt{bands\_FS.x}. The resulting file in .xsf format can be read and plotted
 using XCrySDen. See Example 02 for an example of Fermi surface 
 visualization (Ni, including the spin-polarized case).
 
@@ -239,9 +249,8 @@ see Example 03 for projected and local DOS calculations.
 
 The DOS projected over {\em molecular} states (e.g. for a molecule on
 a surface system) can be computed using code \texttt{molecularpdos.x}
-(courtesy of Guido Fratesi). See file \texttt{Doc/INPUT\_MOLDOS.*}
-for input documentation and directory \texttt{MolDos\_example/} for
-an example.
+(courtesy of Guido Fratesi). See example \texttt{MolDos\_example/}
+and documentation therein.
 
 \subsection{Wannier functions}
 
@@ -273,10 +282,6 @@ Code \texttt{qexml.x}, not compiled by default, is a template that
 is useful to follow when wrting interfaces.
 
 \subsection{Other tools}
-
-Code \texttt{wfck2r.x} converts Kohn-Sham orbitals from reciprocal to real 
-space. It is a useful starting point if you need to access wavefunctions
-and perform postprocessing operations that are not implemented in \qe.
 
 Code \texttt{epsilon.x} calculates RPA frequency-dependent complex dielectric 
 function. Documentation is in file \texttt{Doc/eps\_man.tex}.

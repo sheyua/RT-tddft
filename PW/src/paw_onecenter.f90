@@ -1286,12 +1286,12 @@ SUBROUTINE PAW_rad2lm3(i, F_rad, F_lm, lmax_loc, nspin)
     TYPE(paw_info), INTENT(IN) :: i   ! atom's minimal info
     INTEGER,  INTENT(IN) :: lmax_loc  ! in some cases I have to keep higher angular components
                                       ! than the default ones (=lmaxq =the ones present in rho)
-    INTEGER, INTENT(IN)  :: nspin
     REAL(DP), INTENT(OUT):: F_lm(i%m, 3, lmax_loc**2, nspin) ! lm component of F up to lmax_loc
     REAL(DP), INTENT(IN) :: F_rad(i%m, 3, rad(i%t)%nx, nspin)! radial samples of F
     !
     REAL(DP)             :: aux(i%m) ! optimization
 
+    INTEGER, INTENT(IN)  :: nspin
     INTEGER              :: ix    ! counter for integration
     INTEGER              :: lm    ! counter for angmom
     INTEGER              :: ispin ! counter for spin
@@ -1352,7 +1352,7 @@ SUBROUTINE PAW_dpotential(dbecsum, becsum, int3, npe)
                                                            ! occupations 
    COMPLEX(DP), INTENT(IN) :: dbecsum(nhm*(nhm+1)/2,nat,nspin_mag,npe)! 
    
-   COMPLEX(DP), INTENT(OUT) :: int3(nhm,nhm,nat,nspin_mag,npe) ! change of 
+   COMPLEX(DP), INTENT(OUT) :: int3(nhm,nhm,npe,nat,nspin_mag) ! change of 
                                            !descreening coefficients (AE - PS)
    INTEGER, PARAMETER      :: AE = 1, PS = 2,&      ! All-Electron and Pseudo
                               XC = 1, H  = 2        ! XC and Hartree
@@ -1507,12 +1507,12 @@ SUBROUTINE PAW_dpotential(dbecsum, becsum, int3, npe)
                                             savedvi_lm(1:i%m,lm,is,ipert) 
                            CALL simpson (upf(i%t)%kkbeta,aux_lm, &
                                                       g(i%t)%rab,integral_i)
-                           int3(nb,mb,i%a,is,ipert) = &
-                                        int3(nb,mb,i%a,is,ipert) &
+                           int3(nb,mb,ipert,i%a,is) = &
+                                        int3(nb,mb,ipert,i%a,is) &
                                        + sgn * CMPLX(integral_r, integral_i,kind=DP)
                         ENDDO
-                        IF (nb /= mb)  int3(mb,nb,i%a,is,ipert) = &
-                                                    int3(nb,mb,i%a,is,ipert) 
+                        IF (nb /= mb)  int3(mb,nb,ipert,i%a,is) = &
+                                                    int3(nb,mb,ipert,i%a,is) 
                      ENDDO
                      becfake(nmb,ia,is) = 0._dp
                   ENDDO ! mb

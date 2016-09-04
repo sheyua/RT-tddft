@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2016 Quantum ESPRESSO group
+! Copyright (C) 2001-2007 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -9,183 +9,6 @@
 #define ONE  (1.D0,0.D0)
 #define ZERO (0.D0,0.D0)
 !
-MODULE extrapolation
-  !
-  ! ... wfc and rho extrapolation
-  !
-  USE kinds, ONLY: dp
-  !
-  REAL(dp) :: &
-    alpha0,           &! the mixing parameters for the extrapolation
-    beta0              ! of the starting potential
-  INTEGER :: &
-    history,          &! number of old steps available for potential updating
-    pot_order = 0,    &! type of potential updating ( see update_pot )
-    wfc_order = 0      ! type of wavefunctions updating ( see update_pot )
-  !
-  PRIVATE
-  PUBLIC :: pot_order, wfc_order
-  PUBLIC :: update_file, update_neb, update_pot, extrapolate_charge
-  !
-  CONTAINS
-!
-!----------------------------------------------------------------------------
-SUBROUTINE update_file ( )
-  !----------------------------------------------------------------------------
-  !
-  ! ... Reads, updates and rewrites the file containing atomic positions at
-  ! ... two previous steps, used by potential and wavefunction extrapolation
-  ! ... Requires: number of atoms nat, current atomic positions tau
-  ! ... Produces: length of history and tau at current and two previous steps
-  ! ...           written to file $prefix.update
-  !
-  USE io_global, ONLY : ionode
-  USE io_files,  ONLY : iunupdate, seqopn
-  USE ions_base, ONLY : nat, tau
-  !
-  IMPLICIT NONE
-  !
-  REAL(DP), ALLOCATABLE :: tauold(:,:,:)
-  LOGICAL :: exst
-  !
-  IF ( ionode ) THEN
-     !
-     ALLOCATE( tauold( 3, nat, 3 ) )
-     CALL seqopn( iunupdate, 'update', 'FORMATTED', exst ) 
-     IF ( .NOT. exst ) THEN
-        !
-        ! ... file not present, start the procedure
-        !
-        history = 1
-        tauold  = 0.D0
-     ELSE
-        READ( UNIT = iunupdate, FMT = * ) history
-        READ( UNIT = iunupdate, FMT = * ) tauold
-        REWIND( UNIT = iunupdate ) 
-        !
-        ! ... read and save the previous two steps ( three steps are saved )
-        !
-        tauold(:,:,3) = tauold(:,:,2)
-        tauold(:,:,2) = tauold(:,:,1)
-        tauold(:,:,1) = tau(:,:)
-        !
-        ! ... history is updated (a new ionic step has been done)
-        !
-        history = MIN( 3, ( history + 1 ) )
-        !
-     END IF
-     !
-     ! ... history and positions are written on file, file is closed
-     !
-     WRITE( UNIT = iunupdate, FMT = * ) history
-     WRITE( UNIT = iunupdate, FMT = * ) tauold
-     CLOSE( UNIT = iunupdate, STATUS = 'KEEP' )
-     DEALLOCATE( tauold )
-     !
-  END IF
-  !
-END SUBROUTINE update_file
-!
-!----------------------------------------------------------------------------
-SUBROUTINE update_neb ( )
-  !----------------------------------------------------------------------------
-  !
-  ! ... Potential and wavefunction extrapolation for NEB
-  ! ... Prepares file with previous steps for usage by update_pot
-  ! ... Must be merged soon with update_file for MD in PWscf
-  !
-  USE io_global, ONLY : ionode, ionode_id
-  USE io_files,  ONLY : iunupdate, seqopn
-  USE mp,        ONLY : mp_bcast
-  USE mp_images, ONLY : intra_image_comm
-  USE ions_base, ONLY : nat, tau, nsp, ityp
-  USE gvect,     ONLY : ngm, g, eigts1, eigts2, eigts3
-  USE vlocal,    ONLY : strf
-  USE cell_base, ONLY : bg
-  USE fft_base,  ONLY : dfftp
-  !
-  IMPLICIT NONE
-  !
-  REAL(DP), ALLOCATABLE :: tauold(:,:,:)
-  LOGICAL :: exst
-  !
-  ALLOCATE( tauold( 3, nat, 3 ) )
-  !
-  IF ( ionode ) THEN
-     !
-     CALL seqopn( iunupdate, 'update', 'FORMATTED', exst )
-     IF ( exst ) THEN
-        !
-        READ( UNIT = iunupdate, FMT = * ) history
-        READ( UNIT = iunupdate, FMT = * ) tauold
-        !
-     ELSE
-        !
-        ! ... file not present: create one (update_pot needs it)
-        !
-        history = 0
-        tauold  = 0.D0
-        WRITE( UNIT = iunupdate, FMT = * ) history
-        WRITE( UNIT = iunupdate, FMT = * ) tauold
-        !
-     END IF
-     !
-     CLOSE( UNIT = iunupdate, STATUS = 'KEEP' )
-     !
-   END IF
-   !
-   CALL mp_bcast( history, ionode_id, intra_image_comm )
-   CALL mp_bcast( tauold,  ionode_id, intra_image_comm )
-   !
-   IF ( history > 0 ) THEN
-      !
-      ! ... potential and wavefunctions are extrapolated only if
-      ! ... we are starting a new self-consistency ( scf on the
-      ! ... previous image was achieved )
-      !
-      IF ( pot_order > 0 ) THEN
-         !
-         ! ... structure factors of the old positions are computed
-         ! ... (needed for the old atomic charge; update_pot will then
-         ! ...  overwrite them with structure factors at curret positions)
-         !
-         CALL struc_fact( nat, tauold(:,:,1), nsp, ityp, ngm, g, bg, &
-                          dfftp%nr1, dfftp%nr2, dfftp%nr3, strf,     &
-                          eigts1, eigts2, eigts3 )
-         !
-      END IF
-      !
-      CALL update_pot()
-      !
-   END IF
-   !
-   IF ( ionode ) THEN
-      !
-      ! ... save the previous two steps, for usage in next scf
-      ! ... ( a total of three ionic steps is saved )
-      !
-      tauold(:,:,3) = tauold(:,:,2)
-      tauold(:,:,2) = tauold(:,:,1)
-      tauold(:,:,1) = tau(:,:)
-      !
-      ! ... update history count (will be used at next step)
-      !
-      history = MIN( 3, ( history + 1 ) )
-      !
-      ! ... update history file (must be deleted if scf conv. not reached)
-      !
-      CALL seqopn( iunupdate, 'update', 'FORMATTED', exst )
-      !
-      WRITE( UNIT = iunupdate, FMT = * ) history
-      WRITE( UNIT = iunupdate, FMT = * ) tauold
-      !
-      CLOSE( UNIT = iunupdate, STATUS = 'KEEP' )
-      !
-   END IF
-   !
-   DEALLOCATE ( tauold )
-   !
- END SUBROUTINE update_neb
 !----------------------------------------------------------------------------
 SUBROUTINE update_pot()
   !----------------------------------------------------------------------------
@@ -237,6 +60,8 @@ SUBROUTINE update_pot()
   ! ...                     + beta0*( tau(t-dt) -tau(t-2*dt) )
   !
   !
+  USE kinds,         ONLY : DP
+  USE control_flags, ONLY : pot_order, wfc_order, history, alpha0, beta0
   USE io_files,      ONLY : prefix, iunupdate, tmp_dir, wfc_dir, nd_nmbr, seqopn
   USE io_global,     ONLY : ionode, ionode_id
   USE cell_base,     ONLY : bg
@@ -291,7 +116,6 @@ SUBROUTINE update_pot()
   !
   CALL mp_bcast( alpha0, ionode_id, intra_image_comm )
   CALL mp_bcast( beta0,  ionode_id, intra_image_comm )
-  CALL mp_bcast( history,ionode_id, intra_image_comm )
   CALL mp_bcast( tauold, ionode_id, intra_image_comm )
   !
   IF ( wfc_order > 0 ) THEN
@@ -388,6 +212,7 @@ SUBROUTINE extrapolate_charge( rho_extr )
   !
   USE constants,            ONLY : eps32
   USE io_global,            ONLY : stdout
+  USE kinds,                ONLY : DP
   USE cell_base,            ONLY : omega, bg
   USE ions_base,            ONLY : nat, tau, nsp, ityp
   USE fft_base,             ONLY : dfftp, dffts
@@ -397,6 +222,7 @@ SUBROUTINE extrapolate_charge( rho_extr )
   USE scf,                  ONLY : rho, rho_core, rhog_core, v
   USE ldaU,                 ONLY : eth
   USE wavefunctions_module, ONLY : psic
+  USE control_flags,        ONLY : alpha0, beta0
   USE ener,                 ONLY : ehart, etxc, vtxc, epaw
   USE extfield,             ONLY : etotefield
   USE cellmd,               ONLY : lmovecell, omega_old
@@ -627,11 +453,13 @@ SUBROUTINE extrapolate_wfcs( wfc_extr )
   ! ... by Mead, Rev. Mod. Phys., vol 64, pag. 51 (1992), eqs. 3.20-3.29
   !
   USE io_global,            ONLY : stdout
-  USE klist,                ONLY : nks, ngk, xk, igk_k
+  USE kinds,                ONLY : DP
+  USE klist,                ONLY : nks, ngk, xk
   USE lsda_mod,             ONLY : lsda, current_spin, isk
-  USE wvfct,                ONLY : nbnd, npwx, current_k
+  USE control_flags,        ONLY : alpha0, beta0, wfc_order
+  USE wvfct,                ONLY : nbnd, npw, npwx, igk, current_k
   USE ions_base,            ONLY : nat, tau
-  USE io_files,             ONLY : nwordwfc, iunwfc, iunoldwfc, &
+  USE io_files,             ONLY : nwordwfc, iunigk, iunwfc, iunoldwfc, &
                                    iunoldwfc2, diropn
   USE buffers,              ONLY : get_buffer, save_buffer
   USE uspp,                 ONLY : nkb, vkb, okvan
@@ -647,7 +475,7 @@ SUBROUTINE extrapolate_wfcs( wfc_extr )
   !
   INTEGER, INTENT(IN) :: wfc_extr
   !
-  INTEGER :: npw, ik, zero_ew, lwork, info
+  INTEGER :: ik, zero_ew, lwork, info
     ! do-loop variables
     ! counter on k-points
     ! number of zero 'eigenvalues' of the s_m matrix
@@ -723,6 +551,8 @@ SUBROUTINE extrapolate_wfcs( wfc_extr )
         ALLOCATE( work( lwork ) )
      END IF
      !
+     IF ( nks > 1 ) REWIND( iunigk )
+     !
      zero_ew = 0
      !
      DO ik = 1, nks
@@ -733,18 +563,25 @@ SUBROUTINE extrapolate_wfcs( wfc_extr )
         IF ( nks > 1 ) CALL get_buffer( evc, nwordwfc, iunwfc, ik )
         CALL davcio(    evc, 2*nwordwfc, iunoldwfc, ik, +1 )
         !
-        npw = ngk (ik)
         IF ( okvan ) THEN
            !
            ! ... Ultrasoft PP: calculate overlap matrix
-           ! ... Required by s_psi:
-           ! ... nonlocal pseudopotential projectors |beta>, <psi|beta>
+           ! ... various initializations: k, spin, number of PW, indices
            !
-           IF ( nkb > 0 ) CALL init_us_2( npw, igk_k(1,ik), xk(1,ik), vkb )
+           current_k = ik
+           IF ( lsda ) current_spin = isk(ik)
+           npw = ngk (ik)
+           IF ( nks > 1 ) READ( iunigk ) igk
+           !
+           call g2_kin (ik)
+           !
+           ! ... Calculate nonlocal pseudopotential projectors |beta>
+           !
+           IF ( nkb > 0 ) CALL init_us_2( npw, igk, xk(1,ik), vkb )
+           !
            CALL calbec( npw, vkb, evc, becp )
            !
            CALL s_psi ( npwx, npw, nbnd, evc, aux )
-           !
         ELSE
            !
            ! ... Norm-Conserving  PP: no overlap matrix
@@ -789,8 +626,8 @@ SUBROUTINE extrapolate_wfcs( wfc_extr )
         CALL ZGEMM( 'N', 'C', npw, nbnd, nbnd, ONE, &
                     evcold, npwx, sp_m, nbnd, ZERO, aux, npwx )
         !
-        ! ... alpha0 and beta0 are calculated in "update_pot"
-        ! ... for first-order interpolation, alpha0=1, beta0=0
+        ! ... alpha0 and beta0 are calculated in "move_ions"
+        ! ... for first-order interpolation, alpha=1, beta0=0
         !
         IF ( wfc_extr == 3 ) THEN
            evc = ( 1.0_dp + alpha0 ) * evc + ( beta0 - alpha0 ) * aux
@@ -862,7 +699,9 @@ SUBROUTINE find_alpha_and_beta( nat, tau, tauold, alpha0, beta0 )
   ! ...                  + beta0 * ( tau(t-dt) -tau(t-2*dt) )
   !
   USE constants,     ONLY : eps16
+  USE kinds,         ONLY : DP
   USE io_global,     ONLY : stdout
+  USE control_flags, ONLY : history
   !
   IMPLICIT NONE
   !
@@ -943,5 +782,3 @@ SUBROUTINE find_alpha_and_beta( nat, tau, tauold, alpha0, beta0 )
   RETURN
   !
 END SUBROUTINE find_alpha_and_beta
-  !
-END MODULE extrapolation

@@ -35,13 +35,13 @@ SUBROUTINE orbm_kubo()
   USE io_files,             ONLY : iunwfc, nwordwfc
   USE buffers,              ONLY : get_buffer
   USE noncollin_module,     ONLY : noncolin, npol
-  USE wvfct,                ONLY : npwx, nbnd, igk, et
+  USE wvfct,                ONLY : npwx, nbnd,ecutwfc, g2kin,npw_k=>npw,igk_k=>igk,et
   USE lsda_mod,             ONLY : nspin
   USE fft_base,             ONLY : dfftp
   USE gvect,                ONLY : ngm,ngm_g,g,gcutm,ig_l2g
   USE start_k,              ONLY : nk1, nk2, nk3
-  USE klist,                ONLY : nks,xk,ngk, igk_k
-  USE cell_base,            ONLY : tpiba,gpar=>bg,at,alat,omega
+  USE klist,                ONLY : nks,xk
+  USE cell_base,            ONLY : tpiba,tpiba2,gpar=>bg,at,alat,omega
   USE mp,                   ONLY : mp_sum,mp_barrier
   USE constants,            ONLY : pi, tpi,rytoev
   USE bp,                   ONLY : lelfield,mapgp_global,mapgm_global,nx_el
@@ -68,6 +68,7 @@ SUBROUTINE orbm_kubo()
   ! map g-space global to g-space k-point dependent
   INTEGER, ALLOCATABLE :: ln(:,:,:)
   INTEGER, ALLOCATABLE  :: map_g(:)
+  INTEGER :: ik
   INTEGER :: i,j,k,n,np ! Numbering of k-points
   ! np (n') is used in the loop over neigboring k-points
   INTEGER :: signum
@@ -76,7 +77,7 @@ SUBROUTINE orbm_kubo()
   INTEGER :: istart, iend ! ranges of some arrays
   LOGICAL :: inbz(6) ! if true k' is in BZ
   REAL(DP) :: gtr(3) ! G+G_0
-  INTEGER :: npw_k, npw_kp
+  INTEGER :: npw_kp
   INTEGER :: igk_kp(npwx)
   INTEGER :: nb, mb
   INTEGER :: ig
@@ -168,12 +169,10 @@ SUBROUTINE orbm_kubo()
 
         ! Read wavefunction at k
         CALL get_buffer ( evc_k, nwordwfc, iunwfc, n )
-        ! recompute indices, projectors, kinetic energy, needed by h_psi
-        ! for the current k-point (n)
-        npw_k = ngk(n)
-        igk(:)= igk_k(:,n)
-        CALL init_us_2(npw_k,igk_k(1,n),xk(1,n),vkb)
-        CALL g2_kin( n )
+
+        CALL gk_sort(xk(1,n),ngm,g,ecutwfc/tpiba2, &
+              npw_k,igk_k,g2kin)
+        CALL init_us_2(npw_k,igk_k,xk(1,n),vkb)
 
         evcpm=(0.0d0,0.0d0)
 
@@ -248,9 +247,8 @@ SUBROUTINE orbm_kubo()
         DO np=1,6
           signum=-signum
 
-          npw_kp = ngk(nbr(np))
-          igk_kp(:)= igk_k(:,nbr(np))
           CALL get_buffer ( evc_kp, nwordwfc, iunwfc, nbr(np) )
+          CALL gk_sort(xk(1,nbr(np)),ngm,g,ecutwfc/tpiba2,npw_kp,igk_kp,g2kin)
 
           ! Calculate S-1(k,k-dx)
 
@@ -268,7 +266,7 @@ SUBROUTINE orbm_kubo()
 
                   istart = (ipol-1)*npwx+1
                   iend = istart+npw_k-1
-                  aux_k(igk_k(1:npw_k,n)+ngm*(ipol-1))=evc_k(istart:iend,nb)
+                  aux_k(igk_k(1:npw_k)+ngm*(ipol-1))=evc_k(istart:iend,nb)
 
                   iend = istart+npw_kp-1
                   aux_kp(igk_kp(1:npw_kp)+ngm*(ipol-1))=evc_kp(istart:iend,mb)
@@ -338,7 +336,7 @@ SUBROUTINE orbm_kubo()
 
                     istart = (ipol-1)*npwx+1
                     iend = istart+npw_k-1
-                    aux_k(igk_k(1:npw_k,n)+ngm*(ipol-1))=evc_k(istart:iend,nb)
+                    aux_k(igk_k(1:npw_k)+ngm*(ipol-1))=evc_k(istart:iend,nb)
 
                     iend = istart+npw_kp-1
                     aux_kp(map_g(1:npw_kp)+ngm*(ipol-1))=evc_kp(istart:iend,mb)
@@ -379,7 +377,7 @@ SUBROUTINE orbm_kubo()
                   DO ipol=1,npol
                     DO ig=1,npw_k
                       sca=sca+CONJG(evc_k(ig+npwx*(ipol-1),nb))*&
-                              aux_kp_g(ig_l2g(igk_k(ig,n))+ngm_g*(ipol-1))
+                              aux_kp_g(ig_l2g(igk_k(ig))+ngm_g*(ipol-1))
                     END DO
                   END DO
                   mat(nb,mb)=sca
@@ -433,10 +431,10 @@ SUBROUTINE orbm_kubo()
               DO mb=1,nbnd
                 IF(inbz(np).OR.(np>4).OR.(ngm==ngm_g)) THEN
                   evcpm(istart:iend,mb,np)=evcpm(istart:iend,mb,np)+&
-                      mat(nb,mb)*temp(igk_k(1:npw_k,n))
+                      mat(nb,mb)*temp(igk_k(1:npw_k))
                 ELSE ! special parallel case
                   evcpm(istart:iend,mb,np)=evcpm(istart:iend,mb,np)+&
-                      mat(nb,mb)*temp2(ig_l2g(igk_k(1:npw_k,n)))
+                      mat(nb,mb)*temp2(ig_l2g(igk_k(1:npw_k)))
                 END IF
               END DO
               IF(ALLOCATED(temp2)) DEALLOCATE(temp2)
@@ -448,8 +446,16 @@ SUBROUTINE orbm_kubo()
         !====================================================!
         !=== Compute orbital magnetization ==================!
         !====================================================!
-        npw_kp = ngk(nbr(1))
-        igk_kp(:) = igk_k(:,nbr(1))
+        CALL gk_sort(xk(1,nbr(1)),ngm,g,ecutwfc/tpiba2, &
+             npw_kp,igk_kp,g2kin)
+
+        ! gk_sort overwrites the kinetic energy - recalculate at ik
+        g2kin(1:npw_k)=( ( xk(1,n) + g(1,igk_k(1:npw_k)) )**2 + &
+                         ( xk(2,n) + g(2,igk_k(1:npw_k)) )**2 + &
+                         ( xk(3,n) + g(3,igk_k(1:npw_k)) )**2 ) * tpiba2
+        !  these 2 lines are equivalent to the kinetic energy calculation above
+        !  CALL gk_sort(xk(1,n), ngm, g, ecutwfc/tpiba2, npw_k, igk_k, g2kin)
+        !  g2kin(1:npw) = g2kin(1:npw) * tpiba2
 
         ! LC TERM
 
@@ -537,7 +543,6 @@ SUBROUTINE orbm_kubo()
 
   ! Deallocate arrays
   CALL deallocate_bec_type ( becp )
-  DEALLOCATE(temp)
   DEALLOCATE(evc_k)
   DEALLOCATE(evc_kp)
   DEALLOCATE(aux_k)
@@ -546,6 +551,7 @@ SUBROUTINE orbm_kubo()
   DEALLOCATE(map_g)
   DEALLOCATE(evcpm)
   DEALLOCATE(H_evc)
+  DEALLOCATE(temp)
 
 END SUBROUTINE orbm_kubo
 !==============================================================================!

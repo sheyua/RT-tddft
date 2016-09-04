@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2016 Quantum ESPRESSO group
+! Copyright (C) 2001-2015 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -8,64 +8,6 @@
 !
 !----------------------------------------------------------------------------
 SUBROUTINE s_psi( lda, n, m, psi, spsi )
-  !----------------------------------------------------------------------------
-  !
-  ! ... This routine applies the S matrix to m wavefunctions psi
-  ! ... and puts the results in spsi.
-  ! ... Requires the products of psi with all beta functions
-  ! ... in array becp(nkb,m) (calculated in h_psi or by calbec)
-  !
-  ! ... input:
-  !
-  ! ...    lda   leading dimension of arrays psi, spsi
-  ! ...    n     true dimension of psi, spsi
-  ! ...    m     number of states psi
-  ! ...    psi
-  !
-  ! ... output:
-  !
-  ! ...    spsi  S*psi
-  !
-  ! --- Wrapper routine: performs bgrp parallelization on non-distributed bands
-  ! --- if suitable and required, calls old S\psi routine s_psi_
-  ! --- See comments in h_psi.f90 about band parallelization
-  !
-  USE kinds,            ONLY : DP
-  USE noncollin_module, ONLY : npol
-  USE funct,            ONLY : exx_is_active
-  USE mp_bands,         ONLY : use_bgrp_in_hpsi, set_bgrp_indices, inter_bgrp_comm
-  USE mp,               ONLY : mp_sum
-  !
-  IMPLICIT NONE
-  !
-  INTEGER, INTENT(IN) :: lda, n, m
-  COMPLEX(DP), INTENT(IN) :: psi(lda*npol,m)
-  COMPLEX(DP), INTENT(OUT)::spsi(lda*npol,m)
-  !
-  INTEGER     :: m_start, m_end
-  !
-  CALL start_clock( 's_psi_bgrp' )
-
-  IF (use_bgrp_in_hpsi .AND. .NOT. exx_is_active() .AND. m > 1) THEN
-     ! use band parallelization here
-     spsi(:,:) = (0.d0,0.d0)
-     CALL set_bgrp_indices(m,m_start,m_end)
-     ! Check if there at least one band in this band group
-     IF (m_end >= m_start) &
-        CALL s_psi_( lda, n, m_end-m_start+1, psi(1,m_start), spsi(1,m_start) )
-     CALL mp_sum(spsi,inter_bgrp_comm)
-  ELSE
-     ! don't use band parallelization here
-     CALL s_psi_( lda, n, m, psi, spsi )
-  END IF
-
-  CALL stop_clock( 's_psi_bgrp' )
-  RETURN
-
-END SUBROUTINE s_psi
-!
-!----------------------------------------------------------------------------
-SUBROUTINE s_psi_( lda, n, m, psi, spsi )
   !----------------------------------------------------------------------------
   !
   ! ... This routine applies the S matrix to m wavefunctions psi
@@ -377,4 +319,4 @@ SUBROUTINE s_psi_( lda, n, m, psi, spsi )
 
     END SUBROUTINE s_psi_nc
 
-END SUBROUTINE s_psi_
+END SUBROUTINE s_psi

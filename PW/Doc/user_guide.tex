@@ -1,5 +1,5 @@
 \documentclass[12pt,a4paper]{article}
-\def\version{5.3}
+\def\version{5.2.0}
 \def\PWscf{\texttt{PWscf}}
 \def\qe{{\sc Quantum ESPRESSO}}
 
@@ -17,6 +17,7 @@
 \def\pwx{\texttt{pw.x}}
 \def\cpx{\texttt{cp.x}}
 \def\phx{\texttt{ph.x}}
+\def\nebx{\texttt{neb.x}}
 \def\configure{\texttt{configure}}
 
 \def\PHonon{\texttt{PHonon}}
@@ -29,12 +30,32 @@
 \date{}
 
 \def\qeImage{../../Doc/quantum_espresso.pdf}
+\def\democritosImage{../../Doc/democritos.pdf}
+
+\begin{htmlonly}
+\def\qeImage{../../Doc/quantum_espresso.png}
+\def\democritosImage{../../Doc/democritos.png}
+\end{htmlonly}
 
 \title{
-  \includegraphics[width=5cm]{\qeImage} \\
+  \includegraphics[width=5cm]{\qeImage} \hskip 2cm
+  \includegraphics[width=6cm]{\democritosImage}\\
+  \vskip 1cm
   % title
-  \Huge \PWscf\ User's Guide (v.\version) 
+  \Huge User's Guide for \PWscf\smallskip
+  \Large (version \version)
 }
+%\endhtmlonly
+
+%\latexonly
+%\title{
+% \epsfig{figure=quantum_espresso.png,width=5cm}\hskip 2cm
+% \epsfig{figure=democritos.png,width=6cm}\vskip 1cm
+%  % title
+%  \Huge User's Guide for \qe \smallskip
+%  \Large (version \version)
+%}
+%\endlatexonly
 
 \maketitle
 
@@ -118,13 +139,11 @@ and many others. We quote in particular:
   built upon previous work by Guido Fratesi (Univ.Milano Bicocca)
   and Riccardo Mazzarello (ETHZ-USI Lugano);
   \item Matteo Cococcioni (Univ. Minnesota) for DFT+U implementation;
-  \item Timo Thonhauser (WFU) for vdW-DF, svdW-DF, and variants;
+  \item Timo Thonhauser's group (Wake Forest University) for vdW-DF and
+  variants;
 \end{itemize}
 and the more recent contributors:
 \begin{itemize}
-  \item Taylor Barnes (LBL) amd Ncola Varini (CSCS) for improvements
-        to hybrid functionals;
-  \item Thomas Markovich (Harvard) for Tkatchenko-Scheffler stress in PWscf;
   \item Jong-Won Song (RIKEN) for Gau-PBE functional;
   \item Alberto Otero de la Roza (Merced Univ.) for XDM (exchange-hole 
    dipole moment) model of dispersions, PW86 (unrevised) and B86B functionals;
@@ -202,14 +221,14 @@ calculates distances and angles between atoms in a cell,
 taking into account periodicity 
 \item  \texttt{PW/tools/ev.x} fits energy-vs-volume data to an equation of state
 \item  \texttt{PW/tools/kpoints.x} produces lists of k-points
-\item  \texttt{PW/tools/pwi2xsf.sh},  \texttt{pwo2xsf.sh} process respectively 
-  input and output files (not data files!) for \pwx\ and \texttt{neb.x} 
-  (the latter, courtesy of Pietro Bonf\`a) and produce an XSF-formatted file
+\item  \texttt{PW/tools/pwi2xsf.sh},  \texttt{pwo2xsf.sh} process respectively input and output
+  files (not data files!) for \pwx and produce an XSF-formatted file
   suitable for plotting with XCrySDen:
-  \texttt{http://www.xcrysden.org/}, a powerful crystalline and
+  \texttt{http://www.xcrysden.org/},  powerful crystalline and
   molecular structure visualization program.
-  BEWARE: the  \texttt{pwi2xsf.sh} shell script requires the
-  \texttt{pwi2xsf.x} executables to be located somewhere in your PATH. 
+  BEWARE: the  \texttt{pwi2xsf.sh} shell script
+  requires the  \texttt{pwi2xsf.x} executables to be located somewhere in your PATH. 
+\item  \texttt{PW/tools/band\_plot.x}: undocumented and possibly obsolete 
 \item  \texttt{PW/tools/bs.awk},  \texttt{PW/tools/mv.awk} are scripts that process the output of \pwx\ (not
 data files!). Usage: 
 \begin{verbatim}
@@ -219,6 +238,8 @@ data files!). Usage:
 The files so produced are suitable for use with  \texttt{xbs}, a very simple
 X-windows utility to display molecules, available at:\\
  \texttt{http://www.ccl.net/cca/software/X-WINDOW/xbsa/README.shtml}
+\item  \texttt{PW/tools/kvecs\_FS.x},  \texttt{PW/tools/bands\_FS.x}: utilities for Fermi Surface plotting
+  using XCrySDen (contributed by the late Prof. Eyvaz)
 \item  \texttt{PW/tools/cif2qe.sh}: script converting from CIF 
 (Crystallographic Information File) to a format suitable for \qe.
 Courtesy of Carlo Nervi (Univ. Torino, Italy).
@@ -321,18 +342,8 @@ to all file names, whose default value is: \texttt{prefix='pwscf'}). \texttt{out
 as well in environment variable ESPRESSO\_TMPDIR. The \texttt{iotk}
 toolkit is used to write the file in a XML format, whose definition can
 be found in the Developer Manual. In order to use the data directory
-on a different machine, you should convert the binary files to formatted,
-transfer them, convert them back to unformatted as in the following 
-example:
-\begin{verbatim}
-  $bindir/iotk convert -t outdir/prefix.save/charge-density.dat myfile.txt
-  [ transfer file to the other machine ]
-  $bindir/iotk convert -b myfile.txt outdir/prefix.save/charge-density.dat
-\end{verbatim}
-If you need wavefunctions as well, you must to set the \pwx\ option 
-\texttt{wf\_collect} to \texttt{.true.}. In such case, wavefunction files 
-are found in directories \texttt{outdir/prefix.save/K*}, one per k-point.
-You should do the conversion for all of them.
+on a different machine, you need to convert the binary files to formatted
+and back, using the \texttt{bin/iotk} script.
 
 The execution stops if you create a file \texttt{prefix.EXIT} either
 in the working directory (i.e. where the program is executed), or in
@@ -345,11 +356,7 @@ an unusable state.
 \subsection{Electronic structure calculations}
 \paragraph{Single-point (fixed-ion) SCF calculation} 
 Set \texttt{calculation='scf'} (this is actually the default).
-Namelists \&IONS and \&CELL will be ignored. For LSDA spin-polarized 
-calculations (that is: with a fixed quantization axis for magnetization),
-set \texttt{nspin=2}. Note that the number of k-points will be internally
-doubled (one set of k-points for spin-up, one set for spin-down).
-See Example 01.
+Namelists \&IONS and \&CELL will be ignored. See Example 01.
 
 \paragraph{Band structure calculation}
 First perform a SCF calculation as above;
@@ -711,12 +718,6 @@ $$T_{scf} = d_2 N_{r1} N_{r2} N_{r3} + d_3 N_{r1} N_{r2} N_{r3}
             log(N_{r1} N_{r2} N_{r3} )$$
 where $d_1, d_2$ are prefactors.
 
-For hybrid DFTs, the dominant term is by far the calculation of the 
-nonlocal $(V_x\psi)$ product, taking as much as
-$$T_{exx} = e N_k N_q M^2 N_1 N_2N_3 log(N_1 N_2 N_3)$$
-where $N_q$ is the number of points in the $k+q$ grid, determined by
-options \texttt{nqx1,nqx2,nqx3}, $e$ is a prefactor.
-
 The above estimates are for serial execution. In parallel execution,
 each contribution may scale in a different manner with the number of processors (see below).
 
@@ -728,11 +729,6 @@ $$ O = m M N + P N + p N_1 N_2 N_3 + q N_{r1} N_{r2} N_{r3}$$
 with $m, p, q$ = small factors; all other variables have the same meaning as
 above. Note that if the $\Gamma-$point only ($k=0$) is used to sample the 
 Brillouin Zone, the value of N will be cut into half.
-
-For hybrid DFTs, additional storage of $O_x$ double precision complex 
-numbers is needed (for Fourier-transformed Kohn-Sham states), with
-$O_x = x N_q M N_1N_2N_3$ and $x=0.5$ for $\Gamma-$only 
-calculations, $x=1$ otherwise.
 
 The memory required by the phonon code follows the same patterns, with
 somewhat larger factors $m, p, q$.
@@ -756,7 +752,7 @@ The effectiveness of parallelization is ultimately judged by the
 \begin{itemize}
 \item the size and type of the system under study;
 \item the judicious choice of the various levels of parallelization 
-(detailed in Sec.\ref{SubSec:badpara});
+(detailed in Sec.\ref{SubSec:para});
 \item the availability of fast interprocess communications (or lack of it).
 \end{itemize}
 Ideally one would like to have linear scaling, i.e. $T \sim T_0/N_p$ for 
@@ -770,9 +766,8 @@ Parallelization on k-points:
 \item guarantees (almost) linear scaling if the number of k-points
 is a multiple of the number of pools;
 \item requires little communications (suitable for ethernet communications);
-\item reduces the required memory per processor by distributing wavefunctions
-(but not other quantities like the charge density), unless you set 
-\texttt{disk\_io='high'}.
+\item does not reduce the required memory per processor (unsuitable for 
+large-memory jobs).
 \end{itemize}
 Parallelization on PWs:
 \begin{itemize}
@@ -986,9 +981,7 @@ Since QE 5.1 restarting from an arbitrary point of the code is no more supported
 The code must terminate properly in order for restart to be possible. A clean stop can be triggered by one the following three conditions:
 \begin{enumerate}
 \item The amount of time specified by the input variable max\_seconds is reached
-\item The user creates a file named "\$prefix.EXIT" either in the working
-directory or in output directory "\$outdir" 
-(variables \$outdir and \$prefix as specified in the control namelist)
+\item A file named "\$prefix.EXIT" is found in the execution directory, \$prefix is the prefix specified in the control namelist
 \item (experimental) The code is compiled with signal-trapping support and one of the trapped signals is received (see the next section for details).
 \end{enumerate}
 
@@ -1047,14 +1040,14 @@ Possible reasons:
 If you get error messages in the example scripts -- i.e. not errors in
 the codes -- on a parallel machine, such as e.g.: 
 {\em run example: -n: command not found}
-you may have forgotten to properly define PARA\_PREFIX and PARA\_POSTFIX.
+you may have forgotten 
+the " " in the definitions of PARA\_PREFIX and PARA\_POSTFIX.
 
 \paragraph{pw.x prints the first few lines and then nothing happens
   (parallel execution)} 
 If the code looks like it is not reading from input, maybe
 it isn't: the MPI libraries need to be properly configured to accept input
-redirection. Use \texttt{pw.x -i} and the input file name (see
-Sec.\ref{SubSec:badpara}), or inquire with
+redirection. Use \texttt{pw.x -i} and the input file name (see Sec.\ref{SubSec:para}), or inquire with
 your local computer wizard (if any). Since v.4.2, this is for sure the
 reason if the code stops at {\em Waiting for input...}.
 

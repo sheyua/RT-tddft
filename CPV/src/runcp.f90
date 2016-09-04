@@ -29,8 +29,7 @@
       USE mp_global,           ONLY : me_bgrp, &
                                       my_bgrp_id, nbgrp, inter_bgrp_comm
       USE mp,                  ONLY : mp_sum
-      USE fft_base,            ONLY : dffts
-      USE fft_parallel,        ONLY : tg_gather
+      USE fft_base,            ONLY : dffts, tg_gather
       use wave_base,           only : wave_steepest, wave_verlet
       use control_flags,       only : lwf, tsde
       use uspp,                only : deeq, vkb
@@ -55,11 +54,6 @@
       !
       !
      real(DP) ::  verl1, verl2, verl3
-#if defined(__INTEL_COMPILER)
-#if __INTEL_COMPILER  >= 1300
-!dir$ attributes align: 4096 :: emadt2, emaver, c2, c3, c2tmp, c3tmp, tg_rhos, ftmp, itmp
-#endif
-#endif
      real(DP),    allocatable :: emadt2(:)
      real(DP),    allocatable :: emaver(:)
      complex(DP), allocatable :: c2(:), c3(:), c2tmp(:), c3tmp(:)
@@ -296,6 +290,8 @@
 !
 !=----------------------------------------------------------------------------=!
 !
+!
+
 !=----------------------------------------------------------------------------=!
 
     SUBROUTINE runcp_uspp_force_pairing_x  &

@@ -1,20 +1,10 @@
-#!/bin/bash
-#
-# Copyright (C) 2001-2016 Quantum ESPRESSO group
-# 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License. See the file `License' in the root directory
-# of the present distribution.
-#
+#! /bin/sh
 #
 # This script is a simple wrapper calling the autoconf configuration
 # script (configure) in install/
 # Dependencies may be also directly generated
 # 
 # Courtesy of A. Ferretti and G. Bussi
-# Modified by F. Spiga
 #
 #================================================================
 #
@@ -36,9 +26,11 @@ MANUAL=" Usage
 #================================================================
 #
 
+
 # run from directory where this script is
 auxdir=`echo $0 | sed 's/\(.*\)\/.*/\1/'` # extract pathname
 if [ "$auxdir" != "configure" ] ; then cd $auxdir ; fi
+
 
 #
 # detect the simplest cases 
@@ -47,22 +39,17 @@ case $1 in
   ("-h" | "--help" )      echo "$MANUAL"     ; ./install/configure --help ; exit 0 ;;
 esac
 
-
+#
 # run the autoconf configure with the
 # given cong_flags 
 #
+
 test -e ./install/make.sys       && rm ./install/make.sys
 test -e ./install/configure.msg  && rm ./install/configure.msg
-#test -e ./install/Makefile  && rm ./install/Makefile
-
-# SAFEGUARD: if you run configure without clean everything first there 
-#            are chances that something goes wrong. Forcing veryclean then.
-if [[ (-e make.sys) && (-e Makefile) && !($@ =~ "--help") ]] ; then
-  make -f Makefile veryclean
-fi
 
 ./install/configure "$@"
 
+#
 # copy make.sys in the home dir
 # and final clean up
 #
@@ -70,5 +57,8 @@ test -e ./install/make.sys && mv ./install/make.sys .
 test -e config.log        && mv config.log    ./install/
 test -e config.status     && mv config.status ./install/
 test -e configure.msg     && mv configure.msg ./install/
+#
 
 exit 0
+
+

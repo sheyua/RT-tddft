@@ -16,17 +16,17 @@ SUBROUTINE force_us( forcenl )
   USE control_flags,        ONLY : gamma_only
   USE cell_base,            ONLY : at, bg, tpiba
   USE ions_base,            ONLY : nat, ntyp => nsp, ityp
-  USE klist,                ONLY : nks, xk, ngk, igk_k
+  USE klist,                ONLY : nks, xk, ngk
   USE gvect,                ONLY : g
   USE uspp,                 ONLY : nkb, vkb, qq, deeq, qq_so, deeq_nc, indv_ijkb0
   USE uspp_param,           ONLY : upf, nh, newpseudo, nhm
-  USE wvfct,                ONLY : nbnd, npwx, wg, et
+  USE wvfct,                ONLY : nbnd, npw, npwx, igk, wg, et
   USE lsda_mod,             ONLY : lsda, current_spin, isk, nspin
   USE symme,                ONLY : symvector
   USE wavefunctions_module, ONLY : evc
   USE noncollin_module,     ONLY : npol, noncolin
   USE spin_orb,             ONLY : lspinorb
-  USE io_files,             ONLY : iunwfc, nwordwfc
+  USE io_files,             ONLY : iunwfc, nwordwfc, iunigk
   USE buffers,              ONLY : get_buffer
   USE becmod,               ONLY : calbec, becp, bec_type, allocate_bec_type, &
                                    deallocate_bec_type
@@ -42,7 +42,7 @@ SUBROUTINE force_us( forcenl )
   COMPLEX(DP), ALLOCATABLE :: deff_nc(:,:,:,:)
   REAL(DP), ALLOCATABLE :: deff(:,:,:)
   TYPE(bec_type) :: dbecp                 ! contains <dbeta|psi>
-  INTEGER    :: npw, ik, ipol, ig, jkb
+  INTEGER    :: ik, ipol, ig, jkb
   !
   forcenl(:,:) = 0.D0
   !
@@ -57,15 +57,16 @@ SUBROUTINE force_us( forcenl )
   !
   ! ... the forces are a sum over the K points and over the bands
   !   
+  IF ( nks > 1 ) REWIND iunigk
   DO ik = 1, nks
      !
      IF ( lsda ) current_spin = isk(ik)
      npw = ngk (ik)
-
      IF ( nks > 1 ) THEN
+        READ( iunigk ) igk
         CALL get_buffer ( evc, nwordwfc, iunwfc, ik )
         IF ( nkb > 0 ) &
-             CALL init_us_2( npw, igk_k(1,ik), xk(1,ik), vkb )
+             CALL init_us_2( npw, igk, xk(1,ik), vkb )
      END IF
      !
      CALL calbec ( npw, vkb, evc, becp )
@@ -74,7 +75,7 @@ SUBROUTINE force_us( forcenl )
         DO jkb = 1, nkb
 !$omp parallel do default(shared) private(ig)
            do ig = 1, npw
-              vkb1(ig,jkb) = vkb(ig,jkb) * (0.D0,-1.D0) * g(ipol,igk_k(ig,ik))
+              vkb1(ig,jkb) = vkb(ig,jkb) * (0.D0,-1.D0) * g(ipol,igk(ig))
            END DO
 !$omp end parallel do
         END DO
@@ -167,7 +168,7 @@ SUBROUTINE force_us( forcenl )
                 CALL DGEMM ('N','N', nh(nt), becp%nbnd_loc, nh(nt), &
                      1.0_dp, deeq(1,1,na,current_spin), nhm, &
                      becp%r(ijkb0+1,1), nkb, 1.0_dp, aux, nh(nt) )
-!$omp parallel do default(shared) private(ibnd_loc,ibnd,ih) reduction(-:forcenl)
+!$omp parallel do default(shared) private(ibnd_loc,ibnd,ih) reduction(+:forcenl)
                 DO ih = 1, nh(nt)
                    DO ibnd_loc = 1, becp%nbnd_loc
                       ibnd = ibnd_loc + becp%ibnd_begin - 1

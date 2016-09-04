@@ -16,10 +16,7 @@ SUBROUTINE compute_dipole( nnr, nspin, rho, r0, dipole, quadrupole )
   USE kinds,            ONLY : DP
   USE cell_base,        ONLY : at, bg, alat, omega
   USE fft_base,         ONLY : dfftp
-  USE mp_bands,         ONLY : intra_bgrp_comm
-#if defined (__MPI)
-  USE mp_bands,         ONLY : me_bgrp
-#endif
+  USE mp_bands,         ONLY : me_bgrp, intra_bgrp_comm
   USE mp,               ONLY : mp_sum
   !
   IMPLICIT NONE

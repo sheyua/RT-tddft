@@ -1,4 +1,4 @@
-!
+
 ! Copyright (C) 2001-2013 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
@@ -17,9 +17,9 @@ SUBROUTINE c_bands( iter )
   !
   USE kinds,                ONLY : DP
   USE io_global,            ONLY : stdout
-  USE io_files,             ONLY : iunhub, iunwfc, nwordwfc, nwordwfcU
+  USE io_files,             ONLY : iunigk, iunhub, iunwfc, nwordwfc, nwordwfcU
   USE buffers,              ONLY : get_buffer, save_buffer, close_buffer
-  USE klist,                ONLY : nkstot, nks, xk, ngk, igk_k
+  USE klist,                ONLY : nkstot, nks, xk, ngk
   USE uspp,                 ONLY : vkb, nkb
   USE gvect,                ONLY : g
   USE wvfct,                ONLY : et, nbnd, npwx, igk, npw, current_k
@@ -51,15 +51,6 @@ SUBROUTINE c_bands( iter )
   avg_iter = 0.D0
   IF ( restart ) CALL restart_in_cbands(ik_, ethr, avg_iter, et )
   !
-  ! ... If restarting, calculated wavefunctions have to be read from file
-  ! ... (not needed for a single k-point: this is done in wfcinit, 
-  ! ...  directly from file, in order to avoid wasting memory)
-  !
-  DO ik = 1, ik_
-     IF ( nks > 1 .OR. lelfield ) &
-        CALL get_buffer ( evc, nwordwfc, iunwfc, ik )
-  END DO
-  !
   IF ( isolve == 0 ) THEN
      WRITE( stdout, '(5X,"Davidson diagonalization with overlap")' )
   ELSE IF ( isolve == 1 ) THEN
@@ -68,20 +59,35 @@ SUBROUTINE c_bands( iter )
      CALL errore ( 'c_bands', 'invalid type of diagonalization', isolve)
   END IF
   !
+  if ( nks > 1 ) REWIND( iunigk )
+  !
   ! ... For each k point diagonalizes the hamiltonian
   !
-  k_loop: DO ik = ik_+1, nks
-     !
-     ! ... Set k-point, spin, number of plane waves, k+G indices
+  k_loop: DO ik = 1, nks
      !
      current_k = ik
      IF ( lsda ) current_spin = isk(ik)
      npw = ngk(ik)
-     igk(1:npw) = igk_k(1:npw,ik)
      !
-     ! ... More stuff needed by the hamiltonian: nonlocal projectors
+     ! ... Reads the list of indices k+G <-> G of this k point
      !
-     IF ( nkb > 0 ) CALL init_us_2( npw, igk_k(1,ik), xk(1,ik), vkb )
+     IF ( nks > 1 ) READ( iunigk ) igk
+     !
+     ! ... Dirty restart trick: iunigk is sequential so it has to be read
+     ! ... for all k-points, or else the wrong igk would be read.
+     ! ... Calculated wavefunctions have to be read from buffer.
+     ! ... (not for a single k-point: this is done in wfcinit, 
+     ! ...  directly from file, in order to avoid wasting memory)
+     !
+     IF ( ik < ik_+1 ) THEN
+        IF ( nks > 1 .OR. lelfield ) &
+           CALL get_buffer ( evc, nwordwfc, iunwfc, ik )
+        CYCLE k_loop
+     END IF
+     !
+     ! ... various initializations
+     !
+     IF ( nkb > 0 ) CALL init_us_2( npw, igk, xk(1,ik), vkb )
      !
      ! ... kinetic energy
      !
@@ -162,7 +168,7 @@ SUBROUTINE diag_bands( iter, ik, avg_iter )
   USE gvect,                ONLY : gstart
   USE wvfct,                ONLY : g2kin, nbndx, et, nbnd, npwx, npw, &
        current_k, btype
-  USE control_flags,        ONLY : ethr, lscf, max_cg_iter, isolve, &
+  USE control_flags,        ONLY : ethr, lscf, max_cg_iter, isolve, istep, &
                                    gamma_only, use_para_diag
   USE noncollin_module,     ONLY : noncolin, npol
   USE wavefunctions_module, ONLY : evc
@@ -173,9 +179,8 @@ SUBROUTINE diag_bands( iter, ik, avg_iter )
   USE becmod,               ONLY : bec_type, becp, calbec, &
                                    allocate_bec_type, deallocate_bec_type
   USE klist,                ONLY : nks
-  USE mp_bands,             ONLY : nproc_bgrp, intra_bgrp_comm, inter_bgrp_comm, &
-                                   set_bgrp_indices, my_bgrp_id, root_bgrp, nbgrp
-  USE mp,                   ONLY : mp_sum, mp_bcast
+  USE mp_bands,             ONLY : nproc_bgrp, intra_bgrp_comm
+  USE mp,                   ONLY : mp_sum
   !
   IMPLICIT NONE
   !
@@ -189,7 +194,7 @@ SUBROUTINE diag_bands( iter, ik, avg_iter )
   ! number of iterations in Davidson
   ! number or repeated call to diagonalization in case of non convergence
   ! number of notconverged elements
-  INTEGER :: ierr, ipw, ibnd, ibnd_start, ibnd_end
+  INTEGER :: ierr, ipw
   !
   LOGICAL :: lrot
   ! .TRUE. if the wfc have already be rotated
@@ -209,7 +214,7 @@ SUBROUTINE diag_bands( iter, ik, avg_iter )
   IF ( nbndx > ipw ) &
      CALL errore ( 'diag_bands', 'too many bands, or too few plane waves',1)
   !
-     CALL allocate_bec_type ( nkb, nbnd, becp, intra_bgrp_comm )
+  CALL allocate_bec_type ( nkb, nbnd, becp, intra_bgrp_comm )
   !
   IF ( gamma_only ) THEN
      !
@@ -261,7 +266,8 @@ CONTAINS
        !
        FORALL( ig = 1 : npw )
           !
-          h_diag(ig,1) = 1.D0 + g2kin(ig) + SQRT( 1.D0 + ( g2kin(ig) - 1.D0 )**2 )
+          h_diag(ig,1) = 1.D0 + g2kin(ig) + &
+               SQRT( 1.D0 + ( g2kin(ig) - 1.D0 )**2 )
           !
        END FORALL
        !
@@ -269,11 +275,12 @@ CONTAINS
        !
        CG_loop : DO
           !
-          lrot = ( iter == 1 .AND. ntry == 0 )
+          lrot = ( iter == 1 .AND. istep ==0 .AND. ntry == 0 )
           !
           IF ( .NOT. lrot ) THEN
              !
-             CALL rotate_wfc ( npwx, npw, nbnd, gstart, nbnd, evc, npol, okvan, evc, et(1,ik) )
+             CALL rotate_wfc ( npwx, npw, nbnd, gstart, nbnd, &
+                               evc, npol, okvan, evc, et(1,ik) )
              !
              avg_iter = avg_iter + 1.D0
              !
@@ -312,8 +319,6 @@ CONTAINS
           !
           IF ( use_para_diag ) then
              !
-!             ! make sure that all processors have the same wfc
-!             IF ( nbgrp > 1 ) CALL mp_bcast(evc,root_bgrp,inter_bgrp_comm)
              CALL pregterg( npw, npwx, nbnd, nbndx, evc, ethr, &
                          okvan, gstart, et(1,ik), btype(1,ik), &
                          notconv, lrot, dav_iter )
@@ -351,7 +356,7 @@ CONTAINS
     !
     ! ... here the local variables
     !
-    INTEGER :: ipol
+    INTEGER :: ipol, ierr
     REAL(dp) :: eps
     !  --- Define a small number ---
     eps=0.000001d0
@@ -398,7 +403,8 @@ CONTAINS
        !
        FORALL( ig = 1 : npwx )
           !
-          h_diag(ig,:) = 1.D0 + g2kin(ig) + SQRT( 1.D0 + ( g2kin(ig) - 1.D0 )**2 )
+          h_diag(ig,:) = 1.D0 + g2kin(ig) + &
+             SQRT( 1.D0 + ( g2kin(ig) - 1.D0 )**2 )
           !
        END FORALL
        !
@@ -406,11 +412,12 @@ CONTAINS
        !
        CG_loop : DO
           !
-          lrot = ( iter == 1 .AND. ntry == 0 )
+          lrot = ( iter == 1 .AND. istep ==0 .AND. ntry == 0 )
           !
           IF ( .NOT. lrot ) THEN
              !
-             CALL rotate_wfc ( npwx, npw, nbnd, gstart, nbnd, evc, npol, okvan, evc, et(1,ik) )
+             CALL rotate_wfc ( npwx, npw, nbnd, gstart, nbnd, &
+                               evc, npol, okvan, evc, et(1,ik) )
              !
              avg_iter = avg_iter + 1.D0
              !
@@ -545,7 +552,7 @@ SUBROUTINE c_bands_efield ( iter )
      !
      !...set up electric field hermitean operator
      !
-     FLUSH(stdout)
+     call flush_unit(stdout)
      if(.not.l3dstring) then
         CALL h_epsi_her_set (gdir, efield)
      else
@@ -553,7 +560,7 @@ SUBROUTINE c_bands_efield ( iter )
            CALL h_epsi_her_set(ipol, efield_cry(ipol))
         enddo
      endif
-     FLUSH(stdout)
+     call flush_unit(stdout)
      !
      CALL c_bands( iter )
      !
@@ -576,10 +583,10 @@ SUBROUTINE c_bands_nscf( )
   !
   USE kinds,                ONLY : DP
   USE io_global,            ONLY : stdout
-  USE io_files,             ONLY : iunhub, iunwfc, nwordwfc, nwordwfcU
+  USE io_files,             ONLY : iunigk, iunhub, iunwfc, nwordwfc, nwordwfcU
   USE buffers,              ONLY : get_buffer, save_buffer, close_buffer
   USE basis,                ONLY : starting_wfc
-  USE klist,                ONLY : nkstot, nks, xk, ngk, igk_k
+  USE klist,                ONLY : nkstot, nks, xk, ngk
   USE uspp,                 ONLY : vkb, nkb
   USE gvect,                ONLY : g
   USE wvfct,                ONLY : et, nbnd, npwx, igk, npw, current_k
@@ -608,12 +615,6 @@ SUBROUTINE c_bands_nscf( )
   avg_iter = 0.D0
   IF ( restart ) CALL restart_in_cbands(ik_, ethr, avg_iter, et )
   !
-  ! ... If restarting, calculated wavefunctions have to be read from file
-  !
-  DO ik = 1, ik_
-     CALL get_buffer ( evc, nwordwfc, iunwfc, ik )
-  END DO
-  !
   IF ( isolve == 0 ) THEN
      WRITE( stdout, '(5X,"Davidson diagonalization with overlap")' )
   ELSE IF ( isolve == 1 ) THEN
@@ -622,21 +623,35 @@ SUBROUTINE c_bands_nscf( )
      CALL errore ( 'c_bands', 'invalid type of diagonalization', isolve)
   END IF
   !
+  if ( nks > 1 ) REWIND( iunigk )
+  !
   ! ... For each k point (except those already calculated if restarting)
   ! ... diagonalizes the hamiltonian
   !
-  k_loop: DO ik = ik_+1, nks
-     !
-     ! ... Set k-point, spin, number of plane waves, k+G indices
+  k_loop: DO ik = 1, nks
      !
      current_k = ik
      IF ( lsda ) current_spin = isk(ik)
      npw = ngk(ik)
-     igk(1:npw) = igk_k(1:npw,ik)
      !
-     ! ... More stuff needed by the hamiltonian: nonlocal projectors
+     ! ... Reads the list of indices k+G <-> G of this k point
      !
-     IF ( nkb > 0 ) CALL init_us_2( npw, igk_k(1,ik), xk(1,ik), vkb )
+     IF ( nks > 1 ) READ( iunigk ) igk
+     !
+     ! ... Dirty restart trick: iunigk is sequential so it has to be read
+     ! ... for all k-points, or else the wrong igk would be read.
+     ! ... Calculated wavefunctions have to be read from buffer.
+     !
+     IF ( ik < ik_+1 ) THEN
+        CALL get_buffer ( evc, nwordwfc, iunwfc, ik )
+        CYCLE k_loop
+     END IF
+     !
+     IF ( iverbosity > 0 ) WRITE( stdout, 9001 ) ik
+     !
+     ! ... various initializations
+     !
+     IF ( nkb > 0 ) CALL init_us_2( npw, igk, xk(1,ik), vkb )
      !
      ! ... kinetic energy
      !
@@ -648,8 +663,6 @@ SUBROUTINE c_bands_nscf( )
           CALL get_buffer ( wfcU, nwordwfcU, iunhub, ik )
      !
      ! ... calculate starting  wavefunctions
-     !
-     IF ( iverbosity > 0 ) WRITE( stdout, 9001 ) ik
      !
      IF ( TRIM(starting_wfc) == 'file' ) THEN
         !
@@ -689,7 +702,7 @@ SUBROUTINE c_bands_nscf( )
      !
      IF ( iverbosity > 0 ) THEN
         WRITE( stdout, 9000 ) get_clock( 'PWSCF' )
-        FLUSH( stdout )
+        CALL flush_unit( stdout )
      ENDIF
      !
   END DO k_loop

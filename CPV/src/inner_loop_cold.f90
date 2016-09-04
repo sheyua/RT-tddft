@@ -171,8 +171,7 @@
 
                   coor_ip(1) = ipr - 1
                   coor_ip(2) = ipc - 1
-                  CALL descla_init( desc_ip, descla( is )%n, descla( is )%nx, np, coor_ip, &
-                                    descla( is )%comm, descla( is )%cntx, 1 )
+                  CALL descla_init( desc_ip, descla( is )%n, descla( is )%nx, np, coor_ip, descla( is )%comm, 1 )
 
                   nr = desc_ip%nr
                   nc = desc_ip%nc

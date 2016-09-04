@@ -69,7 +69,7 @@ MODULE qexml_module
             qexml_write_planewaves, qexml_write_spin, qexml_write_magnetization, &
             qexml_write_xc, qexml_write_exx, qexml_write_occ, qexml_write_bz, qexml_write_para, &
             qexml_write_bands_pw,qexml_write_bands_cp, qexml_write_bands_info, qexml_write_eig, &
-            qexml_write_gk, qexml_write_wfc, qexml_write_rho, qexml_write_esm
+            qexml_write_gk, qexml_write_wfc, qexml_write_rho
   !
   PUBLIC :: qexml_read_header, qexml_read_status_cp, qexml_read_cell, qexml_read_moving_cell, qexml_read_ions,      &
             qexml_read_symmetry, qexml_read_efield,                   &
@@ -77,10 +77,10 @@ MODULE qexml_module
             qexml_read_occ, qexml_read_bz, qexml_read_phonon,         &
             qexml_read_bands_pw, qexml_read_bands_cp, qexml_read_bands_info,                  &
             qexml_read_gk, qexml_read_wfc, qexml_read_rho, qexml_read_magnetization, &
-            qexml_read_exx, qexml_read_para, qexml_read_esm
+            qexml_read_exx, qexml_read_para
   
   !
-  PUBLIC :: qexml_wfc_filename, qexml_create_directory, &
+  PUBLIC :: qexml_wfc_filename, qexml_create_directory, qexml_save_history, &
             qexml_kpoint_dirname, qexml_restart_dirname
   !
 CONTAINS
@@ -137,7 +137,7 @@ CONTAINS
           !
       ENDIF
       !
-      ! the presence of directories overwrites any info
+      ! the presence of directories overwirtes any info
       ! about datafiles
       !
       IF ( present( dir ) ) THEN
@@ -176,7 +176,6 @@ CONTAINS
       IF ( present(binary) ) binary_ = binary
       !
       SELECT CASE ( trim(action) )
-      !
       CASE ( "read", "READ" )
           !
           CALL iotk_open_read ( iunit, FILE = trim(filename), IERR=ierr )
@@ -208,6 +207,7 @@ CONTAINS
       !
       !
     END SUBROUTINE qexml_openfile
+    !
     !
     !------------------------------------------------------------------------
     SUBROUTINE qexml_closefile( action, ierr)
@@ -526,6 +526,51 @@ CONTAINS
       RETURN
       !
     END FUNCTION qexml_wfc_filename
+    !
+    !
+    !------------------------------------------------------------------------
+    SUBROUTINE qexml_save_history( dirname, iter, ierr )
+      !------------------------------------------------------------------------
+      !
+      ! ... a copy of the xml descriptor (data-file.xml) is saved in the 
+      ! ... history subdir
+      !
+      USE io_files, ONLY : xmlpun_base
+      !
+      IMPLICIT NONE
+      !
+      CHARACTER(LEN=*), INTENT(IN) :: dirname
+      INTEGER,          INTENT(IN) :: iter
+      INTEGER,          INTENT(OUT) :: ierr
+      !
+      !
+      ierr = 0
+      !
+#if defined (__VERBOSE_SAVE)
+      !
+      CHARACTER(LEN=256) :: filename
+      CHARACTER(LEN=6)   :: hindex
+      !
+      CALL qexml_create_directory( TRIM( dirname ) // '/history', ierr )
+      !
+      IF ( ierr /= 0) RETURN
+      !
+      WRITE( hindex, FMT = '(I6.6)' ) iter
+      !
+      !
+      filename = TRIM( dirname ) // '/history/' // &
+           & TRIM( xmlpun_base ) // hindex // '.xml'
+      !
+      CALL qexml_copy_file( TRIM( dirname ) // "/" // TRIM( xmlpun ), &
+           TRIM( filename ), ierr )
+      !
+      !
+      !
+#endif
+      !
+      RETURN
+      !
+    END SUBROUTINE qexml_save_history
     !
     !
     !------------------------------------------------------------------------
@@ -1241,7 +1286,7 @@ CONTAINS
     SUBROUTINE qexml_write_xc( dft, nsp, lda_plus_u, lda_plus_u_kind, U_projection, &
                          Hubbard_lmax, Hubbard_l, Hubbard_U, Hubbard_J, Hubbard_J0, &
                          Hubbard_beta, Hubbard_alpha,                               &
-                         inlc, vdw_table_name, pseudo_dir, acfdt_in_pw, dirname, & 
+                         inlc, vdw_table_name, pseudo_dir, dirname,  &
                          llondon, london_s6, london_rcut, lxdm, ts_vdw, vdw_isolated )
       !------------------------------------------------------------------------
       !
@@ -1256,7 +1301,6 @@ CONTAINS
                                         Hubbard_J0(:), Hubbard_beta(:)
       INTEGER,  OPTIONAL, INTENT(IN) :: inlc
       CHARACTER(LEN=*), OPTIONAL,   INTENT(IN) :: vdw_table_name, pseudo_dir, dirname
-      LOGICAL, OPTIONAL,  INTENT(IN) :: acfdt_in_pw
       !
       LOGICAL,  OPTIONAL, INTENT(IN) :: llondon, lxdm, ts_vdw, vdw_isolated
       REAL(DP), OPTIONAL, INTENT(IN) :: london_s6, london_rcut
@@ -1305,11 +1349,12 @@ CONTAINS
       ! Vdw kernel table
       !
       IF ( present(inlc) ) THEN
-         IF ( inlc > 0 ) THEN
+         IF ( inlc == 1 .OR. inlc ==2 .OR. inlc == 3 ) THEN
             IF ( .NOT. PRESENT( vdw_table_name ) .OR. &
-                 .NOT. PRESENT( pseudo_dir )     .OR. &
-                 .NOT. PRESENT( dirname ))            &
-                 CALL errore( 'write_xc', ' variable vdw_table_name not present', 1 )
+                 .NOT. PRESENT( pseudo_dir ) .OR. &
+                 .NOT. PRESENT( dirname )) &
+               CALL errore( 'write_xc', &
+                            ' variable vdw_table_name not present', 1 )
         
             CALL iotk_write_dat( ounit, "NON_LOCAL_DF", inlc )
             CALL iotk_write_dat( ounit, "VDW_KERNEL_NAME", TRIM(vdw_table_name))
@@ -1356,10 +1401,6 @@ CONTAINS
          END IF
       END IF
       !
-      IF ( PRESENT (acfdt_in_pw) ) THEN
-         CALL iotk_write_dat( ounit, "ACFDT_IN_PW", acfdt_in_pw )
-      ENDIF
-      !
       CALL iotk_write_end( ounit, "EXCHANGE_CORRELATION" )
       !
  END SUBROUTINE qexml_write_xc
@@ -1393,25 +1434,6 @@ CONTAINS
       CALL iotk_write_end(ounit, "EXACT_EXCHANGE" )
       !
     END SUBROUTINE qexml_write_exx
-    !
-    !
-    !------------------------------------------------------------------------
-    SUBROUTINE qexml_write_esm( esm_nfit, esm_efield, esm_w, esm_a, esm_bc )
-      !------------------------------------------------------------------------
-      !
-      INTEGER,            INTENT(IN) :: esm_nfit
-      REAL(DP),           INTENT(IN) :: esm_efield, esm_w, esm_a
-      CHARACTER(LEN=*),   INTENT(IN) :: esm_bc
-      !
-      CALL iotk_write_begin(ounit, "ESM" )
-      call iotk_write_dat(ounit, "esm_nfit", esm_nfit)
-      call iotk_write_dat(ounit, "esm_efield", esm_efield)
-      call iotk_write_dat(ounit, "esm_w", esm_w)
-      call iotk_write_dat(ounit, "esm_a", esm_a)
-      call iotk_write_dat(ounit, "esm_bc", esm_bc)
-      CALL iotk_write_end(ounit, "ESM" )
-      !
-    END SUBROUTINE qexml_write_esm
     !
     !
     !------------------------------------------------------------------------
@@ -1549,11 +1571,11 @@ CONTAINS
     !
     !------------------------------------------------------------------------
     SUBROUTINE qexml_write_para( kunit, nproc, nproc_pool, nproc_image, &
-                                 ntask_groups, nproc_bgrp, nproc_ortho ) 
+                    ntask_groups, nproc_pot, nproc_bgrp, nproc_ortho ) 
       !------------------------------------------------------------------------
       !
       INTEGER,  INTENT(IN) :: kunit, nproc, nproc_pool, nproc_image, &
-                              ntask_groups, nproc_bgrp, nproc_ortho 
+                              ntask_groups, nproc_pot, nproc_bgrp, nproc_ortho 
       !
       !
       CALL iotk_write_begin( ounit, "PARALLELISM" )
@@ -1566,6 +1588,8 @@ CONTAINS
                               "NUMBER_OF_PROCESSORS_PER_IMAGE", nproc_image )
       CALL iotk_write_dat( ounit, "NUMBER_OF_PROCESSORS_PER_TASKGROUP", &
                                               ntask_groups )
+      CALL iotk_write_dat( ounit, "NUMBER_OF_PROCESSORS_PER_POT", &
+                                              nproc_pot )
       CALL iotk_write_dat( ounit, "NUMBER_OF_PROCESSORS_PER_BAND_GROUP", &
                                               nproc_bgrp )
       CALL iotk_write_dat( ounit, "NUMBER_OF_PROCESSORS_PER_DIAGONALIZATION", &
@@ -1659,7 +1683,7 @@ CONTAINS
       !
       INTEGER, INTENT(in) :: nbnd,num_k_points,nspin,auxunit
       REAL(DP), INTENT(in) :: xk(:,:),wk(:),wg(:,:),et(:,:)
-      CHARACTER(len=*), INTENT(IN) :: energy_units
+      CHARACTER(*), INTENT(IN) :: energy_units
       LOGICAL, INTENT(in) :: lkpoint_dir
       CHARACTER(len=*), INTENT(in) :: dirname
       
@@ -2238,7 +2262,7 @@ CONTAINS
       CHARACTER(len=256) :: time_units_, title_, energy_units_
       !
       CALL iotk_scan_begin( iunit, "STATUS", ATTR=attr, FOUND = found )
-      IF ( .NOT.found ) RETURN
+      IF ( (ierr /= 0).OR.(.NOT.found) ) RETURN
       !
       CALL iotk_scan_empty( iunit, "STEP", ATTR = attr, IERR = ierr )
       IF (ierr/=0) RETURN
@@ -2458,8 +2482,10 @@ CONTAINS
       INTEGER,        ALLOCATABLE :: if_pos_(:,:)
       !
       INTEGER :: i
+
       !
       ierr=0
+      !
       !
       CALL iotk_scan_begin( iunit, "IONS", IERR=ierr )
       IF (ierr/=0) RETURN
@@ -3003,55 +3029,6 @@ CONTAINS
     !
     !
     !------------------------------------------------------------------------
-    SUBROUTINE qexml_read_esm( esm_nfit, esm_efield, esm_w, esm_a, esm_bc, ierr )
-      !----------------------------------------------------------------------
-      !
-      IMPLICIT NONE
-      !
-      INTEGER,          OPTIONAL, INTENT(OUT) :: esm_nfit
-      REAL(DP),         OPTIONAL, INTENT(OUT) :: esm_efield, esm_w, esm_a
-      CHARACTER(LEN=*), OPTIONAL, INTENT(OUT) :: esm_bc
-      INTEGER,                    INTENT(out) :: ierr
-      !
-      INTEGER  :: esm_nfit_
-      REAL(DP) :: esm_efield_, esm_w_, esm_a_
-      CHARACTER(LEN=3) :: esm_bc_
-      !
-      !
-      ierr = 0
-      !
-      CALL iotk_scan_begin( iunit, "ESM", IERR=ierr )
-      IF ( ierr /= 0 ) RETURN
-      !
-      call iotk_scan_dat(iunit, "esm_nfit", esm_nfit_, IERR=ierr)
-      IF ( ierr /= 0 ) RETURN
-      !
-      call iotk_scan_dat(iunit, "esm_efield", esm_efield_, IERR=ierr)
-      IF ( ierr /= 0 ) RETURN
-      !
-      call iotk_scan_dat(iunit, "esm_w", esm_w_, IERR=ierr)
-      IF ( ierr /= 0 ) RETURN
-      !
-      call iotk_scan_dat(iunit, "esm_a", esm_a_, IERR=ierr)
-      IF ( ierr /= 0 ) RETURN
-      !
-      call iotk_scan_dat(iunit, "esm_bc", esm_bc_, IERR=ierr)
-      IF ( ierr /= 0 ) RETURN
-      !
-      CALL iotk_scan_end(iunit, "ESM", IERR=ierr)
-      IF ( ierr /= 0 ) RETURN
-      !
-      !
-      IF ( present(esm_nfit) )    esm_nfit    = esm_nfit_
-      IF ( present(esm_efield) )  esm_efield  = esm_efield_
-      IF ( present(esm_w) )       esm_w       = esm_w_
-      IF ( present(esm_a) )       esm_a       = esm_a_
-      IF ( present(esm_bc) )      esm_bc      = esm_bc_
-      !
-    END SUBROUTINE qexml_read_esm
-    !
-    !
-    !------------------------------------------------------------------------
     SUBROUTINE qexml_read_planewaves( ecutwfc, ecutrho, npwx, gamma_only, &
                                       nr1, nr2, nr3,  ngm,  nr1s, nr2s, nr3s, ngms, &
                                       nr1b, nr2b, nr3b,  igv, cutoff_units, ierr )
@@ -3309,7 +3286,7 @@ CONTAINS
     SUBROUTINE qexml_read_xc( dft, lda_plus_u, lda_plus_u_kind, U_projection, &
                               Hubbard_lmax, Hubbard_l, nsp, Hubbard_U, Hubbard_J,&
                               Hubbard_J0, Hubbard_alpha, Hubbard_beta, &
-                              inlc, vdw_table_name, acfdt_in_pw, llondon, london_s6, &
+                              inlc, vdw_table_name, llondon, london_s6, &
                               london_rcut, lxdm, ts_vdw, vdw_isolated, ierr )
       !----------------------------------------------------------------------
       !
@@ -3326,7 +3303,6 @@ CONTAINS
       INTEGER,          OPTIONAL, INTENT(out) :: inlc
       CHARACTER(LEN=*), OPTIONAL, INTENT(out) :: U_projection
       CHARACTER(LEN=*), OPTIONAL, INTENT(out) :: vdw_table_name
-      LOGICAL,          OPTIONAL, INTENT(out) :: acfdt_in_pw
       LOGICAL,  OPTIONAL, INTENT(out) :: llondon, lxdm, ts_vdw, vdw_isolated
       REAL(DP), OPTIONAL, INTENT(out) :: london_s6, london_rcut
       !
@@ -3334,7 +3310,6 @@ CONTAINS
       !
       CHARACTER(LEN=256)      :: dft_, vdw_table_name_, U_projection_
       LOGICAL                 :: lda_plus_u_, found
-      LOGICAL                 :: acfdt_in_pw_
       INTEGER                 :: Hubbard_lmax_, nsp_,lda_plus_u_kind_, inlc_
       INTEGER,    ALLOCATABLE :: Hubbard_l_(:)
       REAL(DP),   ALLOCATABLE :: Hubbard_U_(:), Hubbard_J_(:,:)
@@ -3412,7 +3387,8 @@ CONTAINS
       CALL iotk_scan_dat( iunit, "NON_LOCAL_DF", inlc_, FOUND = found )
       IF ( found ) THEN
          !
-         IF ( inlc_ > 0 ) CALL iotk_scan_dat( iunit, "VDW_KERNEL_NAME", vdw_table_name_ )
+         IF ( inlc_ == 1 .OR. inlc_ == 2 .OR. inlc_ == 3 ) &
+            CALL iotk_scan_dat( iunit, "VDW_KERNEL_NAME", vdw_table_name_ )
          !
       ELSE
          !
@@ -3420,11 +3396,6 @@ CONTAINS
          vdw_table_name_ = ' '
          !
       ENDIF
-      !
-      CALL iotk_scan_dat( iunit, "ACFDT_IN_PW", acfdt_in_pw_, FOUND=found, IERR=ierr )
-      IF ( ierr/=0 ) RETURN
-      IF ( .NOT. found ) acfdt_in_pw_ = .FALSE.
-!      IF (acfdt_in_pw) dft_name = 'NOX NOC NOGX NOGC'
       !
       CALL iotk_scan_begin( iunit, "DFT_D2", FOUND=found, IERR=ierr )
       IF ( ierr/=0 ) RETURN
@@ -3478,7 +3449,6 @@ CONTAINS
       IF (present(inlc) ) inlc = inlc_
       IF (present( vdw_table_name) )  vdw_table_name =  vdw_table_name_
       !
-      IF ( present( acfdt_in_pw ) )    acfdt_in_pw    = acfdt_in_pw_
       IF (present(llondon) ) THEN
          llondon = llondon_
          IF (present(london_s6) )   london_s6   = london_s6_
@@ -3787,16 +3757,16 @@ CONTAINS
     !
     !------------------------------------------------------------------------
     SUBROUTINE qexml_read_para( kunit, nproc, nproc_pool, nproc_image, &
-                    ntask_groups, nproc_bgrp, nproc_ortho, found, ierr )
+                    ntask_groups, nproc_pot, nproc_bgrp, nproc_ortho, found, ierr )
       !------------------------------------------------------------------------
       !
       INTEGER, OPTIONAL, INTENT(OUT) :: kunit, nproc, nproc_pool, nproc_image, &
-           ntask_groups, nproc_bgrp, nproc_ortho
+           ntask_groups, nproc_pot, nproc_bgrp, nproc_ortho
       LOGICAL, INTENT(OUT) :: found
       INTEGER, INTENT(OUT) :: ierr
       !
       INTEGER :: kunit_, nproc_, nproc_pool_, nproc_image_, ntask_groups_, &
-                 nproc_bgrp_, nproc_ortho_
+           nproc_pot_, nproc_bgrp_, nproc_ortho_
       !
       LOGICAL :: found2
       !
@@ -3822,6 +3792,10 @@ CONTAINS
                                               ntask_groups_, FOUND=found2 )
       IF ( .NOT. found2) ntask_groups_=1 ! compatibility
       !
+      CALL iotk_scan_dat( iunit, "NUMBER_OF_PROCESSORS_PER_POT", &
+                                              nproc_pot_, FOUND=found2 )
+      IF ( .NOT. found2) nproc_pot_=1 ! compatibility
+      !
       CALL iotk_scan_dat( iunit, "NUMBER_OF_PROCESSORS_PER_BAND_GROUP", &
                                               nproc_bgrp_, FOUND=found2 )
       IF ( .NOT. found2) nproc_bgrp_=1 ! compatibility
@@ -3838,6 +3812,7 @@ CONTAINS
       IF (present(nproc_pool)) nproc_pool = nproc_pool_
       IF (present(nproc_image)) nproc_image = nproc_image_
       IF (present(ntask_groups)) ntask_groups = ntask_groups_
+      IF (present(nproc_pot)) nproc_pot = nproc_pot_
       IF (present(nproc_bgrp)) nproc_bgrp = nproc_bgrp_
       IF (present(nproc_ortho)) nproc_ortho = nproc_ortho_
       !

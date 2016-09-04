@@ -21,7 +21,7 @@ SUBROUTINE init_run()
   USE ions_base,                ONLY : na, nax, nat, nsp, iforce, amass, cdms
   USE ions_positions,           ONLY : tau0, taum, taup, taus, tausm, tausp, &
                                        vels, velsm, velsp, fion, fionm
-  USE gvecw,                    ONLY : ngw, ngw_g, g2kin, g2kin_init
+  USE gvecw,                    ONLY : ngw, ngw_g, ggp, g2kin_init
   USE smallbox_gvec,            ONLY : ngb
   USE gvecs,                    ONLY : ngms
   USE gvect,                    ONLY : ngm, gstart, gg
@@ -117,10 +117,6 @@ SUBROUTINE init_run()
   !
   CALL init_dimensions()
   !
-  ! ... initialization of plugin variables and arrays
-  !
-  CALL plugin_init_base() 
-  ! 
   ! ... initialize atomic positions and cell
   !
   CALL init_geometry()
@@ -278,16 +274,17 @@ SUBROUTINE init_run()
     WRITE( stdout,'(/,3X,"Reference cell parameters are used in electron mass preconditioning")' )
     WRITE( stdout,'(3X,"ref_tpiba2=",F14.8)' ) ref_tpiba2
     CALL g2kin_init( gg, ref_tpiba2 )
-    CALL emass_precond( ema0bg, g2kin, ngw, ref_tpiba2, emass_cutoff ) 
+    CALL emass_precond( ema0bg, ggp, ngw, ref_tpiba2, emass_cutoff ) 
     WRITE( stdout,'(3X,"current_tpiba2=",F14.8)' ) tpiba2
     CALL g2kin_init( gg, tpiba2 )
   ELSE
     WRITE( stdout,'(/,3X,"Cell parameters from input file are used in electron mass preconditioning")' )
     WRITE( stdout,'(3X,"init_tpiba2=",F14.8)' ) init_tpiba2
     CALL g2kin_init( gg, init_tpiba2 )
-    CALL emass_precond( ema0bg, g2kin, ngw, init_tpiba2, emass_cutoff ) 
+    CALL emass_precond( ema0bg, ggp, ngw, init_tpiba2, emass_cutoff ) 
     !WRITE( stdout,'(3X,"current_tpiba2=",F14.8)' ) tpiba2 !BS : DEBUG
     CALL g2kin_init( gg, tpiba2 )
+    !CALL emass_precond( ema0bg, ggp, ngw, tpiba2, emass_cutoff ) 
   END IF
   !
   CALL print_legend( )

@@ -1,0 +1,45 @@
+
+Tests:
+I. C6H5Br: Bromobenzene molecule
+r_ab  expt*   uspp
+----   ----    ----
+C-Br   1.87    1.90
+C-H    1.07    1.09
+C-C    1.40    1.39
+
+* Microwave results interpreted by assuming that hexagonal symmetry of
+  benzene ring is maintained.
+
+II.  EA of Bromine (Br+e- -> Br-)
+Expt. 3.364 eV
+USPP. 3.409 eV *
+* Energy of Br- determined by Makov-Payne-type fitting & extrapolation, 
+  low symmetry (non-spherical) Br energy used in comparison.
+
+III.  Br2 Dimer (isolated)
+Bond length: USPP- 2.30 Angstroms
+             Expt- 2.28 Angstroms
+
+IV.  fcc NaBr *
+
+Lattice Constant
+---------------
+Expt 11.26 Bohr / USPP 11.417 Bohr
+
+Bulk Modulus
+------------
+Expt 19.47 GPa / USPP 17.62 GPa
+
+* Na potential: Na.pbe-sp-van_ak.UPF
+
+V.   fcc AgBr *
+
+Lattice Constant
+---------------
+Expt 10.91 Bohr / 11.05 Bohr
+
+Bulk Modulus
+------------
+Expt 44.03 GPa / USPP 40.18 GPa
+
+* Ag potential: Ag.pbe-d-rrkjus.UPF

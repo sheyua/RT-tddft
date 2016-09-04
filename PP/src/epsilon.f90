@@ -268,7 +268,9 @@ PROGRAM epsilon
   ! ... run the specific pp calculation
   !
   IF (ionode) WRITE(stdout,"(/, 5x, 'Performing ',a,' calculation...')") trim(calculation)
-  CALL start_clock(trim(calculation))
+
+  CALL start_clock( 'calculation' )
+  !
   SELECT CASE ( trim(calculation) )
   !
   CASE ( 'eps' )
@@ -293,11 +295,21 @@ PROGRAM epsilon
       !
   END SELECT
   !
-  CALL stop_clock(trim(calculation))
+  CALL stop_clock( 'calculation' )
+
+  !
+  ! few info about timing
+  !
+  CALL stop_clock( 'epsilon' )
+  !
   IF ( ionode ) WRITE( stdout , "(/)" )
-  CALL print_clock( trim(calculation) )
+  !
+  CALL print_clock( 'epsilon' )
+  CALL print_clock( 'calculation' )
   CALL print_clock( 'dipole_calc' )
+  !
   IF ( ionode ) WRITE( stdout, *  )
+
   !
   CALL environment_end ( 'epsilon' )
   !
@@ -316,7 +328,7 @@ SUBROUTINE eps_calc ( intersmear,intrasmear, nw, wmax, wmin, nbndmin, nbndmax, s
   USE cell_base,            ONLY : tpiba2, omega
   USE wvfct,                ONLY : nbnd, et
   USE ener,                 ONLY : efermi => ef
-  USE klist,                ONLY : nks, nkstot, degauss, ngauss
+  USE klist,                ONLY : nks, nkstot, degauss
   USE io_global,            ONLY : ionode, stdout
   !
   USE grid_module,          ONLY : alpha, focc, wgrid, grid_build, grid_destroy
@@ -342,8 +354,6 @@ SUBROUTINE eps_calc ( intersmear,intrasmear, nw, wmax, wmin, nbndmin, nbndmax, s
   REAL(DP), ALLOCATABLE    :: ieps(:,:), eels(:,:), iepsc(:,:,:), eelsc(:,:,:)
   REAL(DP), ALLOCATABLE    :: dipole(:,:,:)
   COMPLEX(DP),ALLOCATABLE  :: dipole_aux(:,:,:)
-  !
-  real(DP) , external :: w0gauss
 !
 !--------------------------
 ! main routine body
@@ -438,21 +448,30 @@ IF (nspin == 1) THEN
      !
      IF (metalcalc) THEN
      DO iband1 = nbndmin,nbndmax
-        !
-        ! loop over frequencies
-        !
-        DO iw = 1, nw
-          !
-          w = wgrid(iw)
-          !
-          epsi(:,iw) = epsi(:,iw) +  dipole(:,iband1,iband1) * intrasmear * w * &
-                       RYTOEV**2 * w0gauss((et(iband1,ik)-efermi)/degauss, ngauss) / &
-                       (( w**4 + intrasmear**2 * w**2 )*degauss )
-          epsr(:,iw) = epsr(:,iw) - dipole(:,iband1,iband1) * RYTOEV**2 * &
-                       w0gauss((et(iband1,ik)-efermi)/degauss, ngauss) * w**2 / &
-                       (( w**4 + intrasmear**2 * w**2 )*degauss )
-        ENDDO
-        !
+         !
+         IF ( focc(iband1,ik) < 2.0d0) THEN
+         IF ( focc(iband1,ik) >= 1e-4 ) THEN
+               !
+               ! loop over frequencies
+               !
+               DO iw = 1, nw
+                   !
+                   w = wgrid(iw)
+                   !
+                  epsi(:,iw) = epsi(:,iw) +  dipole(:,iband1,iband1) * intrasmear * w* &
+                                RYTOEV**2 * (exp((et(iband1,ik)-efermi)/degauss ))/  &
+                    (( w**4 + intrasmear**2 * w**2 )*(1+exp((et(iband1,ik)-efermi)/ &
+                    degauss))**2*degauss )
+
+                  epsr(:,iw) = epsr(:,iw) - dipole(:,iband1,iband1) * RYTOEV**2 * &
+                                            (exp((et(iband1,ik)-efermi)/degauss )) * w**2 / &
+                    (( w**4 + intrasmear**2 * w**2 )*(1+exp((et(iband1,ik)-efermi)/ &
+                    degauss))**2*degauss )
+               ENDDO
+
+         ENDIF
+         ENDIF
+
      ENDDO
      ENDIF
   ENDDO kpt_loop
@@ -586,8 +605,8 @@ DO is=0,1
      DO iband1 = nbndmin,nbndmax
          !
          IF (iband1==iband2) CYCLE
-         IF ( focc(iband1,ik) >= 0.5e-4 ) THEN
-         IF (abs(focc(iband2,ik)-focc(iband1,ik))< 0.5e-3) CYCLE
+         IF ( focc(iband1,ik) >= 1e-4 ) THEN
+         IF (abs(focc(iband2,ik)-focc(iband1,ik))< 1e-3) CYCLE
                !
                ! transition energy
                !
@@ -618,21 +637,30 @@ DO is=0,1
      !
      IF (metalcalc) THEN
      DO iband1 = nbndmin,nbndmax
-        !
-        ! loop over frequencies
-        !
-        DO iw = 1, nw
-            !
-            w = wgrid(iw)
-            !
-            epsic(is,:,iw) = epsic(is,:,iw) +  dipole(:,iband1,iband1) * intrasmear * w* &
-                            RYTOEV**2 * w0gauss((et(iband1,ik)-efermi)/degauss, ngauss)/  &
-                            (( w**4 + intrasmear**2 * w**2 )*degauss)*0.5
-            epsrc(is,:,iw) = epsrc(is,:,iw) - dipole(:,iband1,iband1) * RYTOEV**2 * &
-                            w0gauss((et(iband1,ik)-efermi)/degauss, ngauss) * w**2 / &
-                            (( w**4 + intrasmear**2 * w**2 )*degauss)*0.5
-        ENDDO
-        !
+         !
+         IF ( focc(iband1,ik) < 1.0d0) THEN
+         IF ( focc(iband1,ik) >= 1e-4 ) THEN
+               !
+               ! loop over frequencies
+               !
+               DO iw = 1, nw
+                   !
+                   w = wgrid(iw)
+                   !
+                  epsic(is,:,iw) = epsic(is,:,iw) +  dipole(:,iband1,iband1) * intrasmear * w* &
+                                RYTOEV**2 * (exp((et(iband1,ik)-efermi)/degauss ))/  &
+                    (( w**4 + intrasmear**2 * w**2 )*(1+exp((et(iband1,ik)-efermi)/ &
+                    degauss))**2*degauss )
+
+                  epsrc(is,:,iw) = epsrc(is,:,iw) - dipole(:,iband1,iband1) * RYTOEV**2 * &
+                                            (exp((et(iband1,ik)-efermi)/degauss )) * w**2 / &
+                    (( w**4 + intrasmear**2 * w**2 )*(1+exp((et(iband1,ik)-efermi)/ &
+                    degauss))**2*degauss )
+               ENDDO
+
+         ENDIF
+         ENDIF
+
      ENDDO
      ENDIF
   ENDDO kpt_loopspin
@@ -640,8 +668,8 @@ ENDDO spin_loop
   !
   ! recover over kpt parallelization (inter_pool)
   !
-  CALL mp_sum( epsrc, inter_pool_comm )
-  CALL mp_sum( epsic, inter_pool_comm )
+  CALL mp_sum( epsr, inter_pool_comm )
+  CALL mp_sum( epsi, inter_pool_comm )
 
   !
   ! impose the correct normalization
@@ -715,7 +743,7 @@ ENDDO spin_loop
           WRITE(44,"(4f15.6)") wgrid(iw), epsic(1,1:3, iw)
           WRITE(45,"(4f15.6)") wgrid(iw), eelsc(1,1:3, iw)
           WRITE(46,"(4f15.6)") wgrid(iw), iepsc(1,1:3, iw)
-          WRITE(47,"(4f15.6)") wgrid(iw), epsrc(1,1:3, iw)+epsrc(0,1:3, iw)-1.0_DP
+          WRITE(47,"(4f15.6)") wgrid(iw), epsrc(1,1:3, iw)+epsrc(0,1:3, iw)
           WRITE(48,"(4f15.6)") wgrid(iw), epsic(1,1:3, iw)+epsic(0,1:3, iw)
           WRITE(49,"(4f15.6)") wgrid(iw), eelsc(1,1:3, iw)+eelsc(0,1:3, iw)
           WRITE(50,"(4f15.6)") wgrid(iw), iepsc(1,1:3, iw)+iepsc(0,1:3, iw)
@@ -1300,10 +1328,10 @@ END SUBROUTINE offdiag_calc
 SUBROUTINE dipole_calc( ik, dipole_aux, metalcalc, nbndmin, nbndmax )
   !------------------------------------------------------------------
   USE kinds,                ONLY : DP
-  USE wvfct,                ONLY : npw, nbnd, igk, g2kin
-  USE gvecw,                ONLY : gcutw
+  USE wvfct,                ONLY : npw, nbnd, igk, g2kin, ecutwfc
   USE wavefunctions_module, ONLY : evc
   USE klist,                ONLY : xk
+  USE cell_base,            ONLY : tpiba2
   USE gvect,                ONLY : ngm, g
   USE io_files,             ONLY : nwordwfc, iunwfc
   USE grid_module,          ONLY : focc
@@ -1329,7 +1357,7 @@ IMPLICIT NONE
   !
   ! setup k+G grids for each kpt
   !
-  CALL gk_sort (xk (1, ik), ngm, g, gcutw, npw, igk, g2kin)
+  CALL gk_sort (xk (1, ik), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
   !
   ! read wfc for the given kpt
   !

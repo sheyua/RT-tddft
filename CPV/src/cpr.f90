@@ -18,7 +18,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ndr, ndw, nomore, tsde, textfor,        &
                                        tortho, tnosee, tnosep, trane, tranp,   &
                                        tsdp, tcp, tcap, ampre, amprp, tnoseh,  &
-                                       tolp, ortho_eps, ortho_max
+                                       tolp, ortho_eps, ortho_max, printwfc
   USE core,                     ONLY : rhoc
   USE uspp_param,               ONLY : nhm, nh, nvb, ish
   USE uspp,                     ONLY : nkb, vkb, becsum, deeq, okvan, nlcc_any
@@ -56,6 +56,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE local_pseudo,             ONLY : allocate_local_pseudo
   USE io_global,                ONLY : stdout, ionode, ionode_id
   USE dener,                    ONLY : detot
+  !USE cdvan,                    ONLY : drhovan
+  USE gvecw,                    ONLY : ggp
   USE constants,                ONLY : pi, k_boltzmann_au, au_ps
   USE io_files,                 ONLY : psfile, pseudo_dir
   USE wave_base,                ONLY : wave_steepest, wave_verlet
@@ -292,10 +294,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( ( tfor .OR. tfirst ) .AND. tefield ) CALL efield_update( eigr )
      IF ( ( tfor .OR. tfirst ) .AND. tefield2 ) CALL efield_update2( eigr )
-     !
-     ! ... pass ions information to plugins
-     !
-     CALL plugin_init_ions( tau0 )
      !
      IF ( lda_plus_u ) then
         ! forceh    ! Forces on ions due to Hubbard U 
@@ -772,6 +770,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
      END IF
      !
+     !IF ( thdyn .AND. tfirst ) CALL emass_precond( ema0bg, ggp, ngw, tpiba2, emass_cutoff ) ! BS: Possibly not needed
+     !
      ekincm = ekinc0
      !  
      ! ... cm=c(t+dt) c0=c(t)
@@ -800,8 +800,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            IF ( thdyn )    CALL formf( tfirst, eself )
            IF ( tefield )  CALL efield_update( eigr )
            IF ( tefield2 ) CALL efield_update2( eigr )
-           !
-           CALL plugin_init_ions( tau0 )
            !
            lambdam = lambda
            !
@@ -1129,8 +1127,6 @@ SUBROUTINE terminate_run()
   IF (tcg) call print_clock_tcg()
   !
   CALL print_clock( 'ALLTOALL' )
-  !
-  CALL plugin_clock()
   !
   CALL mp_report()
   !

@@ -43,23 +43,11 @@ MODULE io_files
   CHARACTER (LEN=9),  PARAMETER :: xmlpun_base = 'data-file'
   CHARACTER (LEN=13), PARAMETER :: xmlpun      = xmlpun_base // '.xml'
   !
-#ifdef __XSD
-  CHARACTER (LEN=16),  PARAMETER :: xmlpun_schema_base = 'data-file-schema'
-  CHARACTER (LEN=20),  PARAMETER :: xmlpun_schema      = xmlpun_schema_base // '.xml'
-  !
-  CHARACTER (LEN=3),  PARAMETER :: xmlinp_schema_base = 'qes'
-  CHARACTER (LEN=7), PARAMETER :: xmlinp_schema      = xmlpun_schema_base // '.xml'
-#endif
-  !
   ! ... The units where various variables are saved
   ! ... Only units that are kept open during the run should be listed here
   !
   INTEGER :: iunres      =  1 ! unit for the restart of the run
-  INTEGER :: iunpun      =  4 ! unit for saving the final results (data-file.xml)
-#ifdef __XSD
-  INTEGER :: iunpun_xsd  = 41 ! unit for saving the final results (data-file-schema.xml)
-  INTEGER :: iuninp_xsd  = 42 ! unit for reading the xml input written according to the xsd schema
-#endif
+  INTEGER :: iunpun      =  4 ! unit for saving the final results
   INTEGER :: iunwfc      = 10 ! unit with wavefunctions
   INTEGER :: iunoldwfc   = 11 ! unit with old wavefunctions
   INTEGER :: iunoldwfc2  = 12 ! as above at step -2
@@ -178,12 +166,9 @@ CONTAINS
 subroutine diropn (unit, extension, recl, exst, tmp_dir_)
   !-----------------------------------------------------------------------
   !
-  !     Opens a direct-access file named "prefix"."extension" in directory
-  !     "tmp_dir_" if specified, in "tmp_dir" otherwise. 
-  !     In parallel execution, the node number is added to the file name.
-  !     The record length is "recl" double-precision numbers.
-  !     On output, "exst" is .T. if opened file already exists
-  !     If recl=-1, the file existence is checked, nothing else is done
+  !     this routine opens a file named "prefix"."extension" in tmp_dir 
+  !     for direct I/O access
+  !     If appropriate, the node number is added to the file name
   !
 #if defined(__SX6)
 #  define DIRECT_IO_FACTOR 1
@@ -243,7 +228,6 @@ subroutine diropn (unit, extension, recl, exst, tmp_dir_)
   endif
 
   inquire (file = tempfile, exist = exst)
-  if (recl == -1) RETURN
   !
   !      the unit for record length is unfortunately machine-dependent
   !
@@ -345,6 +329,7 @@ SUBROUTINE davcio( vect, nword, unit, nrec, io )
   ! ... direct-access vector input/output
   ! ... read/write nword words starting from the address specified by vect
   !
+  USE io_global, ONLY : stdout
   USE kinds,     ONLY : DP
   !
   IMPLICIT NONE

@@ -7,7 +7,7 @@
 !
 !
 !----------------------------------------------------------------------------
-SUBROUTINE vcsmd( conv_ions )
+SUBROUTINE vcsmd()
   !----------------------------------------------------------------------------
   !
   ! Main (interface) routine between PWSCF and the variable-cell shape
@@ -19,9 +19,9 @@ SUBROUTINE vcsmd( conv_ions )
   !  calc  = 'md'   : standard molecular dynamics
   !  calc  = 'mm'   : structural minimization by damped dynamics
   !  calc  = 'cd'   : Parrinello-Rahman cell dynamics
-  !  calc  = 'cm'   : Parrinello-Rahman cell minimization by damped dynamics
+  !  calc  = 'cm'   : Parrinello-Rahman cell minimization by damped dynami
   !  calc  = 'nd'   : Wentzcovitch's new cell dynamics
-  !  calc  = 'nm'   : Wentzcovitch's new cell minimization by damped dynamics
+  !  calc  = 'nm'   : Wentzcovitch's new cell minimization by damped dynam
   !
   ! Dynamics performed using Beeman algorithm, J. Comp. Phys. 20, 130 (1976))
   !
@@ -40,17 +40,17 @@ SUBROUTINE vcsmd( conv_ions )
   USE ions_base,       ONLY : amass, if_pos 
   USE relax,           ONLY : epse, epsf, epsp
   USE force_mod,       ONLY : force, sigma
-  USE control_flags,   ONLY : nstep, istep, tolp, lconstrain
+  USE control_flags,   ONLY : nstep, istep, tolp, conv_ions, lconstrain
   USE parameters,      ONLY : ntypx
   USE ener,            ONLY : etot
   USE io_files,        ONLY : prefix, delete_if_present, seqopn
 
   USE constraints_module, ONLY : nconstr
-  USE constraints_module, ONLY : remove_constr_force, check_constraint  
+  USE constraints_module, ONLY : remove_constr_force, check_constraint
+  
   !
   !
   IMPLICIT NONE
-  LOGICAL, INTENT (OUT) :: conv_ions
   !
   ! ... I/O variable first
   !
@@ -105,6 +105,8 @@ SUBROUTINE vcsmd( conv_ions )
   CHARACTER(LEN=6) :: ipos         ! status ('append' or 'asis') for I/O files
   CHARACTER(LEN=80):: calc_long    ! Verbose description of type of calculation
   LOGICAL :: exst
+  INTEGER, SAVE :: idone = 0
+    ! counter on completed moves on this run
   INTEGER :: na, nst, ipol, i, j, k
     ! counters
   !
@@ -173,6 +175,7 @@ SUBROUTINE vcsmd( conv_ions )
      !
   END IF
   !
+  idone = idone + 1
   istep = istep + 1
   !
   IF ( calc == 'cm' ) THEN
@@ -238,9 +241,13 @@ SUBROUTINE vcsmd( conv_ions )
   !
   tempo = ( istep - 1 ) * dt * time_au
   !
-  IF ( istep == 1 .AND. ( calc(2:2) == 'm' ) ) THEN
+  IF ( istep == 1 ) THEN
+     !
+     IF ( calc(2:2) == 'm' ) THEN
         WRITE( stdout,'(/5X,A,/,5x,"convergence thresholds EPSE = ",ES8.2, &
              &  "  EPSF = ",ES8.2)' ) TRIM(calc_long), epse, epsf
+     END IF
+     !
   END IF
   !
   WRITE( stdout, '(/5X,"Entering Dynamics;  it = ",I5,"   time = ", &
@@ -449,6 +456,12 @@ SUBROUTINE vcsmd( conv_ions )
   CLOSE( UNIT = 4, STATUS = 'KEEP' )
   !
   DEALLOCATE( amass_, rat, rati, ratd, rat2d, rat2di, tauold )
+  !
+  ! ... check if max number of steps reached
+  !
+  conv_ions = ( idone == nstep ) 
+  IF ( conv_ions ) WRITE( UNIT = stdout, FMT = '(/,5X,A,i4," iterations ", &
+                 &    "completed, stopping")' ) TRIM(calc_long),nstep
   !
   RETURN
   !

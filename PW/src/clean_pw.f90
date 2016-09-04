@@ -13,7 +13,7 @@ SUBROUTINE clean_pw( lflag )
   ! ... if lflag=.TRUE.  all arrays are deallocated (end of calculation)
   ! ... if lflag=.FALSE. ion-related variables and arrays allocated
   ! ... at the very beginning of the calculation (routines iosys, read_file,
-  ! ... setup, read_pseudo) are not deallocated; all others arrays are.
+  ! ... setup, read_pseudo) are not deallocated; all others arrayes are.
   ! ... This is used when a new calculation has to be performed (e.g. in neb,
   ! ... phonon, vc-relax). Beware: the new calculation should not call any
   ! ... of the routines mentioned above
@@ -26,7 +26,7 @@ SUBROUTINE clean_pw( lflag )
   USE gvecs,                ONLY : nls, nlsm
   USE fixed_occ,            ONLY : f_inp
   USE ktetra,               ONLY : tetra
-  USE klist,                ONLY : ngk, igk_k
+  USE klist,                ONLY : ngk
   USE gvect,                ONLY : ig_l2g
   USE vlocal,               ONLY : strf, vloc
   USE wvfct,                ONLY : igk, g2kin, et, wg, btype
@@ -86,13 +86,12 @@ SUBROUTINE clean_pw( lflag )
      IF ( ALLOCATED( forcefield ) ) DEALLOCATE( forcefield )
      IF ( ALLOCATED( irt ) )        DEALLOCATE( irt )
      !
+     CALL deallocate_bp_efield()
      CALL dealloca_london()
      CALL cleanup_xdm()
      CALL deallocate_constraint()
      !
   END IF
-  !
-  CALL deallocate_bp_efield()
   !
   CALL deallocate_ldaU ( lflag )
   !
@@ -143,7 +142,6 @@ SUBROUTINE clean_pw( lflag )
   ! ... arrays allocated in allocate_nlpot.f90 ( and never deallocated )
   !
   IF ( ALLOCATED( ngk ) )        DEALLOCATE( ngk )
-  IF ( ALLOCATED( igk_k ) )      DEALLOCATE( igk_k )
   IF ( ALLOCATED( igk ) )        DEALLOCATE( igk )
   IF ( ALLOCATED( g2kin ) )      DEALLOCATE( g2kin )
   IF ( ALLOCATED( qrad ) )       DEALLOCATE( qrad )

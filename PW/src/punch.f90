@@ -13,20 +13,16 @@ SUBROUTINE punch( what )
   ! ... the information needed for further processing (phonon etc.)
   !
   USE io_global,            ONLY : stdout
-  USE io_files,             ONLY : prefix, iunpun, iunwfc, nwordwfc, diropn
-  USE control_flags,        ONLY : io_level, twfcollect, io_level
+  USE io_files,             ONLY : prefix, iunpun, iunwfc, nwordwfc
+  USE control_flags,        ONLY : io_level, twfcollect
   USE klist,                ONLY : nks
   USE pw_restart,           ONLY : pw_writefile
-#ifdef __XSD
-  USE pw_restart,           ONLY : pw_write_schema
-#endif
   USE a2F,                  ONLY : la2F, a2Fsave
   USE wavefunctions_module, ONLY : evc
   !
   IMPLICIT NONE
   !
   CHARACTER(LEN=*) :: what
-  LOGICAL :: exst
   !
   !
   IF (io_level < 0 ) RETURN
@@ -37,18 +33,11 @@ SUBROUTINE punch( what )
   ! ... if wavefunctions are stored in "distributed" format,
   ! ... save here wavefunctions to file if never saved before
   !
-  IF ( .NOT. twfcollect .AND. nks == 1 ) THEN
-     if(io_level < 1)  CALL diropn( iunwfc, 'wfc', 2*nwordwfc, exst )
-     CALL davcio ( evc, 2*nwordwfc, iunwfc, nks, 1 )
-     CLOSE ( UNIT=iunwfc, STATUS='keep' )
-  END IF
+  IF ( .NOT. twfcollect .AND. nks == 1 ) &
+              CALL davcio ( evc, 2*nwordwfc, iunwfc, nks, 1 )
   iunpun = 4
   !
   CALL pw_writefile( TRIM( what ) )
-  !
-#ifdef __XSD
-  CALL pw_write_schema( TRIM( what ) )
-#endif
   !
   IF ( la2F ) CALL a2Fsave()
   !

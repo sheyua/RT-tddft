@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2015 Quantum ESPRESSO group
+! Copyright (C) 2001-2011 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -9,12 +9,11 @@
 MODULE read_pseudo_mod
 !=----------------------------------------------------------------------------=!
   !
-  ! read pseudopotential files. Note that all processors read the same file!
-  !
-  ! Required on input:
+  ! read pseudopotential files. Note that each processor reads!
+  ! Main input module:
   USE io_files,     ONLY: pseudo_dir, pseudo_dir_cur, psfile
   USE ions_base,    ONLY: ntyp => nsp
-  ! Modified on output:
+  ! Main output modules:
   USE atom,         ONLY: msh, rgrid
   USE ions_base,    ONLY: zv
   USE uspp_param,   ONLY: upf, newpseudo, oldvan, nvb
@@ -29,14 +28,11 @@ MODULE read_pseudo_mod
   CONTAINS
   !
   !-----------------------------------------------------------------------
-SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
+SUBROUTINE readpp ( input_dft, printout )
   !-----------------------------------------------------------------------
   !
-  ! Reads PP files and puts the result into the "upf" structure
-  ! Sets  DFT to input_dft if present, to the value read in PP files otherwise
-  ! Sets  number of valence electrons Zv, control variables okvan and nlcc_any,
-  !       compatibility variables newpseudo, oldvan, nvb
-  ! Optionally returns cutoffs read from PP files into ecutwfc_pp, ecutrho_pp
+  ! read PP files and put the result into the "upf" structure
+  ! set DFT to input_dft if present, to the value read in PP files otherwise
   !
   USE kinds,        ONLY: DP
   USE mp,           ONLY: mp_bcast, mp_sum
@@ -56,7 +52,6 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
   !
   CHARACTER(len=*), INTENT(INOUT) :: input_dft
   LOGICAL, OPTIONAL, INTENT(IN) :: printout
-  REAL(DP), OPTIONAL, INTENT(OUT) :: ecutwfc_pp, ecutrho_pp  
   !
   REAL(DP), parameter :: rcut = 10.d0
   CHARACTER(len=256) :: file_pseudo ! file name complete with path
@@ -101,9 +96,9 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
   IF (input_dft /='none') CALL enforce_input_dft (input_dft)
   !
   IF ( PRESENT(printout) ) THEN
-     printout_ = printout .AND. ionode
+     printout_ = printout
   END IF
-  IF ( printout_) THEN
+  IF ( ionode .AND. printout_) THEN
      WRITE( stdout,"(//,3X,'Atomic Pseudopotentials Parameters',/, &
                    &    3X,'----------------------------------' )" )
   END IF
@@ -149,7 +144,7 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
      ! start reading - UPF first: the UPF format is detected via the
      ! presence of the keyword '<PP_HEADER>' at the beginning of the file
      !
-     IF( printout_ ) THEN
+     IF( ionode .AND. printout_ ) THEN
         WRITE( stdout, "(/,3X,'Reading pseudopotential for specie # ',I2, &
                        & ' from file :',/,3X,A)") nt, TRIM(file_pseudo)
      END IF
@@ -159,7 +154,7 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
      upf(nt)%is_gth=.false.
      if (isupf ==-1 .OR. isupf== 0) then
         !
-        IF( printout_ ) &
+        IF( ionode .AND. printout_ ) &
            WRITE( stdout, "(3X,'file type is UPF v.',i1)") isupf+2
         call set_pseudo_upf (nt, upf(nt))
         ! 
@@ -186,11 +181,11 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
            newpseudo (nt) = ( pseudo_type (psfile (nt) ) == 2 )
            !
            IF ( newpseudo (nt) ) THEN
-              IF( printout_ ) &
+              IF( ionode .AND. printout_ ) &
                  WRITE( stdout, "(3X,'file type is RRKJ3')")
               call readrrkj (iunps, nt, upf(nt))
            ELSE
-              IF( printout_ ) &
+              IF( ionode .AND. printout_ ) &
                  WRITE( stdout, "(3X,'file type is Vanderbilt US PP')")
               CALL readvan (iunps, nt, upf(nt))
            ENDIF
@@ -205,7 +200,7 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
            !
         else
            newpseudo (nt) = .false.
-           IF( printout_ ) &
+           IF( ionode .AND. printout_ ) &
               WRITE( stdout, "(3X,'file type is old PWscf NC format')")
            ! 
            call read_ncpp (iunps, nt, upf(nt))
@@ -276,15 +271,6 @@ SUBROUTINE readpp ( input_dft, printout, ecutwfc_pp, ecutrho_pp )
   !
   okvan = ( nvb > 0 )
   nlcc_any = ANY ( upf(1:ntyp)%nlcc )
-  !
-  ! return cutoff read from PP file, if required
-  !
-  IF ( PRESENT(ecutwfc_pp) ) THEN
-     ecutwfc_pp = MAXVAL ( upf(1:ntyp)%ecutwfc )
-  END IF
-  IF ( PRESENT(ecutrho_pp) ) THEN
-     ecutrho_pp = MAXVAL ( upf(1:ntyp)%ecutrho )
-  END IF
   !
   return
 end subroutine readpp

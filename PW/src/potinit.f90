@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2016 Quantum ESPRESSO group
+! Copyright (C) 2001-2012 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -44,10 +44,11 @@ SUBROUTINE potinit()
                                    niter_with_fixed_ns
   USE noncollin_module,     ONLY : noncolin, report
   USE io_files,             ONLY : tmp_dir, prefix, input_drho
-  USE spin_orb,             ONLY : domag, lforcet
+  USE spin_orb,             ONLY : domag
   USE mp,                   ONLY : mp_sum
   USE mp_bands ,            ONLY : intra_bgrp_comm
   USE io_global,            ONLY : ionode, ionode_id
+  USE pw_restart,           ONLY : pw_readfile
   USE io_rho_xml,           ONLY : read_rho
   USE xml_io_base,          ONLY : check_file_exst
   !
@@ -61,7 +62,7 @@ SUBROUTINE potinit()
   REAL(DP)              :: charge           ! the starting charge
   REAL(DP)              :: etotefield       !
   REAL(DP)              :: fact
-  INTEGER               :: is
+  INTEGER               :: is, ios
   LOGICAL               :: exst 
   CHARACTER(LEN=256)    :: filename
   !
@@ -85,18 +86,16 @@ SUBROUTINE potinit()
      ! ... Cases a) and b): the charge density is read from file
      ! ... this also reads rho%ns if lda+U and rho%bec if PAW
      !
-     IF ( .NOT.lforcet ) THEN
-        CALL read_rho ( rho, nspin )
-     ELSE
-        !
-        ! ... 'force theorem' calculation of MAE: read rho only from previous
-        ! ... lsda calculation, set noncolinear magnetization from angles
-        !
-        CALL read_rho ( rho%of_r, 2 )
-        CALL nc_magnetization_from_lsda ( dfftp%nnr, nspin, rho%of_r )
-     END IF
+     CALL pw_readfile( 'rho', ios )
      !
-     IF ( lscf ) THEN
+     IF ( ios /= 0 ) THEN
+        !
+        WRITE( stdout, '(/5X,"Error reading from file :"/5X,A,/)' ) &
+            TRIM( filename )
+        !
+        CALL errore ( 'potinit' , 'reading starting density', ios)
+        !
+     ELSE IF ( lscf ) THEN
         !
         WRITE( stdout, '(/5X, &
              & "The initial density is read from file :"/5X,A,/)' ) &
@@ -127,9 +126,9 @@ SUBROUTINE potinit()
      IF (lda_plus_u) THEN
         !
         IF (noncolin) THEN
-           CALL init_ns_nc()
+          CALL init_ns_nc()
         ELSE
-           CALL init_ns()
+          CALL init_ns()
         ENDIF
         !
      ENDIF
@@ -256,43 +255,3 @@ SUBROUTINE potinit()
   RETURN
   !
 END SUBROUTINE potinit
-!
-!-------------
-SUBROUTINE nc_magnetization_from_lsda ( nnr, nspin, rho )
-  !-------------
-  !
-  USE kinds,     ONLY: dp
-  USE constants, ONLY: pi
-  USE io_global, ONLY: stdout
-  USE noncollin_module, ONLY: angle1, angle2
-  !
-  IMPLICIT NONE
-  INTEGER, INTENT (in):: nnr, nspin
-  REAL(dp), INTENT (inout):: rho(nnr,nspin)
-  !---  
-  !  set up noncollinear m_x,y,z from collinear m_z (AlexS) 
-  !
-  WRITE(stdout,*)
-  WRITE(stdout,*) '-----------'
-  WRITE(stdout,'("Spin angles Theta, Phi (degree) = ",2f8.4)') &
-       angle1(1)/PI*180.d0, angle2(1)/PI*180.d0 
-  WRITE(stdout,*) '-----------'
-  !
-  ! On input, rho(1)=rho_up, rho(2)=rho_down
-  ! Set rho(1)=rho_tot, rho(3)=rho_up-rho_down=magnetization
-  ! 
-  rho(:,3) = rho(:,1)-rho(:,2)
-  rho(:,1) = rho(:,1)+rho(:,2)
-  !
-  ! now set rho(2)=magn*sin(theta)*cos(phi)   x
-  !         rho(3)=magn*sin(theta)*sin(phi)   y
-  !         rho(4)=magn*cos(theta)            z
-  !
-  rho(:,4) = rho(:,3)*cos(angle1(1))
-  rho(:,2) = rho(:,3)*sin(angle1(1))
-  rho(:,3) = rho(:,2)*sin(angle2(1))
-  rho(:,2) = rho(:,2)*cos(angle2(1))
-  !
-  RETURN
-  !
-END SUBROUTINE nc_magnetization_from_lsda

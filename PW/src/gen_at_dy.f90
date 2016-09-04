@@ -20,9 +20,9 @@ subroutine gen_at_dy ( ik, natw, is_hubbard, hubbard_l, u, dwfcat )
    USE atom,       ONLY : msh
    USE ions_base,  ONLY : nat, ntyp => nsp, ityp, tau
    USE cell_base,  ONLY : omega, at, bg, tpiba
-   USE klist,      ONLY : xk, ngk, igk_k
+   USE klist,      ONLY : xk
    USE gvect,      ONLY : mill, eigts1, eigts2, eigts3, g
-   USE wvfct,      ONLY : npwx
+   USE wvfct,      ONLY : npw, npwx, igk
    USE us,         ONLY : tab_at, dq
    USE uspp_param, ONLY : upf
    !
@@ -38,7 +38,7 @@ subroutine gen_at_dy ( ik, natw, is_hubbard, hubbard_l, u, dwfcat )
    ! local variables
    !
    integer :: ig, na, nt, nb, l, lm, m, iig, ipol, iatw, i0, i1, i2, i3, &
-              lmax_wfc, nwfcm, npw
+              lmax_wfc, nwfcm
    real (DP) :: arg, px, ux, vx, wx
    complex (DP) :: phase, pref
 
@@ -47,15 +47,13 @@ subroutine gen_at_dy ( ik, natw, is_hubbard, hubbard_l, u, dwfcat )
    complex (DP), allocatable :: sk(:)
 
    nwfcm = MAXVAL ( upf(1:ntyp)%nwfc )
-   npw = ngk(ik)
    allocate ( q(npw), gk(3,npw), chiq(npwx,nwfcm,ntyp) )
 
    dwfcat(:,:) = (0.d0,0.d0)
    do ig = 1,npw
-      iig = igk_k(ig,ik)
-      gk (1, ig) = xk (1, ik) + g (1,iig)
-      gk (2, ig) = xk (2, ik) + g (2,iig)
-      gk (3, ig) = xk (3, ik) + g (3,iig)
+      gk (1, ig) = xk (1, ik) + g (1, igk (ig) )
+      gk (2, ig) = xk (2, ik) + g (2, igk (ig) )
+      gk (3, ig) = xk (3, ik) + g (3, igk (ig) )
       q (ig) = gk(1, ig)**2 +  gk(2, ig)**2 + gk(3, ig)**2
    end do
    lmax_wfc = MAXVAL ( hubbard_l(:) )
@@ -105,14 +103,14 @@ subroutine gen_at_dy ( ik, natw, is_hubbard, hubbard_l, u, dwfcat )
       arg=(xk(1,ik)*tau(1,na)+xk(2,ik)*tau(2,na)+xk(3,ik)*tau(3,na))*tpi
       phase=CMPLX(cos(arg),-sin(arg),kind=DP)
       do ig =1,npw
-         iig = igk_k(ig,ik)
+         iig = igk(ig)
          sk(ig) = eigts1(mill(1,iig),na) * &
                   eigts2(mill(2,iig),na) * &
                   eigts3(mill(3,iig),na) * phase
       end do
       do nb = 1,upf(nt)%nwfc
          l  = upf(nt)%lchi(nb)
-         if ( upf(nt)%oc(nb) > 0.d0 .and. l == hubbard_l(nt) ) then
+         if ( upf(nt)%oc(nb) >= 0.d0 .and. l == hubbard_l(nt) ) then
             pref = (0.d0,1.d0)**l
             do m = 1,2*l+1
                lm = l*l+m

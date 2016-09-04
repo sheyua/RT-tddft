@@ -103,7 +103,7 @@ PROGRAM bgw2pw
   CALL environment_start ( codename )
 
   prefix = 'prefix'
-  CALL get_environment_variable ( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env ( 'ESPRESSO_TMPDIR', outdir )
   IF ( TRIM ( outdir ) == ' ' ) outdir = './'
   real_or_complex = 2
   wfng_flag = .FALSE.
@@ -134,8 +134,10 @@ PROGRAM bgw2pw
 
   CALL read_file ( )
 
-  ! this is needed to compute k+G indices and store them into igk_k
- 
+  ! this is needed to compute igk and store in iunigk
+  ! cannot use gk_sort because for some k-points
+  ! gk_sort generates different igk on every call
+  CALL openfil ( )
   CALL hinit0 ( )
 
   CALL openfil_pp ( )
@@ -185,13 +187,14 @@ SUBROUTINE write_evc ( input_file_name, real_or_complex, &
   USE constants, ONLY : eps6
   USE fft_base, ONLY : dfftp
   USE gvect, ONLY : ngm, ngm_g, ig_l2g, mill, g
+  USE io_files, ONLY : iunigk
   USE io_global, ONLY : ionode, ionode_id
   USE ions_base, ONLY : nat
   USE iotk_module, ONLY : iotk_attlenx, iotk_free_unit, iotk_open_write, &
     iotk_write_begin, iotk_write_attr, iotk_write_empty, iotk_write_dat, &
     iotk_write_end, iotk_close_write, iotk_index
   USE kinds, ONLY : DP
-  USE klist, ONLY : xk, nks, nkstot, ngk, igk_k
+  USE klist, ONLY : xk, nks, nkstot, ngk
   USE lsda_mod, ONLY : nspin
   USE mp, ONLY : mp_bcast, mp_sum, mp_max, mp_barrier
   USE mp_world, ONLY : world_comm, nproc
@@ -202,7 +205,7 @@ SUBROUTINE write_evc ( input_file_name, real_or_complex, &
 #ifdef __MPI
   USE parallel_include, ONLY : MPI_INTEGER, MPI_DOUBLE_COMPLEX
 #endif
-  USE wvfct, ONLY : npwx, igk
+  USE wvfct, ONLY : npwx, g2kin, ecutwfc, igk
 
   IMPLICIT NONE
 
@@ -511,9 +514,10 @@ SUBROUTINE write_evc ( input_file_name, real_or_complex, &
   ike = iks + nkl - 1
 
   npw_g = 0
+  IF ( nks > 1 ) REWIND ( iunigk )
   DO ik = 1, nks
+    IF ( nks > 1 ) READ ( iunigk ) igk
     npw = ngk ( ik )
-    igk(1:npw) = igk_k(1:npw,ik)
     DO ig = 1, npw
       igk_l2g = ig_l2g ( igk ( ig ) )
       IF ( igk_l2g .GT. npw_g ) npw_g = igk_l2g

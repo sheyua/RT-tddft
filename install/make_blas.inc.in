@@ -16,7 +16,7 @@ PLAT =
 #  desired load options for your machine.
 #
 FORTRAN  = @f77@ 
-OPTS     = @extlib_flags@
+OPTS     = -O2 @extlib_flags@
 DRVOPTS  = $(OPTS)
 NOOPT    = @extlib_flags@
 LOADER   = @f77@

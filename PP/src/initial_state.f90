@@ -48,7 +48,7 @@ PROGRAM initial_state
   !
   excite(:) = 0
   prefix = 'pwscf'
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env( 'ESPRESSO_TMPDIR', outdir )
   IF ( trim( outdir ) == ' ' ) outdir = './'
   !
   ios = 0
@@ -79,6 +79,7 @@ PROGRAM initial_state
   CALL read_file
   CALL openfil_pp
   CALL hinit0
+  CALL hinit1
   IF ( nks == 1 ) THEN
      ik = 1
      CALL davcio( evc, 2*nwordwfc, iunwfc, ik, -1 )
