@@ -10,5 +10,7 @@
 makedeps.sh
 make.depend
 make.sys
+RT-tddft/config.*
+RT-tddft/configure
 RT-tddft/Makefile
 RT-tddft/src/Makefile
