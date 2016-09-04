@@ -34,18 +34,14 @@ TDDFT_COBJS = 	$(TDDFT_CSRC:.cpp=.o)
 
 ######################################################################################################################################
 # Make options
-install:	build distclean
 
 build:	$(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS)  $(TDDFT_COBJS)
 	$(LD) $(LDFLAGS) -o tddft.x $(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	@echo "Linking executables..."
-	( cd ../../bin; ln -fs ../rt-tddft/src/tddft.x . )
+	( ln -fs tddft.x ../../bin/tddft.x )
 
 clean:
 	-/bin/rm -rf tddft.* *.o *.d *.mod *.i *.L
-
-distclean:
-	-/bin/rm -rf Makefile make.depend
 
 # Compilation rules
 %.o:%.cpp
