@@ -1,0 +1,16 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Compilation}{}% 2
+\BOOKMARK [1][-]{section.3}{Input data}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Data files}{section.3}% 4
+\BOOKMARK [2][-]{subsection.3.2}{Format of arrays containing charge density, potential, etc.}{section.3}% 5
+\BOOKMARK [1][-]{section.4}{Using CP}{}% 6
+\BOOKMARK [2][-]{subsection.4.1}{Reaching the electronic ground state}{section.4}% 7
+\BOOKMARK [2][-]{subsection.4.2}{Relax the system}{section.4}% 8
+\BOOKMARK [2][-]{subsection.4.3}{CP dynamics}{section.4}% 9
+\BOOKMARK [2][-]{subsection.4.4}{Advanced usage}{section.4}% 10
+\BOOKMARK [3][-]{subsubsection.4.4.1}{ Self-interaction Correction }{subsection.4.4}% 11
+\BOOKMARK [3][-]{subsubsection.4.4.2}{ ensemble-DFT }{subsection.4.4}% 12
+\BOOKMARK [3][-]{subsubsection.4.4.3}{Free-energy surface calculations}{subsection.4.4}% 13
+\BOOKMARK [3][-]{subsubsection.4.4.4}{Treatment of USPPs}{subsection.4.4}% 14
+\BOOKMARK [3][-]{subsubsection.4.4.5}{Hybrid functional calculations using maximally localized Wannier functions}{subsection.4.4}% 15
+\BOOKMARK [1][-]{section.5}{Performances}{}% 16

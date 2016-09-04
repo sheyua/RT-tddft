@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2008 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>1 Introduction</TITLE>
+<META NAME="description" CONTENT="1 Introduction">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2008">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node3.html">
+<LINK REL="previous" HREF="node1.html">
+<LINK REL="up" HREF="user_guide.html">
+<LINK REL="next" HREF="node3.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html62"
+  HREF="node3.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html58"
+  HREF="user_guide.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html52"
+  HREF="node1.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html60"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html63"
+  HREF="node3.html">2 Compilation</A>
+<B> Up:</B> <A NAME="tex2html59"
+  HREF="user_guide.html">User's Guide for The</A>
+<B> Previous:</B> <A NAME="tex2html53"
+  HREF="node1.html">Contents</A>
+ &nbsp; <B>  <A NAME="tex2html61"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00020000000000000000">
+1 Introduction</A>
+</H1>
+
+<P>
+This guide covers the  usage of the
+<TT>CP</TT> package, version 5.3, a core component 
+of the Q<SMALL>UANTUM </SMALL>ESPRESSO distribution.
+Further documentation, beyond what is provided 
+in this guide, can be found in the directory
+<TT>CPV/Doc/</TT>, containing a copy of this guide.
+
+<P>
+This guide assumes that you know the physics 
+that <TT>CP</TT> describes and the methods it implements.
+It also assumes  that you have already installed,
+or know how to install, Q<SMALL>UANTUM </SMALL>ESPRESSO. If not, please read
+the general User's Guide for Q<SMALL>UANTUM </SMALL>ESPRESSO, found in 
+directory <TT>Doc/</TT> two levels above the 
+one containing this guide; or consult the web site:
+<BR><TT>http://www.quantum-espresso.org</TT>.
+
+<P>
+People who want to modify or contribute to 
+<TT>CP</TT> should read the Developer Manual: 
+<BR><TT>Doc/developer_man.pdf</TT>.
+
+<P>
+<TT>CP</TT> can perform Car-Parrinello molecular dynamics, including
+variable-cell dynamics, and free-energy surface calculation at
+fixed cell through meta-dynamics, if patched with PLUMED.
+
+<P>
+The <TT>CP</TT> package is based on the original code written by
+ Roberto Car
+and Michele Parrinello. <TT>CP</TT> was developed by Alfredo Pasquarello
+(IRRMA, Lausanne), Kari Laasonen (Oulu), Andrea Trave, Roberto
+Car (Princeton), Nicola Marzari (Univ. Oxford), Paolo Giannozzi, and others.
+FPMD, later merged with <TT>CP</TT>, was developed by Carlo
+Cavazzoni, 
+Gerardo Ballabio (CINECA), Sandro Scandolo (ICTP), 
+Guido Chiarotti (SISSA), Paolo Focher, and others.
+We quote in particular:
+
+<UL>
+<LI>Manu Sharma (Princeton) and Yudong Wu (Princeton) for
+   maximally localized Wannier functions and dynamics with 
+   Wannier functions;
+</LI>
+<LI>Paolo Umari (Univ. Padua) for finite electric fields and conjugate
+   gradients;
+</LI>
+<LI>Paolo Umari and Ismaila Dabo for ensemble-DFT;
+</LI>
+<LI>Xiaofei Wang (Princeton) for META-GGA;
+</LI>
+<LI>The Autopilot feature was implemented by Targacept, Inc.
+</LI>
+</UL>
+This guide has been mostly writen by Gerardo Ballabio and Carlo Cavazzoni.
+
+<P>
+<TT>CP</TT> is free software, released under the
+GNU General Public License. 
+<BR>
+See
+<TT>http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt</TT>,
+or the file License in the distribution).
+
+<P>
+We shall greatly appreciate if scientific work done using this code will
+contain an explicit acknowledgment and the following reference:
+<BLOCKQUOTE>
+P. Giannozzi, S. Baroni, N. Bonini, M. Calandra, R. Car, C. Cavazzoni,
+D. Ceresoli, G. L. Chiarotti, M. Cococcioni, I. Dabo, A. Dal Corso,
+S. Fabris, G. Fratesi, S. de Gironcoli, R. Gebauer, U. Gerstmann,
+C. Gougoussis, A. Kokalj, M. Lazzeri, L. Martin-Samos, N. Marzari,
+F. Mauri, R. Mazzarello, S. Paolini, A. Pasquarello, L. Paulatto,
+C. Sbraccia, S. Scandolo, G. Sclauzero, A. P. Seitsonen, A. Smogunov,
+P. Umari, R. M. Wentzcovitch, J.Phys.:Condens.Matter 21, 395502 (2009),
+http://arxiv.org/abs/0906.2569
+
+</BLOCKQUOTE>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html62"
+  HREF="node3.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html58"
+  HREF="user_guide.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html52"
+  HREF="node1.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html60"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html63"
+  HREF="node3.html">2 Compilation</A>
+<B> Up:</B> <A NAME="tex2html59"
+  HREF="user_guide.html">User's Guide for The</A>
+<B> Previous:</B> <A NAME="tex2html53"
+  HREF="node1.html">Contents</A>
+ &nbsp; <B>  <A NAME="tex2html61"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Filippo Spiga
+2016-04-24
+</ADDRESS>
+</BODY>
+</HTML>

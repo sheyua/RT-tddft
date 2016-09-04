@@ -1,0 +1,506 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2008 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>4.4 Advanced usage</TITLE>
+<META NAME="description" CONTENT="4.4 Advanced usage">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2008">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="previous" HREF="node10.html">
+<LINK REL="up" HREF="node7.html">
+<LINK REL="next" HREF="node12.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html181"
+  HREF="node12.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html177"
+  HREF="node7.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html173"
+  HREF="node10.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html179"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html182"
+  HREF="node12.html">5 Performances</A>
+<B> Up:</B> <A NAME="tex2html178"
+  HREF="node7.html">4 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html174"
+  HREF="node10.html">4.3 CP dynamics</A>
+ &nbsp; <B>  <A NAME="tex2html180"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html183"
+  HREF="node11.html#SECTION00054100000000000000">4.4.1  Self-interaction Correction </A>
+<LI><A NAME="tex2html184"
+  HREF="node11.html#SECTION00054200000000000000">4.4.2  ensemble-DFT </A>
+<LI><A NAME="tex2html185"
+  HREF="node11.html#SECTION00054300000000000000">4.4.3 Free-energy surface calculations</A>
+<LI><A NAME="tex2html186"
+  HREF="node11.html#SECTION00054400000000000000">4.4.4 Treatment of USPPs</A>
+<LI><A NAME="tex2html187"
+  HREF="node11.html#SECTION00054500000000000000">4.4.5 Hybrid functional calculations using maximally localized Wannier functions</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00054000000000000000">
+4.4 Advanced usage</A>
+</H2>
+
+<P>
+
+<H3><A NAME="SECTION00054100000000000000">
+4.4.1  Self-interaction Correction </A>
+</H3>
+
+<P>
+The self-interaction correction (SIC) included in the <TT>CP</TT> package is based
+on the Constrained Local-Spin-Density approach proposed my F. Mauri and 
+coworkers (M. D'Avezac et al. PRB 71, 205210 (2005)). It was used for
+the first time in Q<SMALL>UANTUM </SMALL>ESPRESSO by F. Baletto, C. Cavazzoni 
+and S.Scandolo (PRL 95, 176801 (2005)).
+
+<P>
+This approach is a simple and nice way to treat ONE, and only one, 
+excess charge. It is moreover necessary to check a priori that 
+the spin-up and spin-down eigenvalues are not too different, for the 
+corresponding neutral system, working in the Local-Spin-Density 
+Approximation (setting <TT>nspin = 2</TT>). If these two conditions are satisfied
+and you are interest in charged systems, you can apply the SIC.
+This approach is a on-the-fly method to correct the self-interaction 
+with the excess charge with itself.
+
+<P>
+Briefly, both the Hartree and the XC part have been 
+corrected to avoid the interaction of the excess charge with itself.
+
+<P>
+For example, for the Boron atoms, where we have an even number of 
+electrons (valence electrons = 3), the parameters for working with
+the SIC are:
+<PRE>
+           &amp;system
+           nbnd= 2,
+           tot_magnetization=1,
+           sic_alpha = 1.d0,
+           sic_epsilon = 1.0d0,
+           sic = 'sic_mac',
+           force_pairing = .true.,
+</PRE>
+The two main parameters are:
+<BLOCKQUOTE>
+<TT>force_pairing = .true.</TT>, which forces the paired electrons to be the same;
+<BR><TT>sic='sic_mac'</TT>, which instructs the code to use Mauri's correction.
+
+</BLOCKQUOTE>
+
+<P>
+<B>Warning</B>: 
+This approach has known problems for dissociation mechanism
+driven by excess electrons.
+
+<P>
+Comment 1:
+Two parameters, <TT>sic_alpha</TT> and <TT>sic_epsilon'</TT>, have been introduced 
+following the suggestion of M. Sprik (ICR(05)) to treat the radical
+(OH)-H<SUB>2</SUB>O. In any case, a complete ab-initio approach is followed 
+using <TT>sic_alpha=1</TT>, <TT>sic_epsilon=1</TT>.
+
+<P>
+Comment 2:
+When you apply this SIC scheme to a molecule or to an atom, which are neutral,
+remember to add the correction to the energy level as proposed by Landau: 
+in a neutral system, subtracting the self-interaction, the unpaired electron
+feels a charged system, even if using a compensating positive background. 
+For a cubic box, the correction term due to the Madelung energy is approx. 
+given by <!-- MATH
+ $1.4186/L_{box} - 1.047/(L_{box})^3$
+ -->
+1.4186/<I>L</I><SUB>box</SUB> -1.047/(<I>L</I><SUB>box</SUB>)<SUP>3</SUP>, where <I>L</I><SUB>box</SUB> is the 
+linear dimension of your box (=celldm(1)). The Madelung coefficient is 
+taken from I. Dabo et al. PRB 77, 115139 (2007).
+(info by F. Baletto, francesca.baletto@kcl.ac.uk)
+
+<P>
+
+<H3><A NAME="SECTION00054200000000000000">
+4.4.2  ensemble-DFT </A>
+</H3>
+
+<P>
+The ensemble-DFT (eDFT) is a robust method to simulate the metals in the 
+framework of ''ab-initio'' molecular dynamics. It was introduced in 1997 
+by Marzari et al.
+
+<P>
+The specific subroutines for the eDFT are in 
+<TT>CPV/src/ensemble_dft.f90</TT> where you 
+define all the quantities of interest. The subroutine 
+<TT>CPV/src/inner_loop_cold.f90</TT>
+called by <TT>cg_sub.f90</TT>, control the inner loop, and so the minimization of 
+the free energy <I>A</I> with respect to the occupation matrix.
+
+<P>
+To select a eDFT calculations, the user has to set:
+<PRE>
+            calculation = 'cp'
+            occupations= 'ensemble' 
+            tcg = .true.
+            passop= 0.3
+            maxiter = 250
+</PRE>
+to use the CG procedure. In the eDFT it is also the outer loop, where the
+energy is minimized with respect to the wavefunction keeping fixed the 
+occupation matrix. While the specific parameters for the inner loop.
+Since eDFT was born to treat metals, keep in mind that we want to describe 
+the broadening of the occupations around the Fermi energy.
+Below the new parameters in the electrons list, are listed.
+
+<UL>
+<LI><TT>smearing</TT>: used to select the occupation distribution;
+there are two options: Fermi-Dirac smearing='fd', cold-smearing
+smearing='cs' (recommended) 
+</LI>
+<LI><TT>degauss</TT>: is the electronic temperature; it controls the broadening
+of the occupation numbers around the Fermi energy. 
+</LI>
+<LI><TT>ninner</TT>: is the number of iterative cycles in the inner loop, 
+done to minimize the free energy <I>A</I> with respect the occupation numbers.
+The typical range is 2-8.
+</LI>
+<LI><TT>conv_thr</TT>: is the threshold value to stop the search of the 'minimum' 
+free energy.
+</LI>
+<LI><TT>niter_cold_restart</TT>: controls the frequency at which a full iterative
+inner cycle is done. It is in the range 1 &#247;<TT>ninner</TT>. It is a trick to speed up 
+the calculation.
+</LI>
+<LI><TT>lambda_cold</TT>: is the length step along the search line for the best 
+value for <I>A</I>, when the iterative cycle is not performed. The value is close 
+to 0.03, smaller for large and complicated metallic systems.
+</LI>
+</UL>
+<EM>NOTE:</EM> <TT>degauss</TT> is in Hartree, while in <TT>PWscf</TT>is in Ry (!!!). 
+The typical range is 0.01-0.02 Ha.
+
+<P>
+The input for an Al surface is:
+<PRE>
+            &amp;CONTROL
+             calculation = 'cp',
+             restart_mode = 'from_scratch',
+             nstep  = 10,
+             iprint = 5,
+             isave  = 5,
+             dt    = 125.0d0,
+             prefix = 'Aluminum_surface',
+             pseudo_dir = '~/UPF/',
+             outdir = '/scratch/'
+             ndr=50
+             ndw=51
+            /
+            &amp;SYSTEM
+             ibrav=  14,
+             celldm(1)= 21.694d0, celldm(2)= 1.00D0, celldm(3)= 2.121D0,
+             celldm(4)= 0.0d0,   celldm(5)= 0.0d0, celldm(6)= 0.0d0,
+             nat= 96,
+             ntyp= 1,
+             nspin=1,
+             ecutwfc= 15,
+             nbnd=160,
+             input_dft = 'pbe'
+             occupations= 'ensemble',
+             smearing='cs',
+             degauss=0.018,
+            /
+            &amp;ELECTRONS
+             orthogonalization = 'Gram-Schmidt',
+             startingwfc = 'random',
+             ampre = 0.02,
+             tcg = .true.,
+             passop= 0.3,
+             maxiter = 250,
+             emass_cutoff = 3.00,
+             conv_thr=1.d-6
+             n_inner = 2,
+             lambda_cold = 0.03,
+             niter_cold_restart = 2,
+            /
+            &amp;IONS
+             ion_dynamics  = 'verlet',
+             ion_temperature = 'nose'
+             fnosep = 4.0d0,
+             tempw = 500.d0
+            /
+            ATOMIC_SPECIES
+             Al 26.89 Al.pbe.UPF
+</PRE>
+<EM>NOTA1</EM>  remember that the time step is to integrate the ionic dynamics,
+so you can choose something in the range of 1-5 fs. 
+<BR><EM>NOTA2</EM> with eDFT you are simulating metals or systems for which the 
+occupation number is also fractional, so the number of band, <TT>nbnd</TT>, has to 
+be chosen such as to have some empty states. As a rule of thumb, start
+with an initial occupation number of about 1.6-1.8 (the more bands you 
+consider, the more the calculation is accurate, but it also takes longer.
+The CPU time scales almost linearly with the number of bands.) 
+<BR><EM>NOTA3</EM> the parameter <TT>emass_cutoff</TT> is used in the preconditioning 
+and it has a completely different meaning with respect to plain CP. 
+It ranges between 4 and 7.
+
+<P>
+All the other parameters have the same meaning in the usual <TT>CP</TT> input, 
+and they are discussed above.
+
+<P>
+
+<H3><A NAME="SECTION00054300000000000000">
+4.4.3 Free-energy surface calculations</A>
+</H3>
+Once <TT>CP</TT> is patched with <TT>PLUMED</TT> plug-in, it becomes possible to turn-on most of the PLUMED functionalities
+running <TT>CP</TT> as: <TT>./cp.x -plumed</TT> plus the other usual <TT>CP</TT> arguments. The PLUMED input file has to be located in the specified <TT>outdir</TT> with
+the fixed name <TT>plumed.dat</TT>.
+
+<P>
+
+<H3><A NAME="SECTION00054400000000000000">
+4.4.4 Treatment of USPPs</A>
+</H3>
+
+<P>
+The cutoff <TT>ecutrho</TT> defines the resolution on the real space FFT mesh (as expressed 
+by <TT>nr1</TT>, <TT>nr2</TT> and <TT>nr3</TT>, that the code left on its own sets automatically).
+In the USPP case we refer to this mesh as the "hard" mesh, since it 
+is denser than the smooth mesh that is needed to represent the square 
+of the non-norm-conserving wavefunctions.
+
+<P>
+On this "hard", fine-spaced mesh, you need to determine the size of the
+cube that will encompass the largest of the augmentation charges - this
+is what <TT>nr1b</TT>, <TT>nr2b</TT>, <TT>nr3b</TT> are. hey are independent 
+of the system size, but dependent on the size
+of the augmentation charge (an atomic property that doesn't vary 
+that much for different systems) and on the
+real-space resolution needed by augmentation charges (rule of thumb:
+<TT>ecutrho</TT> is between 6 and 12 times <TT>ecutwfc</TT>).
+
+<P>
+The small boxes should be set as small as possible, but large enough
+to contain the core of the largest element in your system.
+The formula for estimating the box size is quite simple: 
+<BLOCKQUOTE>
+<TT>nr1b</TT> = <!-- MATH
+ $2 R_c / L_x \times$
+ -->
+2<I>R</I><SUB>c</SUB>/<I>L</I><SUB>x</SUB> <TT>x</TT> <TT>nr1</TT>
+
+</BLOCKQUOTE>
+and the like, where <I>R</I><SUB>cut</SUB> is largest cut-off radius among the various atom
+types present in the system, <I>L</I><SUB>x</SUB> is the
+physical length of your box along the <I>x</I> axis. You have to round your
+result to the nearest larger integer.
+In practice, <TT>nr1b</TT> etc. are often in the region of 20-24-28; testing seems
+again a necessity.
+
+<P>
+The core charge is in principle finite only at the core region (as defined
+by some <I>R</I><SUB>rcut</SUB> ) and vanishes out side the core. Numerically the charge is
+represented in a Fourier series which may give rise to small charge
+oscillations outside the core and even to negative charge density, but
+only if the cut-off is too low. Having these small boxes removes the
+charge oscillations problem (at least outside the box) and also offers
+some numerical advantages in going to higher cut-offs." (info by Nicola Marzari)
+
+<P>
+
+<H3><A NAME="SECTION00054500000000000000">
+4.4.5 Hybrid functional calculations using maximally localized Wannier functions</A>
+</H3>
+In this section, we illustrate some guidelines to perform exact exchange (EXX) calculations using Wannier functions efficiently. 
+
+<P>
+The references for this algorithm are:
+<DL COMPACT>
+<DT>(i)</DT>
+<DD>Theory: X. Wu , A. Selloni, and R. Car, Phys. Rev. B 79, 085102 (2009).
+  
+</DD>
+<DT>(ii)</DT>
+<DD>Implementation: H.-Y. Ko, B. Santra, R. A. DiStasio, L. Kong, Z. Li, X. Wu, and R. Car, arxiv.
+</DD>
+</DL>
+
+<P>
+The parallelization scheme in this algorithm is based upon the number of electronic states. 
+In the current implementation, there are certain restrictions on the choice of the number of MPI tasks.
+Also slightly different algorithms are employed depending on whether the number of MPI tasks used in the calculation are greater or less than the number of electronic states.
+We highly recommend users to follow the notes below.
+This algorithm can be used most efficiently if the numbers of electronic states are uniformly distributed over the number of MPI tasks. 
+For a system having N electronic states the optimum numbers of MPI tasks (nproc) are the following:
+
+<P>
+<DL COMPACT>
+<DT>(a)</DT>
+<DD>In case of nproc <IMG
+ WIDTH="19" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img14.png"
+ ALT="$ \leq$"> N, the optimum choices are N/m, where m is any positive integer.
+    
+<UL>
+<LI>Robustness:  Can be used for odd and even number of electronic states.
+</LI>
+<LI>OpenMP threads:  Can be used.
+</LI>
+<LI>Taskgroup:  Only the default value of the task group (-ntg 1) is allowed.
+    
+</LI>
+</UL>
+  
+</DD>
+<DT>(b)</DT>
+<DD>In case of nproc  &gt; N, the optimum choices are N*m, where m is any positive integer.
+    
+<UL>
+<LI>Robustness:  Can be used for even number of electronic states.
+</LI>
+<LI>Largest value of m:  As long as nj_max (see output) is greater than 1, 
+        however beyond m=8 the scaling may become poor. The scaling should be tested by users.
+</LI>
+<LI>OpenMP threads: Can be used and highly recommended. We have tested number of threads
+        starting from 2 up to 64. More threads are also allowed. 
+        For very large calculations (nproc &gt; 1000 ) efficiency can largely depend on the computer 
+        architecture and the balance between the MPI tasks and the OpenMP threads. 
+        User should test for an optimal balance. Reasonably good scaling can be achieved by using 
+        m=6-8 and OpenMP threads=2-16.
+</LI>
+<LI>Taskgroup:  Can be greater than 1 and users should choose the largest possible value
+        for ntg. To estimate ntg, find the value of nr3x in the output and compute nproc/nr3x and
+        take the integer value. We have tested the value of ntg as 2<SUP>m</SUP>, where m is any positive integer. 
+        Other values of ntg should be used with caution.
+</LI>
+<LI>Ndiag:  Use -ndiag X option in the execution of cp.x. Without this option jobs
+        may crash on certain architectures. Set X to any perfect square number which is equal to or less than N.
+    
+</LI>
+</UL>
+  
+</DD>
+<DT>&nbsp;$&bull#bullet;$</DT>
+<DD>DEBUG:  The EXX calculations always work when number of MPI tasks = number of electronic states.
+    In case of any uncertainty, the EXX energy computed using different numbers of MPI tasks can be
+    checked by performing test calculations using number of MPI tasks = number of electronic states.
+</DD>
+</DL>
+
+<P>
+An example input is listed as following:
+<PRE>
+&amp;CONTROL
+  calculation       = 'cp-wf',
+  title             = "(H2O)32 Molecule: electron minimization PBE0",
+  restart_mode      = "from_scratch",
+  pseudo_dir        = './',
+  outdir            = './',
+  prefix            = "water",
+  nstep             = 220,
+  iprint            = 100,
+  isave             = 100,
+  dt                = 4.D0,
+  ekin_conv_thr     = 1.D-5,
+  etot_conv_thr     = 1.D-5,
+/
+&amp;SYSTEM
+  ibrav             = 1,
+  celldm(1)         = 18.6655, 
+  nat               = 96,
+  ntyp              = 2,
+  ecutwfc           = 85.D0,
+  input_dft         = 'pbe0',
+/
+&amp;ELECTRONS
+  emass             = 400.D0,
+  emass_cutoff      = 3.D0,
+  ortho_eps         = 1.D-8,
+  ortho_max         = 300,
+  electron_dynamics = "damp",
+  electron_damping  = 0.1D0,
+/
+&amp;IONS
+  ion_dynamics      = "none", 
+/
+&amp;WANNIER
+  nit               = 60,
+  calwf             = 3,
+  tolw              = 1.D-6,
+  nsteps            = 20,
+  adapt             = .FALSE.
+  wfdt              = 4.D0,
+  wf_q              = 500,
+  wf_friction       = 0.3D0,
+  exx_neigh         = 60,     ! exx related optional
+  exx_dis_cutoff    = 8.0D0,  ! exx related optional
+  exx_ps_rcut_self  = 6.0D0,  ! exx related optional
+  exx_ps_rcut_pair  = 5.0D0,  ! exx related optional
+  exx_me_rcut_self  = 9.3D0,  ! exx related optional
+  exx_me_rcut_pair  = 7.0D0,  ! exx related optional
+  exx_poisson_eps   = 1.D-6,  ! exx related optional
+/
+ATOMIC_SPECIES
+O 16.0D0 O_HSCV_PBE-1.0.UPF
+H  2.0D0 H_HSCV_PBE-1.0.UPF
+</PRE>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html181"
+  HREF="node12.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html177"
+  HREF="node7.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html173"
+  HREF="node10.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html179"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html182"
+  HREF="node12.html">5 Performances</A>
+<B> Up:</B> <A NAME="tex2html178"
+  HREF="node7.html">4 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html174"
+  HREF="node10.html">4.3 CP dynamics</A>
+ &nbsp; <B>  <A NAME="tex2html180"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Filippo Spiga
+2016-04-24
+</ADDRESS>
+</BODY>
+</HTML>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet type="text/xsl" href="input_xx.xsl"?>
+<!-- FILE AUTOMATICALLY CREATED: DO NOT EDIT, CHANGES WILL BE LOST -->
+    
+<input_description distribution="Quantum Espresso" package="CP" program="cppp.x" >
+   <toc>
+   </toc>
+   <intro>
+=============================================================================
+                            CP Post-Processing code (cppp.x)
+=============================================================================
+
+The cppp.x code is an utility that can be used to extract data from the CP
+restart and CP trajectory files.
+
+INPUT:
+=====
+
+the program read the input parameters from the standard input or from
+any other file specified through the usual &quot;-input&quot; command line flag.
+The input parameters, in the input file, should be specified in the inputpp
+namelist follow:
+
+&amp;INPUTPP
+  ...
+  cppp_input_parameter
+  ...
+/
+   </intro>
+   <namelist name="INPUTPP" >
+      <var name="prefix" type="CHARACTER" >
+         <default> &apos;cp&apos;
+         </default>
+         <info>
+basename prepended to cp.x output filenames: cp.evp, cp.pos ....
+         </info>
+      </var>
+      <var name="fileout" type="CHARACTER" >
+         <default> &apos;out&apos;
+         </default>
+         <info>
+basename of the cppp.x output files
+         </info>
+      </var>
+      <var name="output" type="CHARACTER" >
+         <default> &apos;xsf&apos;
+         </default>
+         <info>
+a string describing the output format to be performed,
+allowed values: &apos;xsf&apos;, &apos;grd&apos;, &apos;xyz&apos;
+
+    xsf     xcrysden format
+    grd     GRD gaussian 3D grid format
+    xyz     XMOL format
+         </info>
+      </var>
+      <var name="outdir" type="CHARACTER" >
+         <default> &apos;./&apos;
+         </default>
+         <info>
+directory containing the CP trajectory files (.evp .pos .cel ...)
+and restart files ( .save ) to be processed
+         </info>
+      </var>
+      <var name="lcharge" type="LOGICAL" >
+         <default> .false.
+         </default>
+         <info>
+This logical flag control the processing of charge density.
+
+   .TRUE.  generate output file containing charge density.
+           The file format is controlled by the &quot;output&quot; parameter
+
+   .FALSE. do not generate charge density file
+         </info>
+      </var>
+      <var name="lforces" type="LOGICAL" >
+         <default> .false.
+         </default>
+         <info>
+This logical flag control the processing of forces.
+
+    .TRUE.  extract forces from trajectory files and write
+            them to xcrysden file
+
+    .FALSE. do not proces forces
+         </info>
+      </var>
+      <var name="ldynamics" type="LOGICAL" >
+         <default> .false.
+         </default>
+         <info>
+This logical flag control the processing of atoms trajectory.
+
+    .TRUE.  process CP trajectory files and generate a trajectory
+            file for xcrysden (.axsf)
+
+    .FALSE. do not process trajectory
+         </info>
+      </var>
+      <var name="lpdb" type="LOGICAL" >
+         <default> .false.
+         </default>
+         <info>
+This logical flag control the generation of a pdb file.
+
+    .TRUE.  generate a pdb file containing positions and cell
+            of the simulated system
+
+    .FALSE. do not generate pdb file
+         </info>
+      </var>
+      <var name="lrotation" type="LOGICAL" >
+         <default> .false.
+         </default>
+         <info>
+This logical flag control the rotation of the cell
+
+    .TRUE.  rotate the system cell in space in order to have
+            the a lattice parameter laying on the x axis,
+            the b lattice parameter laying on the xy plane
+
+    .FALSE. do not rotate cell
+         </info>
+      </var>
+      <vargroup type="INTEGER" >
+         <var name="ns1" >
+         </var>
+         <var name="ns2" >
+         </var>
+         <var name="ns3" >
+         </var>
+         <default> 0
+         </default>
+         <info>
+Dimensions of the charge density 3D grid.
+
+If ns1, ns2, ns3 are 0 or not specified, the dimensions
+of the grid in the CP run are assumed; otherwise chargedensity
+is re-sampled on the GRID specified with ns1,ns2,ns3
+         </info>
+      </vargroup>
+      <vargroup type="INTEGER" >
+         <var name="np1" >
+         </var>
+         <var name="np2" >
+         </var>
+         <var name="np3" >
+         </var>
+         <default> 1
+         </default>
+         <info>
+Number of replicas of atomic positions along cell parameters.
+
+If ns1, ns2, ns3 are 1 or not specified, cppp.x do not
+replicate atomi positions in space.
+
+If ns1 ns2 ns3 are &gt; 1 cppp.x replicate the positions along
+a ns1 times, along b ns2 times and along c ns3 times.
+the atomic positions used in the simunation.
+         </info>
+      </vargroup>
+      <var name="nframes" type="INTEGER" >
+         <default> 1
+         </default>
+         <info>
+number of MD step to be read to build the trajectory
+         </info>
+      </var>
+      <var name="ndr" type="INTEGER" >
+         <default> 51
+         </default>
+         <info>
+CP restart file number to post process
+         </info>
+      </var>
+      <dimension name="atomic_number" start="1" end="ntyp" type="INTEGER" >
+         <default> 1
+         </default>
+         <info>
+Specify the atomic number of the species in CP trajectory and
+restart file.
+
+atomic_number(1)  specify the atomic number of the first specie
+atomic_number(2)  specify the atomic number of the second specie
+....
+         </info>
+      </dimension>
+      <var name="charge_density" type="CHARACTER" >
+         <default> &apos;full&apos;
+         </default>
+         <info>
+specify the component of the charge density to plot,
+allowed values:
+
+&apos;full&apos;   print the full electronic charge
+&apos;spin&apos;   print the spin polarization (for LSD calculations)
+         </info>
+      </var>
+      <var name="state" type="CHARACTER" >
+         <default> &apos; &apos;
+         </default>
+         <info>
+specify the Kohn-Sham state to plot, example: &apos;KS_1&apos;
+         </info>
+      </var>
+      <var name="lbinary" type="LOGICAL" >
+         <default> .TRUE.
+         </default>
+         <info>
+specify the file format of the wave function files
+to be read and plotted
+         </info>
+      </var>
+   </namelist>
+</input_description>

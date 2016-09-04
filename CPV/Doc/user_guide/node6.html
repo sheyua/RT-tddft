@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2008 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>3.2 Format of arrays containing charge density, potential, etc.</TITLE>
+<META NAME="description" CONTENT="3.2 Format of arrays containing charge density, potential, etc.">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2008">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="previous" HREF="node5.html">
+<LINK REL="up" HREF="node4.html">
+<LINK REL="next" HREF="node7.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html110"
+  HREF="node7.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html106"
+  HREF="node4.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html102"
+  HREF="node5.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html108"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html111"
+  HREF="node7.html">4 Using CP</A>
+<B> Up:</B> <A NAME="tex2html107"
+  HREF="node4.html">3 Input data</A>
+<B> Previous:</B> <A NAME="tex2html103"
+  HREF="node5.html">3.1 Data files</A>
+ &nbsp; <B>  <A NAME="tex2html109"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00042000000000000000">
+3.2 Format of arrays containing charge density, potential, etc.</A>
+</H2>
+
+<P>
+The index of arrays used to store functions defined on 3D meshes is
+actually a shorthand for three indices, following the FORTRAN convention 
+("leftmost index runs faster"). An example will explain this better. 
+Suppose you have a 3D array <TT>psi(nr1x,nr2x,nr3x)</TT>. FORTRAN 
+compilers store this array sequentially  in the computer RAM in the following way:
+<PRE>
+        psi(   1,   1,   1)
+        psi(   2,   1,   1)
+        ...
+        psi(nr1x,   1,   1)
+        psi(   1,   2,   1)
+        psi(   2,   2,   1)
+        ...
+        psi(nr1x,   2,   1)
+        ...
+        ...
+        psi(nr1x,nr2x,   1)
+        ...
+        psi(nr1x,nr2x,nr3x)
+etc
+</PRE>
+Let <TT>ind</TT> be the position of the <TT>(i,j,k)</TT> element in the above list: 
+the following relation
+<PRE>
+        ind = i + (j - 1) * nr1x + (k - 1) *  nr2x * nr1x
+</PRE>
+holds. This should clarify the relation between 1D and 3D indexing. In real
+space, the <TT>(i,j,k)</TT> point of the FFT grid with dimensions 
+<TT>nr1</TT> (<IMG
+ WIDTH="19" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img2.png"
+ ALT="$ \le$"><TT>nr1x</TT>), 
+<TT>nr2</TT>  (<IMG
+ WIDTH="19" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img2.png"
+ ALT="$ \le$"><TT>nr2x</TT>), , <TT>nr3</TT> (<IMG
+ WIDTH="19" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img2.png"
+ ALT="$ \le$"><TT>nr3x</TT>), is
+<P><!-- MATH
+ \begin{displaymath}
+r_{ijk}=\frac{i-1}{nr1} \tau_1  +  \frac{j-1}{nr2} \tau_2 +
+\frac{k-1}{nr3} \tau_3
+\end{displaymath}
+ -->
+</P>
+<DIV ALIGN="CENTER">
+<I>r</I><SUB>ijk</SUB> = <IMG
+ WIDTH="48" HEIGHT="61" ALIGN="MIDDLE" BORDER="0"
+ SRC="img3.png"
+ ALT="$\displaystyle {\frac{{i-1}}{{nr1}}}$"><IMG
+ WIDTH="20" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img4.png"
+ ALT="$\displaystyle \tau_{1}^{}$"> + <IMG
+ WIDTH="50" HEIGHT="61" ALIGN="MIDDLE" BORDER="0"
+ SRC="img5.png"
+ ALT="$\displaystyle {\frac{{j-1}}{{nr2}}}$"><IMG
+ WIDTH="20" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img6.png"
+ ALT="$\displaystyle \tau_{2}^{}$"> + <IMG
+ WIDTH="52" HEIGHT="61" ALIGN="MIDDLE" BORDER="0"
+ SRC="img7.png"
+ ALT="$\displaystyle {\frac{{k-1}}{{nr3}}}$"><IMG
+ WIDTH="20" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img8.png"
+ ALT="$\displaystyle \tau_{3}^{}$">
+</DIV><P></P>
+where the <IMG
+ WIDTH="18" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img9.png"
+ ALT="$ \tau_{i}^{}$"> are the basis vectors of the Bravais lattice. 
+The latter are stored row-wise in the <TT>at</TT> array:
+<IMG
+ WIDTH="20" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img10.png"
+ ALT="$ \tau_{1}^{}$"> = <TT>at(:, 1)</TT>, 
+<IMG
+ WIDTH="20" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img11.png"
+ ALT="$ \tau_{2}^{}$"> = <TT>at(:, 2)</TT>, 
+<IMG
+ WIDTH="20" HEIGHT="35" ALIGN="MIDDLE" BORDER="0"
+ SRC="img12.png"
+ ALT="$ \tau_{3}^{}$"> = <TT>at(:, 3)</TT>.
+
+<P>
+The distinction between the dimensions of the FFT grid,
+<TT>(nr1,nr2,nr3)</TT> and the physical dimensions of the array,
+<TT>(nr1x,nr2x,nr3x)</TT> is done only because it is computationally
+convenient in some cases that the two sets are not the same.
+In particular, it is often convenient to have <TT>nrx1</TT>=<TT>nr1</TT>+1
+to reduce memory conflicts.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html110"
+  HREF="node7.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html106"
+  HREF="node4.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html102"
+  HREF="node5.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html108"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html111"
+  HREF="node7.html">4 Using CP</A>
+<B> Up:</B> <A NAME="tex2html107"
+  HREF="node4.html">3 Input data</A>
+<B> Previous:</B> <A NAME="tex2html103"
+  HREF="node5.html">3.1 Data files</A>
+ &nbsp; <B>  <A NAME="tex2html109"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Filippo Spiga
+2016-04-24
+</ADDRESS>
+</BODY>
+</HTML>

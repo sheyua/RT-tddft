@@ -1,0 +1,14 @@
+*.o
+*.d
+*.mod
+*.i
+*.L
+*.x
+*.cache
+*.cache/**
+*.log
+makedeps.sh
+make.depend
+make.sys
+RT-tddft/Makefile
+RT-tddft/src/Makefile
