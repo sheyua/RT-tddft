@@ -70,6 +70,10 @@ SUBROUTINE iosys()
                             emaxpos_  => emaxpos, &
                             eopreg_   => eopreg, &
                             eamp_     => eamp, &
+                            emirror_  => emirror, &
+                            estart_   => estart, &
+                            eend_     => eend, &
+                            evolt_    => evolt, &
                             forcefield
   !
   USE io_files,      ONLY : input_drho, output_drho, &
@@ -224,7 +228,8 @@ SUBROUTINE iosys()
                                exxdiv_treatment, yukawa, ecutvcut,          &
                                exx_fraction, screening_parameter, ecutfock, &
                                gau_parameter,                               &
-                               edir, emaxpos, eopreg, eamp, noncolin, lambda, &
+                               edir, emaxpos, eopreg, eamp, emirror, estart, eend, evolt, &
+                               noncolin, lambda, &
                                angle1, angle2, constrained_magnetization,     &
                                B_field, fixed_magnetization, report, lspinorb,&
                                starting_spin_angle, assume_isolated,spline_ps,&
@@ -1094,6 +1099,10 @@ SUBROUTINE iosys()
   emaxpos_ = emaxpos
   eopreg_  = eopreg
   eamp_    = eamp
+  emirror_ = emirror
+  estart_  = estart
+  eend_    = eend
+  evolt_   = evolt
   dfftp%nr1     = nr1
   dfftp%nr2     = nr2
   dfftp%nr3     = nr3

@@ -49,7 +49,8 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
   USE ions_base,     ONLY : nat, ityp, zv
   USE cell_base,     ONLY : alat, at, omega, bg, saw
   USE extfield,      ONLY : tefield, dipfield, edir, eamp, emaxpos, &
-                            eopreg, forcefield
+                            eopreg, forcefield, &
+                            emirror, estart, eend, evolt
   USE force_mod,     ONLY : lforce
   USE io_global,     ONLY : stdout,ionode
   USE control_flags, ONLY : mixing_beta

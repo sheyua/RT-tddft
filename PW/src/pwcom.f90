@@ -324,14 +324,18 @@ MODULE extfield
   LOGICAL :: &
        tefield,      &! if .TRUE. a finite electric field is added to the
                       ! local potential
-       dipfield       ! if .TRUE. the dipole field is subtracted
+       dipfield,     &! if .TRUE. the dipole field is subtracted
+       emirror        ! if .TRUE. the pw input structure contains a mirrored image
   INTEGER :: &
        edir           ! direction of the field
   REAL(DP) :: &
       emaxpos,       &! position of the maximum of the field (0<emaxpos<1)
       eopreg,        &! amplitude of the inverse region (0<eopreg<1)
       eamp,          &! field amplitude (in a.u.) (1 a.u. = 51.44 10^11 V/m)
-      etotefield      ! energy correction due to the field
+      etotefield,    &! energy correction due to the field
+      estart,        &! position where the bias voltage hits maximum
+      eend,          &! position where the bias voltage starts to drop
+      evolt           ! height of the bias voltage
   REAL(DP), ALLOCATABLE :: &
       forcefield(:,:)
   !

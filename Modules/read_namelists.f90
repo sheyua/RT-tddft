@@ -212,6 +212,10 @@ MODULE read_namelists_module
        emaxpos = 0.5_DP
        eopreg = 0.1_DP
        eamp = 0.0_DP
+       emirror = .FALSE.
+       estart = 0.0_DP
+       eend = 0.25_DP
+       evolt = 0.0_DP
        !
        !  ... postprocessing of DOS & phonons & el-ph
        la2F = .FALSE.
@@ -778,6 +782,10 @@ MODULE read_namelists_module
        CALL mp_bcast( emaxpos,                ionode_id, intra_image_comm )
        CALL mp_bcast( eopreg,                 ionode_id, intra_image_comm )
        CALL mp_bcast( eamp,                   ionode_id, intra_image_comm )
+       CALL mp_bcast( emirror,                ionode_id, intra_image_comm )
+       CALL mp_bcast( estart,                 ionode_id, intra_image_comm )
+       CALL mp_bcast( eend,                   ionode_id, intra_image_comm )
+       CALL mp_bcast( evolt,                  ionode_id, intra_image_comm )
        CALL mp_bcast( la2F,                   ionode_id, intra_image_comm )
        !
        ! ... non collinear broadcast
