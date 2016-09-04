@@ -18,8 +18,8 @@ clean:
 
 distclean:
 	@echo "Removing installation files..."
-	-/bin/rm -rf config.* configure makedeps.sh autom4te.cache
+	-/bin/rm -rf config.* configure autom4te.cache
 
 veryclean:	clean distclean
 	@echo "Removing installation and configuration files..."
-	-/bin/rm -rf Makefile src/Makefile src/make.depend
+	-/bin/rm -rf makedeps.sh Makefile src/Makefile src/make.depend

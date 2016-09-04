@@ -38,7 +38,7 @@ TDDFT_COBJS = 	$(TDDFT_CSRC:.cpp=.o)
 build:	$(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS)  $(TDDFT_COBJS)
 	$(LD) $(LDFLAGS) -o tddft.x $(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	@echo "Linking executables..."
-	( ln -fs tddft.x ../../bin/tddft.x )
+	( cd ../../bin; ln -sf ../rt-tddft/src/tddft.x . )
 
 clean:
 	-/bin/rm -rf tddft.* *.o *.d *.mod *.i *.L
