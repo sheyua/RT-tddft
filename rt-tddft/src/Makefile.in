@@ -39,7 +39,7 @@ install:	build distclean
 build:	$(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS)  $(TDDFT_COBJS)
 	$(LD) $(LDFLAGS) -o tddft.x $(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	@echo "Linking executables..."
-	( cd ../../bin; ln -fs ../RT-tddft/src/tddft.x . )
+	( cd ../../bin; ln -fs ../rt-tddft/src/tddft.x . )
 
 clean:
 	-/bin/rm -rf tddft.* *.o *.d *.mod *.i *.L
