@@ -2,7 +2,7 @@
 # WANNIER90 	
 #=======================================
 
-F90=mpif90
+F90=ifort
 FCOPTS=$(FFLAGS) -nomodule 
 LDOPTS=-static-intel 
 

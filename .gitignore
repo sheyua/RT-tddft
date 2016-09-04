@@ -7,10 +7,10 @@
 *.cache
 *.cache/**
 *.log
-makedeps.sh
-make.depend
 make.sys
 RT-tddft/config.*
 RT-tddft/configure
 RT-tddft/Makefile
+RT-tddft/makedeps.sh
 RT-tddft/src/Makefile
+RT-tddft/src/make.depend

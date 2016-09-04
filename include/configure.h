@@ -18,12 +18,12 @@
 
 #define   __CONF_CC             "icc"
 #define   __CONF_CFLAGS         "-O3"
-#define   __CONF_DFLAGS         " -D__INTEL -D__FFTW3 -D__MPI -D__PARA -D__SCALAPACK"
+#define   __CONF_DFLAGS         " -D__INTEL -D__FFTW3"
 #define   __CONF_CPP            "cpp"
 #define   __CONF_CPPFLAGS       "-P -C -traditional"
 
 #define   __CONF_F90            "ifort"
-#define   __CONF_MPIF90         "mpif90"
+#define   __CONF_MPIF90         "ifort"
 #define   __CONF_F90FLAGS       "$(FFLAGS) -nomodule"
 #define   __CONF_F77            "ifort"
 #define   __CONF_FFLAGS         "-O2 -assume byterecl -g -traceback"
@@ -31,7 +31,7 @@
 #define   __CONF_PRE_FDFLAGS    "-fpp "
 #define   __CONF_FDFLAGS        "$(DFLAGS) $(MANUAL_DFLAGS)"
 
-#define   __CONF_LD             "mpif90"
+#define   __CONF_LD             "ifort"
 #define   __CONF_LDFLAGS        "-static-intel "
 #define   __CONF_IMOD           "-I"
 

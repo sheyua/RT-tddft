@@ -24,7 +24,7 @@ FORTRAN  = ifort
 OPTS     = -O2 -assume byterecl -g -traceback
 DRVOPTS  = -O2 -assume byterecl -g -traceback
 NOOPT    = -O0 -assume byterecl -g -traceback
-LOADER   = mpif90
+LOADER   = ifort
 LOADOPTS = -static-intel 
 #
 # Timer for the SECOND and DSECND routines

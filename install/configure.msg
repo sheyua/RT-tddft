@@ -7,7 +7,7 @@ If a required library is not found, the local copy will be compiled.
 The following libraries have been found:
   BLAS_LIBS=  -lmkl_intel_lp64  -lmkl_sequential -lmkl_core
   LAPACK_LIBS=
-  SCALAPACK_LIBS=-lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64
+  @delete@
   FFT_LIBS= -lfftw3 
   @delete@
   @delete@
@@ -17,8 +17,7 @@ If any libraries are missing, you may specify a list of directories
 to search and retry, as follows:
   ./configure LIBDIRS="list of directories, separated by spaces"
 
-Parallel environment detected successfully.\
-Configured for compilation of parallel executables.
+Configured for compilation of serial executables.
 
 For more info, read the ESPRESSO User's Guide (Doc/users-guide.tex).
 --------------------------------------------------------------------
