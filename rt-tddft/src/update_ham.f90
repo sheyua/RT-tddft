@@ -25,7 +25,7 @@ SUBROUTINE update_hamiltonian(istep)
                             e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt
   USE becmod,        ONLY : becp, allocate_bec_type, deallocate_bec_type
   USE wvfct,         ONLY : nbnd
-  USE extfield,      ONLY : emirror, epstart, epend, enstart, enend, evolt
+  USE extfield,      ONLY : tefield, emirror, epstart, epend, enstart, enend, evolt
   implicit none
   integer, intent(in) :: istep
   real(dp) :: charge, ehart, etxc, vtxc, eth, etotefield
@@ -44,19 +44,26 @@ SUBROUTINE update_hamiltonian(istep)
     
   ! calculate HXC-potential
   etotefield = 0.d0 ! etotefield is INOUT type
-  call v_of_rho( rho, rho_core, rhog_core, ehart, etxc, vtxc, eth, etotefield, charge, v )
-  
-  ! manually tune the external bias potential
+  tefield = .true.
   emirror = e_mirror
   epstart = e_pstart
   epend   = e_pend
   enstart = e_nstart
   enend   = e_nend
   evolt   = e_volt
-  call add_efield(vltot, etotefield, rho%of_r, .false.)
+  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1)
+  call v_of_rho( rho, rho_core, rhog_core, ehart, etxc, vtxc, eth, etotefield, charge, v )
+  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1)
 
-  ! calculate total local potential (external + scf)
+  ! manually tune the external bias potential
+  !if ( istep == -1 ) then
+  !  call add_efield(vltot, etotefield, rho%of_r, .false.)
+  !endif
+  !write(stdout, *) vltot(8019)
+
+! calculate total local potential (external + scf)
   call set_vrs(vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid)    
+  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1)
   
   ! calculate new D_nm matrix for ultrasoft pseudopotential
   if (okvan) then

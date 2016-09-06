@@ -28,7 +28,6 @@ PROGRAM tddft_main
   USE mp_pools,        ONLY : nproc_pool
   USE check_stop,      ONLY : check_stop_init
   USE environment,     ONLY : environment_start
-  USE extfield,        ONLY : tefield
   USE lsda_mod,        ONLY : nspin
   USE wvfct,           ONLY : nbnd
   USE uspp,            ONLY : okvan
@@ -70,9 +69,7 @@ PROGRAM tddft_main
   io_level = 1
  
   ! read ground state wavefunctions
-  ! and mannually disable all tefields
   call read_file
-  tefield = .false.
 
 #ifdef __MPI
   use_para_diag = check_para_diag(nbnd)

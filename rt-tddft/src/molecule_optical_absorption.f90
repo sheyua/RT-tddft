@@ -128,7 +128,7 @@ subroutine molecule_optical_absorption
 #ifdef __PARA
       write(filename, '(A8,I0)') "v_",  me_pool
 #else
-      write(filename, '(A8)') "v_"
+      write(filename, '(A8)') "v"
 #endif
       fzfield = 33
       open(unit=fzfield,file=trim(filename))
