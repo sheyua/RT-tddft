@@ -50,7 +50,7 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
   USE cell_base,     ONLY : alat, at, omega, bg, saw
   USE extfield,      ONLY : tefield, dipfield, edir, eamp, emaxpos, &
                             eopreg, forcefield, &
-                            emirror, estart, eend, evolt
+                            emirror, epstart, epend, enstart, enend, evolt
   USE force_mod,     ONLY : lforce
   USE io_global,     ONLY : stdout,ionode
   USE control_flags, ONLY : mixing_beta
@@ -79,6 +79,63 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
 
   LOGICAL :: first=.TRUE.
   SAVE first
+  
+  !---------------------
+  !  Mirror image approach for rt-tddft
+  !---------------------
+  IF (emirror) THEN
+    length = alat * SQRT(at(1,edir)**2+at(2,edir)**2+at(3,edir)**2)
+    IF (enend.gt.0.5d0) enend = 0.5d0
+    IF (enstart.gt.enend) enstart = enend
+    IF (epend.gt.enstart) epend = enstart
+    IF (epstart.gt.epend) epstart = epend
+
+    IF (ionode) THEN
+      WRITE( stdout, '(5x,"Mirror electric field applied along edir(",i1,") : ")' ) edir
+      WRITE( stdout, '(8x,"Bias between left and right electrode is [Ry a.u.]:", es11.4)') evolt
+      WRITE( stdout, '(8x,"Total length of the system (including mirror image) is ", f11.4, " bohr")') length
+      WRITE( stdout, '(8x,"Left electrode starts at", f11.4," bohr, ends at", f11.4," percentile")') epstart, epend
+      WRITE( stdout, '(8x,"Right electrode starts at", f11.4," bohr, ends at", f11.4," percentile")') enstart, enend
+    ENDIF
+
+    !------------------------------
+    !  Add potential
+    !---------------------
+    ! Index for parallel summation
+    index0 = 0
+#if defined (__MPI)
+    DO i = 1, me_bgrp
+      index0 = index0 + dfftp%nr1x*dfftp%nr2x*dfftp%npp(i)
+    END DO
+#endif
+    DO ir = 1, dfftp%nnr
+      ! three dimensional indexes
+      i = index0 + ir - 1
+      k = i / (dfftp%nr1x*dfftp%nr2x)
+      i = i - (dfftp%nr1x*dfftp%nr2x)*k
+      j = i / dfftp%nr1x
+      i = i - dfftp%nr1x*j
+      
+      if (edir.eq.1) sawarg = DBLE(i)/DBLE(dfftp%nr1)
+      if (edir.eq.2) sawarg = DBLE(j)/DBLE(dfftp%nr2)
+      if (edir.eq.3) sawarg = DBLE(k)/DBLE(dfftp%nr3)
+      
+      if ( sawarg < epstart ) value = 0.0d0
+      if ( sawarg >= epstart .and. sawarg <= epend ) value = 0.5d0*evolt
+      if ( sawarg > epend .and. sawarg < enstart ) value = 0.0d0
+      if ( sawarg >= enstart .and. sawarg <= enend ) value = -0.5d0*evolt
+      if ( sawarg > enend .and. sawarg < (1.0d0-enend) ) value = 0.0d0
+      if ( sawarg >= (1.0d0-enend) .and. sawarg <= (1.0d0-enstart) ) value = -0.5d0*evolt
+      if ( sawarg > (1.0d0-enstart) .and. sawarg < (1.0d0-epend) ) value = 0.0d0
+      if ( sawarg >= (1.0d0-epend) .and. sawarg <= (1.0d0-epstart) ) value = 0.5d0*evolt
+      if ( sawarg > (1.0d0-epstart) ) value = 0.0d0
+
+      vpoten(ir) = vpoten(ir) + value
+
+    END DO
+    RETURN
+  ENDIF
+  
   
   !---------------------
   !  Execution control

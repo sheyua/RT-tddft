@@ -438,8 +438,10 @@ MODULE input_parameters
         REAL(DP) :: eopreg = 0.0_DP
         REAL(DP) :: eamp = 0.0_DP
         LOGICAL  :: emirror = .FALSE.
-        REAL(DP) :: estart = 0.0_DP
-        REAL(DP) :: eend = 0.25_DP
+        REAL(DP) :: epstart = 0.0_DP
+        REAL(DP) :: epend = 0.25_DP
+        REAL(DP) :: enstart = 0.25_DP
+        REAL(DP) :: enend = 0.5_DP
         REAL(DP) :: evolt = 0.0_DP
 
           ! Various parameters for noncollinear calculations
@@ -560,7 +562,7 @@ MODULE input_parameters
              Hubbard_U, Hubbard_J, Hubbard_alpha,                             &
              Hubbard_J0, Hubbard_beta,                                        &
              edir, emaxpos, eopreg, eamp,                                     &
-             emirror, estart, eend, evolt,                                    &
+             emirror, epstart, epend, enstart, enend, evolt,                  &
              smearing, starting_ns_eigenvalue,                                &
              U_projection_type, input_dft, la2F, assume_isolated,             &
              nqx1, nqx2, nqx3, ecutfock,                                      &

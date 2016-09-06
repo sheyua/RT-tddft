@@ -213,8 +213,10 @@ MODULE read_namelists_module
        eopreg = 0.1_DP
        eamp = 0.0_DP
        emirror = .FALSE.
-       estart = 0.0_DP
-       eend = 0.25_DP
+       epstart = 0.0_DP
+       epend = 0.25_DP
+       enstart = 0.25_DP
+       enend = 0.5_DP
        evolt = 0.0_DP
        !
        !  ... postprocessing of DOS & phonons & el-ph
@@ -783,8 +785,10 @@ MODULE read_namelists_module
        CALL mp_bcast( eopreg,                 ionode_id, intra_image_comm )
        CALL mp_bcast( eamp,                   ionode_id, intra_image_comm )
        CALL mp_bcast( emirror,                ionode_id, intra_image_comm )
-       CALL mp_bcast( estart,                 ionode_id, intra_image_comm )
-       CALL mp_bcast( eend,                   ionode_id, intra_image_comm )
+       CALL mp_bcast( epstart,                ionode_id, intra_image_comm )
+       CALL mp_bcast( epend,                  ionode_id, intra_image_comm )
+       CALL mp_bcast( enstart,                ionode_id, intra_image_comm )
+       CALL mp_bcast( enend,                  ionode_id, intra_image_comm )
        CALL mp_bcast( evolt,                  ionode_id, intra_image_comm )
        CALL mp_bcast( la2F,                   ionode_id, intra_image_comm )
        !

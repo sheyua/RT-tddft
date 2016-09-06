@@ -71,8 +71,10 @@ SUBROUTINE iosys()
                             eopreg_   => eopreg, &
                             eamp_     => eamp, &
                             emirror_  => emirror, &
-                            estart_   => estart, &
-                            eend_     => eend, &
+                            epstart_  => epstart, &
+                            epend_    => epend, &
+                            enstart_  => enstart, &
+                            enend_    => enend, &
                             evolt_    => evolt, &
                             forcefield
   !
@@ -228,7 +230,8 @@ SUBROUTINE iosys()
                                exxdiv_treatment, yukawa, ecutvcut,          &
                                exx_fraction, screening_parameter, ecutfock, &
                                gau_parameter,                               &
-                               edir, emaxpos, eopreg, eamp, emirror, estart, eend, evolt, &
+                               edir, emaxpos, eopreg, eamp, &
+                               emirror, epstart, epend, enstart, enend, evolt, &
                                noncolin, lambda, &
                                angle1, angle2, constrained_magnetization,     &
                                B_field, fixed_magnetization, report, lspinorb,&
@@ -1100,8 +1103,10 @@ SUBROUTINE iosys()
   eopreg_  = eopreg
   eamp_    = eamp
   emirror_ = emirror
-  estart_  = estart
-  eend_    = eend
+  epstart_ = epstart
+  epend_   = epend
+  enstart_ = enstart
+  enend_   = enend
   evolt_   = evolt
   dfftp%nr1     = nr1
   dfftp%nr2     = nr2

@@ -333,8 +333,10 @@ MODULE extfield
       eopreg,        &! amplitude of the inverse region (0<eopreg<1)
       eamp,          &! field amplitude (in a.u.) (1 a.u. = 51.44 10^11 V/m)
       etotefield,    &! energy correction due to the field
-      estart,        &! position where the bias voltage hits maximum
-      eend,          &! position where the bias voltage starts to drop
+      epstart,       &! position where the bias voltage hits maximum
+      epend,         &! position where the bias voltage starts to drop
+      enstart,       &! position where the bias voltage drops to minimum
+      enend,         &! position where the bias voltage starts to increase again
       evolt           ! height of the bias voltage
   REAL(DP), ALLOCATABLE :: &
       forcefield(:,:)
