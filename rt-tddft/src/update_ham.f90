@@ -21,9 +21,11 @@ SUBROUTINE update_hamiltonian(istep)
   USE lsda_mod,      ONLY : nspin
   USE uspp,          ONLY : okvan, nkb
   USE dfunct,        ONLY : newd
-  USE tddft_module,  ONLY : nupdate_Dnm, iverbosity
+  USE tddft_module,  ONLY : nupdate_Dnm, iverbosity, &
+                            e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt
   USE becmod,        ONLY : becp, allocate_bec_type, deallocate_bec_type
   USE wvfct,         ONLY : nbnd
+  USE extfield,      ONLY : emirror, epstart, epend, enstart, enend, evolt
   implicit none
   integer, intent(in) :: istep
   real(dp) :: charge, ehart, etxc, vtxc, eth, etotefield
@@ -43,7 +45,16 @@ SUBROUTINE update_hamiltonian(istep)
   ! calculate HXC-potential
   etotefield = 0.d0 ! etotefield is INOUT type
   call v_of_rho( rho, rho_core, rhog_core, ehart, etxc, vtxc, eth, etotefield, charge, v )
- 
+  
+  ! manually tune the external bias potential
+  emirror = e_mirror
+  epstart = e_pstart
+  epend   = e_pend
+  enstart = e_nstart
+  enend   = e_nend
+  evolt   = e_volt
+  call add_efield(vltot, etotefield, rho%of_r, .false.)
+
   ! calculate total local potential (external + scf)
   call set_vrs(vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid)    
   

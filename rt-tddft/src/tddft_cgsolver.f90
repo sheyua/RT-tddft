@@ -7,7 +7,6 @@
 !
 !
 ! Fortran implementation of the Conjugate Gradient Square solver
-! author: Xiaofeng Qian, MIT (2008)
 !
 
 !-----------------------------------------------------------------------
@@ -67,7 +66,6 @@ SUBROUTINE tddft_cgsolver (A, b, x, ndmx, ndim, tol, ik, iter, flag_global,  &
   ! ... Conjugate-Gradient Square method for solving:   A * x = b
   ! ... where: A*x is evaluated by subroutine 'A', and 'A' is implicit
   ! ... general square-matrix.
-  !                                            Xiaofeng Qian, MIT (2008)
   USE kinds,     ONLY : dp
   USE mp_pools,  ONLY : intra_pool_comm
   USE mp,        ONLY : mp_sum

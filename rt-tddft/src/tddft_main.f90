@@ -11,10 +11,7 @@ PROGRAM tddft_main
   !-----------------------------------------------------------------------
   !
   ! ... This is the main driver of the real time TDDFT propagation.
-  ! ... Authors: Xiaofeng Qian and Davide Ceresoli
   ! ...
-  ! ... References:
-  ! ...   Xiaofeng Qian, Ju Li, Xi Lin, and Sidney Yip, PRB 73, 035408 (2006)
   ! ...
   USE kinds,           ONLY : DP
   USE io_files,        ONLY : prefix, tmp_dir
@@ -73,6 +70,7 @@ PROGRAM tddft_main
   io_level = 1
  
   ! read ground state wavefunctions
+  ! and mannually disable all tefields
   call read_file
   tefield = .false.
 

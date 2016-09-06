@@ -29,7 +29,7 @@ SUBROUTINE tddft_readin()
   namelist /inputtddft/ job, prefix, tmp_dir, conv_threshold, iverbosity, &
                         dt, e_strength, e_direction, nstep, nupdate_Dnm, &
                         l_circular_dichroism, l_tddft_restart, max_seconds, &
-                        molecule
+                        molecule, e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt
 
   if (.not. ionode .or. my_image_id > 0) goto 400
 
@@ -45,7 +45,7 @@ SUBROUTINE tddft_readin()
   verbosity    = 'low'
   dt           = 2.d0                      ! time step (default: 2 attosecond)
   e_strength   = 0.01d0                    ! impulse electric field strength (default: 0.01/Ang)
-  e_direction  = 1                         ! impulse electric field direction: 1-x 2-y 3-z
+  e_direction  = 3                         ! impulse electric field direction: 1-x 2-y 3-z
   conv_threshold = 1.0d-12                 ! convergence threshold    
   nstep        = 1000                      ! total time steps
   nupdate_Dnm  = 1                         ! update USPP Dnm every step
@@ -53,6 +53,12 @@ SUBROUTINE tddft_readin()
   l_tddft_restart      = .false.
   max_seconds  =  1.d7
   molecule     = .true.
+  e_mirror     = .true.
+  e_pstart     = 0.0d0
+  e_pend       = 0.25d0
+  e_nstart     = 0.25d0
+  e_nend       = 0.5d0
+  e_volt       = 0.0d0
 
   ! read input    
   read( 5, inputtddft, err = 200, iostat = ios )
@@ -115,6 +121,11 @@ SUBROUTINE tddft_bcast_input
   call mp_bcast(iverbosity, root, world_comm)
   call mp_bcast(max_seconds, root, world_comm)
   call mp_bcast(molecule, root, world_comm)
+  call mp_bcast(e_mirror, root, world_comm)
+  call mp_bcast(e_pstart, root, world_comm)
+  call mp_bcast(e_pend, root, world_comm)
+  call mp_bcast(e_nstart, root, world_comm)
+  call mp_bcast(e_nend, root, world_comm)
 
 END SUBROUTINE tddft_bcast_input
 #endif

@@ -30,6 +30,12 @@ MODULE tddft_module
   logical  :: l_tddft_restart      ! restart propagation from the last step
   integer  :: iverbosity           ! verbosity level (default = 1)
   logical  :: molecule             ! use molecular routuines
+  logical  :: e_mirror             ! external bias use mirror image
+  real(dp) :: e_pstart             ! position where the bias voltage hits maximum
+  real(dp) :: e_pend               ! position where the bias voltage starts to drop
+  real(dp) :: e_nstart             ! position where the bias voltage drops to minimum
+  real(dp) :: e_nend               ! position where the bias voltage starts to increase again
+  real(dp) :: e_volt               ! height of the bias voltage
 
   complex(dp), parameter :: i_complex = (0.0_dp,1.0_dp)
 

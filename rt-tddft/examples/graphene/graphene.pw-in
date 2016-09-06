@@ -19,10 +19,10 @@
 	degauss=0.01
 	edir = 3
 	emirror = .true.
-	epstart = 0.000d0
-	epend = 0.25d0
-	enstart = 0.25d0
-	enend = 0.5d0
+	epstart = 0.005d0
+	epend = 0.245d0
+	enstart = 0.255d0
+	enend = 0.495d0
 	evolt = 0.0735d0
 /
 &electrons
