@@ -42,7 +42,6 @@ SUBROUTINE update_hamiltonian(istep)
     if (iverbosity > 10) call write_ns()
   end if
     
-  ! calculate HXC-potential
   etotefield = 0.d0 ! etotefield is INOUT type
   tefield = .true.
   emirror = e_mirror
@@ -51,19 +50,19 @@ SUBROUTINE update_hamiltonian(istep)
   enstart = e_nstart
   enend   = e_nend
   evolt   = e_volt
-  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1)
+  ! manually add the external bias potential into vltot
+  if ( istep == -1 ) then
+    call add_efield(vltot, etotefield, rho%of_r, .false.)
+  endif
+  
+  ! calculate HXC-potential
+  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1), kedtau, v%kin_r
   call v_of_rho( rho, rho_core, rhog_core, ehart, etxc, vtxc, eth, etotefield, charge, v )
-  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1)
-
-  ! manually tune the external bias potential
-  !if ( istep == -1 ) then
-  !  call add_efield(vltot, etotefield, rho%of_r, .false.)
-  !endif
-  !write(stdout, *) vltot(8019)
+  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1), kedtau, v%kin_r
 
 ! calculate total local potential (external + scf)
   call set_vrs(vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid)    
-  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1)
+  write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1), kedtau, v%kin_r
   
   ! calculate new D_nm matrix for ultrasoft pseudopotential
   if (okvan) then

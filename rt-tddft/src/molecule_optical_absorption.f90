@@ -10,10 +10,6 @@
 subroutine molecule_optical_absorption
   !----------------------------------------------------------------------
   !  ... Compute optical absorption spectrum by real-time TDDFT 
-  !  ... References:
-  !      (1) Phys. Rev. B 73, 035408 (2006)
-  !      (2) http://www.netlib.org/linalg/html_templates/Templates.html
-  !                                             Xiaofeng Qian, MIT (2008)
   !----------------------------------------------------------------------
   USE kinds,                       ONLY : dp
   USE io_global,                   ONLY : stdout, ionode

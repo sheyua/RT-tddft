@@ -14,9 +14,6 @@
 	ntyp=1
 	ecutwfc=25.0
 	ecutrho=350.0
-	occupations='smearing'
-	smearing='gaussian'
-	degauss=0.01
 	edir = 3
 	emirror = .true.
 	epstart = 0.005d0
@@ -30,7 +27,7 @@
 	electron_maxstep = 100
 	mixing_mode='plain'
 	mixing_beta=0.1
-	conv_thr = 1.0e-8
+	conv_thr = 1.0e-12
 
 /
 ATOMIC_SPECIES
