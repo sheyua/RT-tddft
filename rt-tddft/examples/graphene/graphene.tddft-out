@@ -1,0 +1,154 @@
+
+     Program QE v.5.2.0 starts on  7Sep2016 at  6:55:56 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Serial version
+ 
+     ***** This is TDDFT svn revision unknown      *****
+ 
+
+     Reading data from directory:
+     ./out/graphene.save
+
+   Info: using nr1, nr2, nr3 values from input
+
+   Info: using nr1, nr2, nr3 values from input
+
+     IMPORTANT: XC functional enforced from input :
+     Exchange-correlation      =  SLA  PW   PBX  PBC ( 1  4  3  4 0 0)
+     Any further DFT definition will be discarded
+     Please, verify this is what you really want
+
+ 
+     G-vector sticks info
+     --------------------
+     sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
+     Sum         511     151     61                39047     5995    1539
+ 
+ 
+     Adding external electric field
+        Potential amp.        0.0000 Ry
+        Total length         17.0075 bohr
+ 
+ 
+     Adding external electric field
+        Potential amp.        0.0000 Ry
+        Total length         17.0075 bohr
+ 
+     alpha_pv=     38.9233 eV
+ 
+     Calculation type      : optical     
+     Systme is             : molecule
+     Number or steps       :            2
+     Time step             :       0.0413 rydberg_atomic_time
+     Electric field dir.   :            3 (1=x,2=y,3=z)
+     Electric field impulse:       0.0053 bohrradius^-1
+ 
+     Done with tddft_cgsolver_initialize
+     Output quantities:
+       CHARGE spin  istep  charge
+       DIP    spin  istep  dipole(1:3)
+       QUAD   spin  istep  quadrupole(1:3,1:3)
+       ANG    spin  istep  Re[L(1:3)]  Im[L(1:3)]
+ 
+     Mirror electric field applied along edir(3) : 
+        Bias between left and right electrode is [Ry a.u.]: 7.3500E-02
+        Total length of the system (including mirror image) is     18.8973 bohr
+        Left electrode starts at     0.0050 bohr, ends at     0.2450 percentile
+        Right electrode starts at     0.2550 bohr, ends at     0.4950 percentile
+ -0.161152020520594        10.6652819061682       -10.2319705908477     
+  1.199971846436096E-312  1.199971846198945E-312
+     Mirror electric field applied along edir(3) : 
+        Bias between left and right electrode is [Ry a.u.]: 7.3500E-02
+        Total length of the system (including mirror image) is     18.8973 bohr
+        Left electrode starts at     0.0050 bohr, ends at     0.2450 percentile
+        Right electrode starts at     0.2550 bohr, ends at     0.4950 percentile
+ -0.161152020520594        10.6652819061682       -10.1952205908474     
+  1.199971846436096E-312  1.199971846198945E-312
+ -0.231233609667937        10.6652819061682       -10.1952205908474     
+  1.199971846436096E-312  1.199971846198945E-312
+     Wavefunction and Hamiltonian are set to the most recent time step!
+CHARGE 1      1    0.160000E+02
+DIP    1      1   -0.790494E+00   -0.136918E+01   -0.180801E-03
+ -0.231233609667937        10.6652819061682       -10.1952205908474     
+  1.199971846436096E-312  1.199971846198945E-312
+     Mirror electric field applied along edir(3) : 
+        Bias between left and right electrode is [Ry a.u.]: 7.3500E-02
+        Total length of the system (including mirror image) is     18.8973 bohr
+        Left electrode starts at     0.0050 bohr, ends at     0.2450 percentile
+        Right electrode starts at     0.2550 bohr, ends at     0.4950 percentile
+ -0.231233609667937        10.6652819061682       -10.1952204119798     
+  1.199971846436096E-312  1.199971846198945E-312
+ -0.231234331680311        10.6652819061682       -10.1952204119798     
+  1.199971846436096E-312  1.199971846198945E-312
+CHARGE 1      2    0.160000E+02
+DIP    1      2   -0.790494E+00   -0.136918E+01   -0.180808E-03
+ -0.231234331680311        10.6652819061682       -10.1952204119798     
+  1.199971846436096E-312  1.199971846198945E-312
+     Mirror electric field applied along edir(3) : 
+        Bias between left and right electrode is [Ry a.u.]: 7.3500E-02
+        Total length of the system (including mirror image) is     18.8973 bohr
+        Left electrode starts at     0.0050 bohr, ends at     0.2450 percentile
+        Right electrode starts at     0.2550 bohr, ends at     0.4950 percentile
+ -0.231234331680311        10.6652819061682       -10.1952196410494     
+  1.199971846436096E-312  1.199971846198945E-312
+ -0.231236030447823        10.6652819061682       -10.1952196410494     
+  1.199971846436096E-312  1.199971846198945E-312
+     Initialization:
+     tddft_setup  :      0.05s CPU      0.07s WALL (       1 calls)
+ 
+     Linear response
+     ch_psi       :      2.36s CPU      3.03s WALL (    6312 calls)
+     h_psi        :      2.53s CPU      3.32s WALL (    6380 calls)
+     Real time evolution
+     updateH      :      0.37s CPU      0.45s WALL (       3 calls)
+     dipole       :      0.00s CPU      0.00s WALL (       2 calls)
+ 
+     General routines
+     calbec       :      0.03s CPU      0.03s WALL (    6380 calls)
+     fft          :      0.11s CPU      0.14s WALL (      48 calls)
+     ffts         :      0.00s CPU      0.00s WALL (       7 calls)
+     fftw         :      1.97s CPU      2.46s WALL (   14528 calls)
+     davcio       :      0.00s CPU      0.01s WALL (     442 calls)
+ 
+ 
+
+     Called by init_run:
+
+     Called by electrons:
+     sum_band     :      0.21s CPU      0.24s WALL (       3 calls)
+     v_of_rho     :      0.20s CPU      0.27s WALL (       4 calls)
+
+     Called by c_bands:
+     init_us_2    :      0.01s CPU      0.01s WALL (     204 calls)
+
+     Called by sum_band:
+
+     Called by *egterg:
+     h_psi        :      2.53s CPU      3.32s WALL (    6380 calls)
+
+     Called by h_psi:
+     add_vuspsi   :      0.02s CPU      0.03s WALL (    6380 calls)
+
+     General routines
+     calbec       :      0.03s CPU      0.03s WALL (    6380 calls)
+     fft          :      0.11s CPU      0.14s WALL (      48 calls)
+     ffts         :      0.00s CPU      0.00s WALL (       7 calls)
+     fftw         :      1.97s CPU      2.46s WALL (   14528 calls)
+     interpolate  :      0.02s CPU      0.02s WALL (       7 calls)
+     davcio       :      0.00s CPU      0.01s WALL (     442 calls)
+ 
+ 
+     PWSCF        :      3.40s CPU      4.72s WALL (       1 calls)
+ 
+   This run was terminated on:   6:56: 1   7Sep2016            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=
