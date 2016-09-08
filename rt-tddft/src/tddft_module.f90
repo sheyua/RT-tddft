@@ -36,6 +36,7 @@ MODULE tddft_module
   real(dp) :: e_nstart             ! position where the bias voltage drops to minimum
   real(dp) :: e_nend               ! position where the bias voltage starts to increase again
   real(dp) :: e_volt               ! height of the bias voltage
+  real(dp) :: e_decay              ! how fast the bias voltage decays
 
   complex(dp), parameter :: i_complex = (0.0_dp,1.0_dp)
 

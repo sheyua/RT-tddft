@@ -28,8 +28,8 @@ SUBROUTINE tddft_readin()
   character(len=80) :: verbosity
   namelist /inputtddft/ job, prefix, tmp_dir, conv_threshold, iverbosity, &
                         dt, e_strength, e_direction, nstep, nupdate_Dnm, &
-                        l_circular_dichroism, l_tddft_restart, max_seconds, &
-                        molecule, e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt
+                        l_circular_dichroism, l_tddft_restart, max_seconds, molecule, &
+                        e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt, e_decay
 
   if (.not. ionode .or. my_image_id > 0) goto 400
 
@@ -59,6 +59,7 @@ SUBROUTINE tddft_readin()
   e_nstart     = 0.25d0
   e_nend       = 0.5d0
   e_volt       = 0.0d0
+  e_decay      = 0.0d0
 
   ! read input    
   read( 5, inputtddft, err = 200, iostat = ios )
@@ -126,6 +127,8 @@ SUBROUTINE tddft_bcast_input
   call mp_bcast(e_pend, root, world_comm)
   call mp_bcast(e_nstart, root, world_comm)
   call mp_bcast(e_nend, root, world_comm)
+  call mp_bcast(e_volt, root, world_comm)
+  call mp_bcast(e_decay, root, world_comm)
 
 END SUBROUTINE tddft_bcast_input
 #endif

@@ -60,7 +60,6 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
   USE fft_base,      ONLY : dfftp
   USE mp,            ONLY : mp_bcast, mp_sum
   USE control_flags, ONLY : iverbosity
-  USE scf,           ONLY : vltot, v, kedtau, vrs
 
   IMPLICIT NONE
   !
@@ -97,7 +96,6 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
       WRITE( stdout, '(8x,"Total length of the system (including mirror image) is ", f11.4, " bohr")') length
       WRITE( stdout, '(8x,"Left electrode starts at", f11.4," bohr, ends at", f11.4," percentile")') epstart, epend
       WRITE( stdout, '(8x,"Right electrode starts at", f11.4," bohr, ends at", f11.4," percentile")') enstart, enend
-    write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1), kedtau, v%kin_r
   ENDIF
 
     !------------------------------
@@ -135,7 +133,6 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
       vpoten(ir) = vpoten(ir) + value
 
     END DO
-    write(stdout, *) vrs(8019,1), vltot(8019), v%of_r(8019,1), kedtau, v%kin_r
     RETURN
   ENDIF
   
