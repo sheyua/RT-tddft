@@ -61,7 +61,7 @@ SUBROUTINE update_hamiltonian(istep)
 
   ! calculate total local potential (external + scf)
   call set_vrs(vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid)    
-  
+  write(stdout, *) 'GREP_TAG_after_set_vrs', istep, vrs(8019,1)
   ! calculate new D_nm matrix for ultrasoft pseudopotential
   if (okvan) then
     if (istep == -1 .or. ( (nupdate_Dnm /= 0 .and. mod(istep,nupdate_Dnm) == 0) ) ) then
