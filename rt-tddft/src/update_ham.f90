@@ -42,7 +42,6 @@ SUBROUTINE update_hamiltonian(istep)
     if (iverbosity > 10) call write_ns()
   end if
     
-  write( stdout, * ) istep
   etotefield = 0.d0 ! etotefield is INOUT type
   tefield = .true.
   emirror = e_mirror
