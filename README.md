@@ -10,7 +10,7 @@ first.
 	./configure --with-qepath=..
 	make build
 
-##*Quantum Espresso README
+#* Quantum Espresso README
 
 This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO: 
 opEn-Source Package for Research in Electronic Structure, Simulation, 
@@ -41,5 +41,5 @@ You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 675 Mass Ave, Cambridge, MA 02139, USA.
 
-##*rt-tddft README
+#* rt-tddft README
 
