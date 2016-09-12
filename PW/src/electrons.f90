@@ -635,14 +635,11 @@ SUBROUTINE electrons_scf ( printout )
      !
      ! ... define the total local potential (external + scf)
      !
-     write(stdout,*) 'GREP_TAG_befor_sum_vrs', iter, vrs(8019,1)
      CALL sum_vrs( dfftp%nnr, nspin, vltot, v%of_r, vrs )
-     write(stdout,*) 'GREP_TAG_after_sum_vrs', iter, vrs(8019,1)
      !
      ! ... interpolate the total local potential
      !
      CALL interpolate_vrs( dfftp%nnr, nspin, doublegrid, kedtau, v%kin_r, vrs )
-     write(stdout,*) 'GREP_TAG_after_int_vrs', iter, vrs(8019,1)
      !
      ! ... in the US case we have to recompute the self-consistent
      ! ... term in the nonlocal potential

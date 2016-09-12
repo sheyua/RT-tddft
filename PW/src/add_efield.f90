@@ -90,7 +90,7 @@ SUBROUTINE add_efield(vpoten,etotefield,rho,iflag)
     IF (epend.gt.enstart) epend = enstart
     IF (epstart.gt.epend) epstart = epend
 
-    IF (ionode ) THEN
+    IF (ionode .and. iflag) THEN
     WRITE( stdout, '(5x,"Mirror electric field applied along edir(",i1,") : ")' ) edir
       WRITE( stdout, '(8x,"Bias between left and right electrode is [Ry a.u.]:", es11.4)') evolt
       WRITE( stdout, '(8x,"Total length of the system (including mirror image) is ", f11.4, " bohr")') length
