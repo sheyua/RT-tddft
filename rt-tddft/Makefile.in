@@ -1,0 +1,25 @@
+# Top level makefile
+install:    build distclean
+
+build:
+	@echo "Building software dependence..."
+	@	if test -f makedeps.sh; \
+		then \
+			sh makedeps.sh; \
+			else echo "Fail to build dependence!"; \
+			exit; \
+		fi
+	$(MAKE) -C src build
+
+clean:
+	@echo "Cleaning software..."
+	$(MAKE) -C src clean
+	-/bin/rm -rf ../bin/tddft.x
+
+distclean:
+	@echo "Removing installation files..."
+	-/bin/rm -rf config.* configure autom4te.cache
+
+veryclean:	clean distclean
+	@echo "Removing installation and configuration files..."
+	-/bin/rm -rf makedeps.sh Makefile src/Makefile src/make.depend
