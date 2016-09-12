@@ -12,5 +12,5 @@
     e_nstart = 0.255d0
     e_nend = 0.495d0
     e_volt = 0.0735d0
-    e_decay = 0.0025d0         ! decays to zero after 400/dt steps
+    e_decay = 0.0025d0         ! decays to zero after 400 steps
 /

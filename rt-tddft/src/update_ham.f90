@@ -43,16 +43,25 @@ SUBROUTINE update_hamiltonian(istep)
   end if
     
   etotefield = 0.d0 ! etotefield is INOUT type
-  tefield = .true.
-  emirror = e_mirror
   epstart = e_pstart
   epend   = e_pend
   enstart = e_nstart
   enend   = e_nend
-  evolt   = e_volt
   ! manually add the external bias potential into vltot
   if ( istep == -1 ) then
-    call add_efield(vltot, etotefield, rho%of_r, .false.)
+    tefield = .true.
+    emirror = e_mirror
+    evolt = e_volt
+    call add_efield(vltot, etotefield, rho%of_r, .true.)
+  elseif ( istep <= 1.0d0/e_decay )
+    tefield = .true.
+    emirror = e_mirror
+    evolt = -e_volt * e_decay
+    call add_efield(vltot, etotefield, rho%of_r, .true.)
+    evolt = e_volt * (1.0d0 - istep*e_decay)
+  else
+    tefield = .false.
+    emirror = .false.
   endif
   
   ! calculate HXC-potential
