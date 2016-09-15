@@ -18,3 +18,5 @@ rt-tddft/src/Makefile
 rt-tddft/src/make.depend
 rt-tddft/*.cache
 rt-tddft/*.cache/**
+rt-tddft/examples/graphehe/*out
+rt-tddft/examples/graphehe/*out/**
