@@ -1,11 +1,27 @@
+This repository contains the Real Time-Time Dependent Density Functional
+Theory (rt-tddft) extension which enables
+and the Quantum Espresso code on top of it.
+
+To compile rt-tddft, please compile the quantum espresso code (QE-5.2.0)
+first.
+
+	cd rt-tddft
+	autoconf
+	./configure --with-qepath=..
+	make build
+
+#* Quantum Espresso README
+
 This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO: 
 opEn-Source Package for Research in Electronic Structure, Simulation, 
 and Optimization), promoted by the IOM-DEMOCRITOS National Simulation Center 
 of the Italian CNR (http://www.democritos.it). 
 
 Quick installation instructions for the impatient:
+
 	./configure [options]
 	make all
+
 ("make" alone prints a list of acceptable targets). Binaries go in bin/.
 For more information, see the general documentation in directory Doc/, 
 package-specific documentation in */Doc/, and the web site
@@ -24,3 +40,6 @@ for more details.
 You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 675 Mass Ave, Cambridge, MA 02139, USA.
+
+#* rt-tddft README
+

@@ -1,35 +1,19 @@
-!
-! Copyright (C) 2001-2010 Quantum-ESPRESSO group
-! This file is distributed under the terms of the
-! GNU General Public License. See the file `License'
-! in the root directory of the present distribution,
-! or http://www.gnu.org/copyleft/gpl.txt .
-!
 
-! TODO: nsave, restart_mode
-
-!-----------------------------------------------------------------------
+!---
 MODULE tddft_module
-  !-----------------------------------------------------------------------
-  !
-  ! ... This module contains the variables used for TDDFT calculations
-  !
+  !---
+  ! This module contains the variables used for RT-tddft calculations
   USE kinds, ONLY : DP
   
   IMPLICIT NONE
   SAVE
   
-  character(80) :: job             ! 'optical'
-  integer  :: e_direction          ! impulse electric field direction: 1-x 2-y 3-z
-  real(dp) :: e_strength           ! impulse electron field strength
-  real(dp) :: dt                   ! timestep
-  integer  :: nstep                ! number of timesteps for real-time tddft
-  real(dp) :: conv_threshold       ! cg convergence threshold
-  integer  :: nupdate_Dnm          ! update USPP Dnm matrix every n steps
-  logical  :: l_circular_dichroism ! calculate circular dichroism
-  logical  :: l_tddft_restart      ! restart propagation from the last step
-  integer  :: iverbosity           ! verbosity level (default = 1)
-  logical  :: molecule             ! use molecular routuines
+  ! ... Input parameters
+  character(80) :: job             ! 'transport'
+  real(dp) :: conv_threshold       ! convergence threshold for the linear solver
+  real(dp) :: dt                   ! time step length delta_t
+  integer  :: num_step             ! number of timesteps for real-time tddft
+  integer  :: init_step            ! initial istep may be used for restart
   logical  :: e_mirror             ! external bias use mirror image
   real(dp) :: e_pstart             ! position where the bias voltage hits maximum
   real(dp) :: e_pend               ! position where the bias voltage starts to drop
@@ -38,18 +22,17 @@ MODULE tddft_module
   real(dp) :: e_volt               ! height of the bias voltage
   real(dp) :: e_decay              ! how fast the bias voltage decays
 
+  ! ... Shared global parameters
   complex(dp), parameter :: i_complex = (0.0_dp,1.0_dp)
-
   real(dp), allocatable :: r_pos(:,:)     ! position operator in real space
   real(dp), allocatable :: r_pos_s(:,:)   ! position operator in real space (smooth grid)
-  integer, allocatable :: nbnd_occ(:)     ! occupied bands for each k-point
-  integer :: nbnd_occ_max                 ! max number of occupied bands
   integer, parameter :: iuntdwfc = 51     ! to save TDDFT intermediate wfcs
   integer :: nwordtdwfc 
-  integer, parameter :: iunevcn = 52      ! evc for restart
+  integer, allocatable :: nbnd_occ(:)     ! occupied bands for each k-point
+  integer :: nbnd_occ_max                 ! max number of occupied bands
   real(dp) :: alpha_pv                    ! shift of conduction levels
 
   integer :: tddft_exit_code = 0
 
 END MODULE tddft_module
-
+!---
