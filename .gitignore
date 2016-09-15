@@ -1,3 +1,4 @@
+espresso/**
 *.o
 *.d
 *.mod
