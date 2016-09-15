@@ -18,4 +18,4 @@ rt-tddft/src/Makefile
 rt-tddft/src/make.depend
 rt-tddft/*.cache
 rt-tddft/*.cache/**
-rt-tddft/examples/graphene/**
+rt-tddft/examples/graphene/*out
