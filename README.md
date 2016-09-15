@@ -7,7 +7,7 @@ first.
 
 	cd rt-tddft
 	autoconf
-	./configure --with-qepath=..
+	./configure --with-qepath=../espresso
 	make build
 
 #* Quantum Espresso README
@@ -19,8 +19,10 @@ of the Italian CNR (http://www.democritos.it).
 
 Quick installation instructions for the impatient:
 
+	unzip espresso.zip
+	cd espresso
 	./configure [options]
-	make all
+	make pw
 
 ("make" alone prints a list of acceptable targets). Binaries go in bin/.
 For more information, see the general documentation in directory Doc/, 
