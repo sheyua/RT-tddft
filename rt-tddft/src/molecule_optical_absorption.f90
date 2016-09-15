@@ -20,9 +20,9 @@ subroutine molecule_optical_absorption
   USE klist,                       ONLY : nks, nkstot, wk, xk, nelec, ngk
   USE wvfct,                       ONLY : nbnd, npwx, npw, igk, wg, g2kin, current_k, ecutwfc
   USE lsda_mod,                    ONLY : current_spin, lsda, isk, nspin
-  USE becmod,                      ONLY : becp  
+  USE becmod,                      ONLY : becp
   USE mp_pools,                    ONLY : my_pool_id, inter_pool_comm, intra_pool_comm
-  USE mp_global,    		   ONLY : me_pool
+  USE mp_global,                   ONLY : me_pool
   USE mp,                          ONLY : mp_sum, mp_barrier
   USE gvect,                       ONLY : ngm, g
   USE gvecs,                       ONLY : nls
@@ -41,12 +41,9 @@ subroutine molecule_optical_absorption
   !-- tddft variables ----------------------------------------------------
   complex(dp), allocatable :: tddft_psi(:,:,:), b(:,:)
   complex(dp), allocatable :: tddft_hpsi(:,:), tddft_spsi(:,:)
-  real(dp), allocatable :: charge(:), dipole(:,:), quadrupole(:,:,:), tmprho(:), tmpv(:)
-  complex(dp), allocatable :: circular(:,:), circular_local(:)
+  real(dp), allocatable :: charge(:), dipole(:,:)
 
-  integer :: fzcur, fzfield
-  character(len=1024) :: filename
-  integer :: istep, lter, flag_global, index0, idx, idy, idz, id
+  integer :: istep, lter, flag_global
   integer :: ik, is, ibnd
   complex(dp) :: ee                     ! i*dt/2
   real(dp) :: anorm, volRatio
@@ -56,7 +53,6 @@ subroutine molecule_optical_absorption
   volRatio = omega / real(dfftp%nr1 * dfftp%nr2 * dfftp%nr3, dp) 
 
   ! TODO: gk_sort
-  ! TODO: restart
 
   ! allocate memory
   call allocate_optical()
@@ -65,10 +61,6 @@ subroutine molecule_optical_absorption
   
   evc = cmplx(0.d0,0.d0)
   call tddft_cgsolver_initialize(npwx, nbnd_occ_max)
-  if (iverbosity > 0) then
-    write(stdout,'(5X,''Done with tddft_cgsolver_initialize'')')
-    call flush_unit(stdout)
-  endif
  
   ! print the legend
   if (ionode) call print_legend
@@ -90,75 +82,15 @@ subroutine molecule_optical_absorption
   end do
   call update_hamiltonian(-1)
  
-  if (iverbosity > 0) then
-    write(stdout,'(5X,''Wavefunction and Hamiltonian are set to the most recent time step!'')')
-    call flush_unit(stdout)
-  endif
+  call flush_unit(stdout)
 
 
   ! enter the main TDDFT loop 
-  do istep = 1, nstep
+  do istep = 1, num_step
      
     ! calculate dipole moment along x, y, and z direction
     call molecule_compute_dipole( charge, dipole )
 
-    !========================================================================
-    ! output rho%of_r() and v%of_r()
-    !========================================================================
-    if (istep == 1) then
-      index0 = 0
-#ifdef __PARA
-      write(filename, '(A8,I0)') "rho_",  me_pool
-        do idz = 1, me_pool
-          index0 = index0 + dfftp%npp(idz)
-        enddo
-#else
-      write(filename, '(A8)') "rho"
-#endif
-      fzcur = 32
-      open(unit=fzcur,file=trim(filename))
-      write(fzcur, *) "#Procid=", me_pool, nspin, dfftp%nnr, dfftp%nr1x, dfftp%nr2x
-    endif ! open charge density writer
-
-    if (istep == 1) then
-#ifdef __PARA
-      write(filename, '(A8,I0)') "v_",  me_pool
-#else
-      write(filename, '(A8)') "v"
-#endif
-      fzfield = 33
-      open(unit=fzfield,file=trim(filename))
-      write(fzfield, *) "#Procid=", me_pool, nspin, dfftp%nnr, dfftp%nr1x, dfftp%nr2x
-    endif ! open zKS potential writer
-
-    write(fzcur,*) "TimeStep: ", istep
-    write(fzfield,*) "TimeStep: ", istep
-    idz = 0
-    id = 0
-    do
-      if (id >= dfftp%nnr ) exit
-
-      tmprho = 0.d0
-      tmpv = 0.d0
-      do idy = 1, dfftp%nr2x
-      do idx = 1, dfftp%nr1x
-        do is = 1, nspin
-          tmprho(is) = tmprho(is) + rho%of_r( id+1, is )
-          tmpv(is) = tmpv(is) + v%of_r( id+1, is )
-        enddo
-        id = id + 1
-      enddo
-      enddo
-
-      do is = 1, nspin
-        write(fzcur,*) index0+idz, is, tmprho(is)*volRatio
-        write(fzfield,*) index0+idz, is, tmpv(is)/(dfftp%nr2x * dfftp%nr1x)
-      enddo
-      idz = idz + 1
-    enddo
-    !========================================================================
-    ! output rho%of_r() and v%of_r()
-    !========================================================================
 
     ! loop over k-points     
     if (nks > 1) rewind (iunigk)
@@ -174,23 +106,11 @@ subroutine molecule_optical_absorption
         
       ! read wfcs from file and compute becp
       evc = (0.d0, 0.d0)
-      if (istep == 1) then
-        call get_buffer (evc, nwordwfc, iunwfc, ik)
-      else
-        call get_buffer (evc, nwordwfc, iunevcn, ik)
-      endif
-      if ( (istep > 1) .or. (l_tddft_restart .and. (istep == 1)) ) then
+      call get_buffer (evc, nwordwfc, iunwfc, ik)
+      if (istep > 1) then
         call get_buffer (tddft_psi, nwordtdwfc, iuntdwfc, ik)
       endif
 
-      ! calculate circular dichroism along x, y, and z direction
-      if (l_circular_dichroism)  then
-        circular_local = (0.d0, 0.d0)
-        circular = (0.d0, 0.d0)
-        call compute_circular_dichroism(circular_local)
-        circular(1:3, current_spin) = circular_local(1:3)
-      end if
-        
       ! guess the wavefunction at the next timestep
       tddft_psi(:,:,1) = (0.d0,0.d0)
       do ibnd = 1, nbnd_occ(ik)
@@ -215,19 +135,15 @@ subroutine molecule_optical_absorption
       evc(:,1:nbnd_occ(ik)) = tddft_psi(:,1:nbnd_occ(ik),1)
 
       ! save wavefunctions to disk
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! for multiple k-points, sum_band will use the evc in file iunwfc to compute
-! charge
+      ! for multiple k-points, sum_band will use the evc in file iunwfc to compute
+      ! charge
       CALL save_buffer (evc, nwordwfc, iunwfc, ik)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      call save_buffer (evc, nwordwfc, iunevcn, ik)
       call save_buffer (tddft_psi, nwordtdwfc, iuntdwfc, ik)
         
     enddo ! ik
 
 #ifdef __PARA
     ! reduce over k-points
-    if (l_circular_dichroism) call mp_sum(circular, inter_pool_comm)
     call mp_sum(charge, inter_pool_comm)
     call mp_sum(dipole, inter_pool_comm)
 #endif
@@ -237,8 +153,6 @@ subroutine molecule_optical_absorption
       do is = 1, nspin
         write(stdout,'(''CHARGE '',I1,1X,I6,3E16.6)') is, istep, charge(is)
         write(stdout,'(''DIP    '',I1,1X,I6,3E16.6)') is, istep, dipole(:,is)
-        !write(stdout,'(''QUAD   '',I1,1X,I6,9E18.9)') is, istep, quadrupole(:,:,is)
-        !write(stdout,'(''ANG    '',I1,1X,I6,3E16.6)') is, istep, circular(:,is)
       enddo
     endif
      
@@ -263,8 +177,6 @@ CONTAINS
     write(stdout,'(5X,''Output quantities:'')')
     write(stdout,'(5X,''  CHARGE spin  istep  charge'')')
     write(stdout,'(5X,''  DIP    spin  istep  dipole(1:3)'')')
-    write(stdout,'(5X,''  QUAD   spin  istep  quadrupole(1:3,1:3)'')')
-    write(stdout,'(5X,''  ANG    spin  istep  Re[L(1:3)]  Im[L(1:3)]'')')
     write(stdout,*)
     call flush_unit(stdout)
   END SUBROUTINE print_legend
@@ -294,13 +206,9 @@ CONTAINS
     tddft_spsi = (0.d0,0.d0)
     b = (0.d0,0.d0)
 
-    allocate (charge(nspin), dipole(3,nspin), quadrupole(3,3,nspin), tmprho(nspin), tmpv(nspin))
-    allocate (circular(3,nspin), circular_local(3))
+    allocate (charge(nspin), dipole(3,nspin))
     charge = 0.d0
     dipole = 0.d0
-    quadrupole = 0.d0
-    circular = (0.d0, 0.d0)
-    circular_local = (0.d0, 0.d0)
 
     allocate (r_pos(3,dfftp%nnr), r_pos_s(3,dfftp%nnr))
     call molecule_setup_r
@@ -317,110 +225,71 @@ CONTAINS
 
     call deallocate_bec_type(becp)
     deallocate (tddft_psi, tddft_hpsi, tddft_spsi, b)
-    deallocate (charge, dipole, quadrupole, circular, circular_local)
+    deallocate (charge, dipole)
     deallocate (r_pos, r_pos_s)
   END SUBROUTINE deallocate_optical
    
    
-  !====================================================================
-  ! compute circular dichroism (EXPERIMENTAL, NORM-CONSERVING ONLY)
-  !====================================================================      
-  subroutine compute_circular_dichroism(cd)
-    USE fft_base,               ONLY : dfftp
-    USE fft_interfaces,         ONLY : invfft
-    USE mp_global,              ONLY : me_pool
-    IMPLICIT NONE
-    REAL(DP) :: xx(dfftp%nnr), yy(dfftp%nnr), zz(dfftp%nnr), gk
-    INTEGER  :: ik, ibnd, i, ii, jj, kk, index0, index, ir, ipol, ind, i_current_spin, ig
-    complex(dp) :: p_psi(npwx), p_psi_r(dfftp%nnr, 3), cd(3, nspin), psic1(dfftp%nnr)
-    
-    xx(:) = 0.d0
-    yy(:) = 0.d0
-    zz(:) = 0.d0
-    
-    index0 = 0
-
-#ifdef __PARA
-  do i = 1, me_pool
-    index0 = index0 + dfftp%nr1x*dfftp%nr2x*dfftp%npp(i)
-  enddo
-#endif
-
-  ! loop over real space grid
-  do ir = 1, dfftp%nnr
-    index = index0 + ir - 1
-    kk     = index / (dfftp%nr1x*dfftp%nr2x)
-    index = index - (dfftp%nr1x*dfftp%nr2x)*kk
-    jj     = index / dfftp%nr1x
-    index = index - dfftp%nr1x*jj
-    ii     = index
-
-             xx(ir) = &
-                  dble( ii-1 )/dble(dfftp%nr1) * at(1,1) * alat + &
-                  dble( jj-1 )/dble(dfftp%nr2) * at(1,2) * alat + &
-                  dble( kk-1 )/dble(dfftp%nr3) * at(1,3) * alat
-             
-             yy(ir) = &
-                  dble( ii-1 )/dble(dfftp%nr1) * at(2,1) * alat + &
-                  dble( jj-1 )/dble(dfftp%nr2) * at(2,2) * alat + &
-                  dble( kk-1 )/dble(dfftp%nr3) * at(2,3) * alat
-             
-             zz(ir) = &
-                  dble( ii-1 )/dble(dfftp%nr1) * at(3,1) * alat + &
-                  dble( jj-1 )/dble(dfftp%nr2) * at(3,2) * alat + &
-                  dble( kk-1 )/dble(dfftp%nr3) * at(3,3) * alat
-             
-    end do
-    
-    cd(:,:) = (0.d0, 0.d0)
-    
-    do ik = 1, nks
-       
-       if (nbnd_occ(ik) > 0) then
-          
-       i_current_spin = isk(ik)
-       call gk_sort(xk(1,ik), ngm, g, ecutwfc/tpiba2, npw, igk, g2kin)
-       g2kin(:) = g2kin(:) * tpiba2
-       
-       do ibnd = 1, nbnd_occ(ik)
-          
-          p_psi_r(:, :) = (0.d0, 0.d0)
-          do ipol = 1, 3
-             p_psi(:) = (0.d0, 0.d0)
-             do ig = 1, npw
-                gk = xk(ipol,ik) + g(ipol,igk(ig))
-                p_psi(ig) = gk * tpiba * tddft_psi(ig, ibnd, ik)
-             end do
-             psic1(:) = (0.d0, 0.d0)
-             psic1(nls(igk(1:npw))) = p_psi(:)
-             call invfft('Wave', psic1, dfftp)
-             p_psi_r(:,ipol) = psic1(:)
-          end do
-          
-          ! transform wavefunction from reciprocal space into real space
-          psic1(:) = (0.d0, 0.d0)
-          psic1(nls(igk(1:npw))) = tddft_psi(1:npw, ibnd, ik)
-          call invfft('Wave', psic1, dfftp)
-          
-          do ind = 1, dfftp%nnr
-             cd(1, i_current_spin) = cd(1, i_current_spin) + &
-                  conjg(psic1(ind)) * ( yy(ind) * p_psi_r(ind,3) - zz(ind) * p_psi_r(ind,2) )
-             cd(2, i_current_spin) = cd(2, i_current_spin) + &
-                  conjg(psic1(ind)) * ( zz(ind) * p_psi_r(ind,1) - xx(ind) * p_psi_r(ind,3) )
-             cd(3, i_current_spin) = cd(3, i_current_spin) + &
-                  conjg(psic1(ind)) * ( xx(ind) * p_psi_r(ind,2) - yy(ind) * p_psi_r(ind,1) )
-          end do
-          
-          
-       end do
-
-       end if
-       
-    end do
-    cd = cd  / dble(dfftp%nnr)
-    
-    
-    RETURN
-  end subroutine compute_circular_dichroism
+  !========================================================================
+  ! output rho%of_r() and v%of_r()
+  !========================================================================
+!  SUBROUTINE report_rho_and_v(filename)
+!    integer :: index0, idx, idy, idz, id
+!    integer :: fzcur, fzfield
+!    character(len=1024) :: filename
+!    real(dp), allocatable :: charge(:), dipole(:,:), quadrupole(:,:,:), tmprho(:), tmpv(:)
+!    allocate (charge(nspin), dipole(3,nspin), quadrupole(3,3,nspin), tmprho(nspin), tmpv(nspin))
+!    if (istep == 1) then
+!      index0 = 0
+!#ifdef __PARA
+!      write(filename, '(A8,I0)') "rho_",  me_pool
+!        do idz = 1, me_pool
+!          index0 = index0 + dfftp%npp(idz)
+!        enddo
+!#else
+!      write(filename, '(A8)') "rho"
+!#endif
+!      fzcur = 32
+!      open(unit=fzcur,file=trim(filename))
+!      write(fzcur, *) "#Procid=", me_pool, nspin, dfftp%nnr, dfftp%nr1x, dfftp%nr2x
+!    endif ! open charge density writer
+!
+!    if (istep == 1) then
+!#ifdef __PARA
+!      write(filename, '(A8,I0)') "v_",  me_pool
+!#else
+!      write(filename, '(A8)') "v"
+!#endif
+!      fzfield = 33
+!      open(unit=fzfield,file=trim(filename))
+!      write(fzfield, *) "#Procid=", me_pool, nspin, dfftp%nnr, dfftp%nr1x, dfftp%nr2x
+!    endif ! open zKS potential writer
+!
+!    write(fzcur,*) "TimeStep: ", istep
+!    write(fzfield,*) "TimeStep: ", istep
+!    idz = 0
+!    id = 0
+!    do
+!      if (id >= dfftp%nnr ) exit
+!
+!      tmprho = 0.d0
+!      tmpv = 0.d0
+!      do idy = 1, dfftp%nr2x
+!      do idx = 1, dfftp%nr1x
+!        do is = 1, nspin
+!          tmprho(is) = tmprho(is) + rho%of_r( id+1, is )
+!          tmpv(is) = tmpv(is) + v%of_r( id+1, is )
+!        enddo
+!        id = id + 1
+!      enddo
+!      enddo
+!
+!      do is = 1, nspin
+!        write(fzcur,*) index0+idz, is, tmprho(is)*volRatio
+!        write(fzfield,*) index0+idz, is, tmpv(is)/(dfftp%nr2x * dfftp%nr1x)
+!      enddo
+!      idz = idz + 1
+!    enddo
+!  END SUBROUTINE report_rho_and_v
 
 END SUBROUTINE molecule_optical_absorption
