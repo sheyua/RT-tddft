@@ -8,18 +8,15 @@ PROGRAM tddft_main
   USE mp_bands,        ONLY : nbgrp
   USE check_stop,      ONLY : check_stop_init
   USE control_flags,   ONLY : io_level, use_para_diag
+  USE ldaU,            ONLY : lda_plus_u
   USE uspp,            ONLY : okvan
   USE paw_variables,   ONLY : okpaw 
   USE noncollin_module,ONLY : noncolin
   USE wvfct,           ONLY : nbnd
+  USE mp_pools,        ONLY : nproc_pool
 !  USE tddft_module,    ONLY : job, tddft_exit_code
-!  USE mp_images,       ONLY : nimage, my_image_id
-!  USE mp_pools,        ONLY : nproc_pool
-!  USE lsda_mod,        ONLY : nspin
-!  USE fft_base,        ONLY : dffts
 !  USE iotk_module  
 !  USE xml_io_base
-  USE io_global,       ONLY : stdout
   implicit none
   character (len=9)   :: code = 'QE'
   logical, external  :: check_para_diag
@@ -35,7 +32,7 @@ PROGRAM tddft_main
   ! restrict RT-tddft to certain parallelization types
 #ifndef __BANDS
   if (nbgrp > 1) then
-    call errore('tddft_main', 'RT-tddft does not support band-parallelization ', 1)
+    call errore('tddft_main', 'RT-tddft does not support band-parallelization!', 1)
   endif
 #endif
 
@@ -47,18 +44,21 @@ PROGRAM tddft_main
   io_level = 1
   call read_file
   
+  ! restrict RT-tddft to certain xc functional types
+  if (lda_plus_u) then
+    call errore('tddft_main', 'RT-tddft does not support LDA plus U!',1)
+  endif
   ! restrict RT-tddft to certain pseudo-potential types
   if (okvan) then
-    call errore('tddft_main', 'RT-tddft does not support Vanderbilt-type potentials ',1)
+    call errore('tddft_main', 'RT-tddft does not support Vanderbilt-type potentials!',1)
   endif
   if (okpaw) then
-    call errore('tddft_main', 'RT-tddft does not support PAW potentials ',1)
+    call errore('tddft_main', 'RT-tddft does not support PAW potentials!',1)
   endif
   ! restrict RT-tddft to certain collinear types
   if (noncolin) then
-    call errore('tddft_main', 'RT-tddft does not support non-collinear spin polarization',1)
+    call errore('tddft_main', 'RT-tddft does not support non-collinear spin polarization!',1)
   endif
-
 
 #ifdef __PARA
   use_para_diag = check_para_diag(nbnd)
@@ -68,25 +68,16 @@ PROGRAM tddft_main
 
   ! read PW ground state wavefunctions
   call tddft_openfile()
-!
-!  if (gamma_only) then
-!    call errore ('tdddft_main', 'Cannot run TDFFT with gamma_only == .true. ', 1)
-!  endif
-!if ((twfcollect .eqv. .false.)  .and. (nproc_pool_file /= nproc_pool)) &
-!    call errore('tddft_main', 'Different number of CPU/pool. Set wf_collect=.true. in SCF', 1)
-!#ifdef __BANDS
-!  if (nbgrp > 1 .and. (twfcollect .eqv. .false.)) &
-!    call errore('tddft_main', 'Cannot use band-parallelization without wf_collect in SCF', 1)
-!#endif
-!  if (noncolin) call errore('tdddft_main', 'non-collinear not supported yet', 1)
-!
-!  call tddft_allocate()
+  
+  ! restrict RT-tddft to use the same number of proc as pwscf
+  if ( nproc_pool_file /= nproc_pool ) then
+    call errore('tddft_main', 'RT-tddft does not support different nproc from PWSCF!', 1)
+  endif
+
+  call tddft_allocate()
+  call tddft_welcome()
 !  call tddft_setup()
-!  call tddft_summarize()
 !
-!#ifdef __BANDS
-!  call init_parallel_over_band(inter_bgrp_comm, nbnd)
-!#endif
 !
 !  ! calculation
 !  select case (trim(job))

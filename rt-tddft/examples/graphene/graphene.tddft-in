@@ -1,11 +1,10 @@
-&inputtddft
-    job = 'optical'
+&input_tddft
+    job = 'transport'
     prefix = 'graphene'
     tmp_dir = './out/'
     dt = 2.0d0                 ! attoseconds (1e-18 s)
-    nstep = 200                ! 5000-10000 typically
-    e_direction = 3            ! 1=x, 2=y, 3=z
-    e_strength = 0.01          ! E-field strength (1/Angstrom)
+    num_step = 200             ! 5000-10000 typically
+    init_step = 1              ! initial step number
     e_mirror = .true.
     e_pstart = 0.005d0
     e_pend = 0.245d0

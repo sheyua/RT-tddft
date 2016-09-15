@@ -50,7 +50,6 @@ SUBROUTINE tddft_read_input()
 END SUBROUTINE tddft_read_input
 !---
 
-
 #ifdef __MPI
 !---
 SUBROUTINE tddft_broadcast_input()
@@ -60,7 +59,6 @@ SUBROUTINE tddft_broadcast_input()
   USE mp,            ONLY : mp_bcast
   USE io_files,      ONLY : prefix, tmp_dir
   USE tddft_module
-
   implicit none
   integer, parameter :: root = 0    
 
@@ -94,7 +92,7 @@ SUBROUTINE tddft_openfile()
                                iunigk, seqopn
   USE tddft_module,     ONLY : iuntdwfc, nwordtdwfc
   USE control_flags,    ONLY : io_level    
-  IMPLICIT NONE  
+  implicit none 
   logical :: exst
 
   !
@@ -115,17 +113,12 @@ SUBROUTINE tddft_openfile()
 END SUBROUTINE tddft_openfile
 !---
 
-!-----------------------------------------------------------------------
-SUBROUTINE tddft_allocate
-  !-----------------------------------------------------------------------
-  !
-  ! ... Allocate memory for TDDFT
-  !
-  USE tddft_module
+!---
+SUBROUTINE tddft_allocate()
+  !--- 
+  ! Allocate memory for TDDFT
   USE klist,         ONLY : nkstot
   USE wvfct,         ONLY : btype, nbndx
-  USE tddft_module
-
   implicit none
 
   ! needed by sum_band
@@ -133,19 +126,20 @@ SUBROUTINE tddft_allocate
   btype = 1
     
 END SUBROUTINE tddft_allocate
+!---
 
-
-!-----------------------------------------------------------------------
-SUBROUTINE tddft_summarize()
-  !-----------------------------------------------------------------------
-  !
-  ! ... Print a short summary of the calculation
-  !
+!---
+SUBROUTINE tddft_welcome()
+  !---
+  ! Print a short welcome summary of the calculation
   USE tddft_module
   USE io_global,     ONLY : stdout
   implicit none
   
   write(stdout,*)
+  write(stdout,'(5X,''***************************'')')
+  write(stdout,'(5X,''*** Welcome to RT-tddft ***'')')
+  write(stdout,'(5X,''***************************'')')
   write(stdout,'(5X,''Calculation type      : '',A12)') job
   write(stdout,'(5X,''Initial time step     : '',I12)') init_step
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
@@ -154,7 +148,8 @@ SUBROUTINE tddft_summarize()
 
   call flush_unit( stdout )
 
-END SUBROUTINE tddft_summarize
+END SUBROUTINE tddft_welcome
+!---
   
   
 
