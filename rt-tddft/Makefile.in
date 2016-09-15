@@ -1,3 +1,5 @@
+QE_PATH=@qepath@
+
 # Top level makefile
 install:    build distclean
 
@@ -14,7 +16,7 @@ build:
 clean:
 	@echo "Cleaning software..."
 	$(MAKE) -C src clean
-	-/bin/rm -rf ../bin/tddft.x
+	-/bin/rm -rf bin/* $(QE_PATH)/bin/tddft.x
 
 distclean:
 	@echo "Removing installation files..."

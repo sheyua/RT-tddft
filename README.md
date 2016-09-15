@@ -7,7 +7,7 @@ first.
 
 	cd rt-tddft
 	autoconf
-	./configure --with-qepath=../espresso
+	./configure --with-qepath=[YOUR QE PREFIX]
 	make build
 
 #* Quantum Espresso README

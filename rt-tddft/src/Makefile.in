@@ -1,5 +1,5 @@
 # Makefile for the software source codes
-
+CUR_DIR=$(shell pwd)
 QE_PATH=@qepath@
 include $(QE_PATH)/make.sys
 
@@ -37,7 +37,8 @@ TDDFT_COBJS = 	$(TDDFT_CSRC:.cpp=.o)
 build:	$(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS)  $(TDDFT_COBJS)
 	$(LD) $(LDFLAGS) -o tddft.x $(TDDFT_OBJS) $(PWOBJS) $(QEMODS) $(LIBOBJS) $(LIBS)
 	@echo "Linking executables..."
-	( cd ../../bin; ln -sf ../rt-tddft/src/tddft.x . )
+	( mkdir -p ../bin; cd ../bin; ln -sf ../src/tddft.x . )
+	( cd $(QE_PATH)/bin; ln -sf $(CUR_DIR)/tddft.x . )
 
 clean:
 	-/bin/rm -rf tddft.* *.o *.d *.mod *.i *.L
