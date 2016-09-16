@@ -10,7 +10,7 @@ MODFLAGS = $(MOD_FLAG)$(QE_PATH)/iotk/src $(MOD_FLAG)$(QE_PATH)/Modules \
            $(MOD_FLAG)$(QE_PATH)/PW/src $(MOD_FLAG).
 # New fortain objects to be compiled
 TDDFT_OBJS = tddft_module.o tddft_main.o tddft_routines.o \
-	     tddft_setup.o tddft_ch_psi_all.o tddft_cgsolver.o \
+	     tddft_init.o tddft_ch_psi_all.o tddft_cgsolver.o \
 	     update_ham.o molecule_optical_absorption.o molecule_operators.o 
 # Fortran and C Library objects to be linked
 LIBOBJS = $(QE_PATH)/flib/ptools.a $(QE_PATH)/flib/flib.a $(QE_PATH)/clib/clib.a \

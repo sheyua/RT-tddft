@@ -12,13 +12,15 @@ PROGRAM tddft_main
   USE uspp,            ONLY : okvan
   USE paw_variables,   ONLY : okpaw 
   USE noncollin_module,ONLY : noncolin
+  USE ktetra,          ONLY : ltetra
+  USE klist,           ONLY : two_fermi_energies
   USE wvfct,           ONLY : nbnd
   USE mp_pools,        ONLY : nproc_pool
 !  USE tddft_module,    ONLY : job, tddft_exit_code
 !  USE iotk_module  
 !  USE xml_io_base
   implicit none
-  character (len=9)   :: code = 'QE'
+  character(len=9)   :: code = 'QE'
   logical, external  :: check_para_diag
 
   ! initialize the environment
@@ -59,6 +61,15 @@ PROGRAM tddft_main
   if (noncolin) then
     call errore('tddft_main', 'RT-tddft does not support non-collinear spin polarization!',1)
   endif
+  ! restrict RT-tddft to certain occupation methods
+  if (ltetra) then
+    call errore('tddft_main', 'RT-tddft does not support the tetrahedron method!',1)
+  endif
+  ! restrict RT-tddft to certain electronic distributions
+  if (two_fermi_energies) then
+    call errore('tddft_main', 'RT-tddft does not support two Fermi energies!',1)
+  endif
+
 
 #ifdef __PARA
   use_para_diag = check_para_diag(nbnd)
@@ -74,22 +85,22 @@ PROGRAM tddft_main
     call errore('tddft_main', 'RT-tddft does not support different nproc from PWSCF!', 1)
   endif
 
-  call tddft_allocate()
   call tddft_welcome()
+  call tddft_init()
 !  call tddft_setup()
 !
 !
 !  ! calculation
 !  select case (trim(job))
 !  case ('transport')
-!     call molecule_optical_absorption
+     call molecule_optical_absorption
 !  case default
 !     call errore('tddft_main', 'RT-tddft cannot recognize this job type in input', 1)
 !  end select
 !  
 !  ! print timings and stop the code
 !  call tddft_closefil
-   call print_clock_tddft()
+   call tddft_print_clocks()
 !  call stop_run(tddft_exit_code)
 !  call do_stop(tddft_exit_code)
 !  

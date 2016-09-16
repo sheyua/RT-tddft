@@ -13,13 +13,9 @@ SUBROUTINE tddft_read_input()
   namelist /input_tddft/ job, prefix, tmp_dir, &
                         conv_threshold, dt, num_step, init_step, &
                         e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt, e_decay
-
-  if (.not. ionode .or. my_image_id > 0) goto 200
-
-  call input_from_file()
-
+  
   ! define input defult values
-  job          = ''
+  job          = 'transport'
   prefix       = 'pwscf'
   tmp_dir      = './scratch/'    
   conv_threshold = 1.0d-12                 ! convergence threshold    
@@ -34,14 +30,16 @@ SUBROUTINE tddft_read_input()
   e_volt       = 0.0d0
   e_decay      = 0.0d0
 
-  ! read input    
-  read( stdin, input_tddft, err = 100, iostat = ios )
+  if ( ionode .and. my_image_id == 0) then
+    call input_from_file()
+    ! read input    
+    read( stdin, input_tddft, err = 100, iostat = ios )
 100 call errore('tddft_readin', 'reading input_tddft namelist', abs(ios))
+  
+    ! convert to atomic units
+    dt = dt * 1.d-18 / (2.d0*au_sec)           ! change from femto-second to a.u.
+  endif
 
-  ! convert to atomic units
-  dt = dt * 1.d-18 / (2.d0*au_sec)           ! change from femto-second to a.u.
-
-200 continue
 #ifdef __PARA
   ! broadcast input variables  
   call tddft_broadcast_input()
@@ -50,14 +48,14 @@ SUBROUTINE tddft_read_input()
 END SUBROUTINE tddft_read_input
 !---
 
-#ifdef __MPI
+#ifdef __PARA
 !---
 SUBROUTINE tddft_broadcast_input()
   !--- 
   ! Broadcast tddft parameters to all processors 
-  USE mp_world,      ONLY : world_comm
-  USE mp,            ONLY : mp_bcast
-  USE io_files,      ONLY : prefix, tmp_dir
+  USE mp_world,     ONLY : world_comm
+  USE mp,           ONLY : mp_bcast
+  USE io_files,     ONLY : prefix, tmp_dir
   USE tddft_module
   implicit none
   integer, parameter :: root = 0    
@@ -114,36 +112,21 @@ END SUBROUTINE tddft_openfile
 !---
 
 !---
-SUBROUTINE tddft_allocate()
-  !--- 
-  ! Allocate memory for TDDFT
-  USE klist,         ONLY : nkstot
-  USE wvfct,         ONLY : btype, nbndx
-  implicit none
-
-  ! needed by sum_band
-  allocate(btype(nbndx,nkstot))
-  btype = 1
-    
-END SUBROUTINE tddft_allocate
-!---
-
-!---
 SUBROUTINE tddft_welcome()
   !---
   ! Print a short welcome summary of the calculation
   USE tddft_module
-  USE io_global,     ONLY : stdout
+  USE io_global,    ONLY : stdout
   implicit none
   
   write(stdout,*)
   write(stdout,'(5X,''***************************'')')
   write(stdout,'(5X,''*** Welcome to RT-tddft ***'')')
   write(stdout,'(5X,''***************************'')')
-  write(stdout,'(5X,''Calculation type      : '',A12)') job
+  write(stdout,'(5X,''Calculation type      : '',A12)') trim(job)
   write(stdout,'(5X,''Initial time step     : '',I12)') init_step
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
-  write(stdout,'(5X,''Time step             : '',F12.4,'' rydberg_atomic_time'')') dt
+  write(stdout,'(5X,''Time step             : '',F12.4,'' Atomic Time Unit'')') dt
   write(stdout,*)
 
   call flush_unit( stdout )
@@ -151,7 +134,10 @@ SUBROUTINE tddft_welcome()
 END SUBROUTINE tddft_welcome
 !---
   
-  
+!---
+!SUBROUTINE tddft_init()
+!END SUBROUTINE
+!---
 
 
 
@@ -175,49 +161,50 @@ END SUBROUTINE tddft_closefil
 
 
 
-!-----------------------------------------------------------------------
-SUBROUTINE print_clock_tddft
-  !-----------------------------------------------------------------------
-  !
-  ! ... Print clocks
-  !
+!---
+SUBROUTINE tddft_print_clocks()
+  !---
+  ! Print clock information for tddft routines
   USE io_global,  ONLY : stdout
-  IMPLICIT NONE
+  implicit none
 
-  write(stdout,*) '    Initialization:'
-  call print_clock ('tddft_setup')
-  write(stdout,*)
-  write(stdout,*) '    Linear response'
-  call print_clock ('greenf')
-  call print_clock ('cgsolve')
-  call print_clock ('ch_psi')
-  call print_clock ('h_psi')
-  call print_clock ('s_psi')
-  write(stdout,*) '    Real time evolution'
-  call print_clock ('updateH')
-  call print_clock ('dipole')
-  write(stdout,*)
-  write(stdout,*) '    General routines'
-  call print_clock ('calbec')
-  call print_clock ('fft')
-  call print_clock ('ffts')
-  call print_clock ('fftw')
-  call print_clock ('cinterpolate')
-  call print_clock ('davcio')
-  call print_clock ('write_rec')
+  ! Initialization
+  write(stdout,'(5X,''Initialization'')')
+  call print_clock ('tddft_init')
   write(stdout,*)
 
-#ifdef __PARA
-  write(stdout,*) '    Parallel routines'
-  call print_clock ('reduce')  
-  call print_clock( 'fft_scatter' )
-  call print_clock( 'ALLTOALL' )
-  write(stdout,*)
-#endif
+!  !
+!  write(stdout,*) '    Linear response'
+!  call print_clock ('greenf')
+!  call print_clock ('cgsolve')
+!  call print_clock ('ch_psi')
+!  call print_clock ('h_psi')
+!  call print_clock ('s_psi')
+!  write(stdout,*) '    Real time evolution'
+!  call print_clock ('updateH')
+!  call print_clock ('dipole')
+!  write(stdout,*)
+!  write(stdout,*) '    General routines'
+!  call print_clock ('calbec')
+!  call print_clock ('fft')
+!  call print_clock ('ffts')
+!  call print_clock ('fftw')
+!  call print_clock ('cinterpolate')
+!  call print_clock ('davcio')
+!  call print_clock ('write_rec')
+!  write(stdout,*)
+!
+!#ifdef __PARA
+!  write(stdout,*) '    Parallel routines'
+!  call print_clock ('reduce')  
+!  call print_clock( 'fft_scatter' )
+!  call print_clock( 'ALLTOALL' )
+!  write(stdout,*)
+!#endif
   call print_clock ('RT-tddft') 
 
-END SUBROUTINE print_clock_tddft
-
+END SUBROUTINE tddft_print_clocks
+!---
 
 
 !-----------------------------------------------------------------------

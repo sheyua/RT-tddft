@@ -21,7 +21,7 @@ subroutine tddft_ch_psi_all (n, h, ah, ee, ik, m)
   USE wvfct,        ONLY : npwx, nbnd
   USE uspp,         ONLY : vkb, nkb
   USE becmod,       ONLY : becp, calbec
-  USE tddft_module, ONLY : nbnd_occ, alpha_pv
+  USE tddft_module, ONLY : nbnd_occ
   USE mp_pools,     ONLY : intra_pool_comm
   USE mp,           ONLY : mp_sum
 #ifdef __BANDS
