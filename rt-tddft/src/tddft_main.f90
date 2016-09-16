@@ -86,13 +86,12 @@ PROGRAM tddft_main
 
   call tddft_welcome()
   call tddft_init()
-!  call tddft_setup()
 !
 !
 !  ! calculation
 !  select case (trim(job))
 !  case ('transport')
-!     call molecule_optical_absorption
+     call molecule_optical_absorption
 !  case default
 !     call errore('tddft_main', 'RT-tddft cannot recognize this job type in input', 1)
 !  end select

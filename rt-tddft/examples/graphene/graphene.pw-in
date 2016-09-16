@@ -15,7 +15,7 @@
 	ecutwfc=25.0
 	ecutrho=350.0
 	occupations = 'smearing'
-	!smearing = 'fermi-dirac'
+	smearing = 'fermi-dirac'
 	degauss = 0.0019
 	edir = 3
 	emirror = .true.

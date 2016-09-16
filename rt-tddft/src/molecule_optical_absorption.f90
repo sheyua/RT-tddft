@@ -190,10 +190,8 @@ CONTAINS
     IMPLICIT NONE
     integer :: ik
     
-    nbnd_occ_max = 0
-    do ik = 1, nks
-      if (nbnd_occ(ik) > nbnd_occ_max) nbnd_occ_max = nbnd_occ(ik)
-    enddo
+    write(stdout, *) nbnd_occ_max
+    
 
     call allocate_bec_type(nkb, nbnd, becp)
    
