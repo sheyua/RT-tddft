@@ -70,7 +70,6 @@ PROGRAM tddft_main
     call errore('tddft_main', 'RT-tddft does not support two Fermi energies!',1)
   endif
 
-
 #ifdef __PARA
   use_para_diag = check_para_diag(nbnd)
 #else
@@ -93,7 +92,7 @@ PROGRAM tddft_main
 !  ! calculation
 !  select case (trim(job))
 !  case ('transport')
-     call molecule_optical_absorption
+!     call molecule_optical_absorption
 !  case default
 !     call errore('tddft_main', 'RT-tddft cannot recognize this job type in input', 1)
 !  end select
