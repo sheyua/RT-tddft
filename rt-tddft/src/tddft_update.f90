@@ -36,10 +36,10 @@ SUBROUTINE tddft_update(istep)
   enend     = e_nend
   if ( istep == 0 ) then
     evolt = e_volt
-    call add_efield(vltot, dummy1, rho%of_r, .true.)
+    call add_efield(vltot, dummy1, rho%of_r, .false.)
   elseif ( abs(e_decay) < 1d-10 .or. istep <= 1.d0/e_decay ) then
     evolt = -e_volt * e_decay
-    call add_efield(vltot, dummy1, rho%of_r, .true.)
+    call add_efield(vltot, dummy1, rho%of_r, .false.)
     evolt = e_volt * (1.0d0 - istep*e_decay)
   else
     emirror = .false.

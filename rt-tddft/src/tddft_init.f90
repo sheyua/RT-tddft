@@ -9,12 +9,10 @@ SUBROUTINE tddft_init()
   call start_clock ('tddft_init')
 
   call gk_sort_local()
-
   call set_nbnd_occ()
-
   call allocate_sum_band()
-
   call set_tddft_allocatable()
+  call tddft_update(0)
 
   call stop_clock('tddft_init')
 CONTAINS
