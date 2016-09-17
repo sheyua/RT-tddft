@@ -26,7 +26,7 @@ subroutine molecule_optical_absorption
   USE mp,                          ONLY : mp_sum, mp_barrier
   USE gvect,                       ONLY : ngm, g
   USE gvecs,                       ONLY : nls
-  USE fft_base,                    ONLY : dfftp, dfftp
+  USE fft_base,                    ONLY : dfftp
   USE buffers,                     ONLY : get_buffer, save_buffer
   USE fixed_occ,                   ONLY : tfixed_occ 
   USE uspp,                        ONLY : nkb, vkb, deeq
@@ -39,9 +39,8 @@ subroutine molecule_optical_absorption
   IMPLICIT NONE
 
   !-- tddft variables ----------------------------------------------------
-  complex(dp), allocatable :: tddft_psi(:,:,:), b(:,:)
+  complex(dp), allocatable :: b(:,:)
   complex(dp), allocatable :: tddft_hpsi(:,:), tddft_spsi(:,:)
-  real(dp), allocatable :: charge(:), dipole(:,:)
 
   integer :: istep, lter, flag_global
   integer :: ik, is, ibnd
@@ -186,30 +185,14 @@ CONTAINS
   ! Initialize and allocate memory
   !====================================================================    
   SUBROUTINE allocate_optical()
-    USE becmod, ONLY : becp, allocate_bec_type
     IMPLICIT NONE
-    integer :: ik
     
-    write(stdout, *) nbnd_occ_max
-    
-
-    call allocate_bec_type(nkb, nbnd, becp)
-   
-    allocate (tddft_psi (npwx,nbnd,2))
     allocate (tddft_hpsi(npwx,nbnd_occ_max))
     allocate (tddft_spsi(npwx,nbnd_occ_max))
     allocate (b(npwx,nbnd_occ_max))
-    tddft_psi = (0.d0,0.d0)
     tddft_hpsi = (0.d0,0.d0)
     tddft_spsi = (0.d0,0.d0)
     b = (0.d0,0.d0)
-
-    allocate (charge(nspin), dipole(3,nspin))
-    charge = 0.d0
-    dipole = 0.d0
-
-    allocate (r_pos(3,dfftp%nnr), r_pos_s(3,dfftp%nnr))
-    call molecule_setup_r
     
   END SUBROUTINE allocate_optical
   
@@ -218,10 +201,8 @@ CONTAINS
   ! Deallocate memory
   !====================================================================    
   SUBROUTINE deallocate_optical()
-    USE becmod, ONLY : becp, deallocate_bec_type
     IMPLICIT NONE
 
-    call deallocate_bec_type(becp)
     deallocate (tddft_psi, tddft_hpsi, tddft_spsi, b)
     deallocate (charge, dipole)
     deallocate (r_pos, r_pos_s)

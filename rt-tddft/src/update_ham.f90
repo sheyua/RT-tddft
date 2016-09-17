@@ -52,7 +52,7 @@ SUBROUTINE update_hamiltonian(istep)
     emirror = e_mirror
     evolt = e_volt
     call add_efield(vltot, etotefield, rho%of_r, .true.)
-  elseif ( istep <= 1.0d0/e_decay ) then
+  elseif ( abs(e_decay) < 1d-10 .or. istep <= 1.0d0/e_decay ) then
     tefield = .true.
     emirror = e_mirror
     evolt = -e_volt * e_decay

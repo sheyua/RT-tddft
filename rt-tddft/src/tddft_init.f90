@@ -11,10 +11,12 @@ SUBROUTINE tddft_init()
   USE io_global,        ONLY : stdout
   USE constants,        ONLY : pi
   USE pwcom,            ONLY : ef
-  USE wvfct,            ONLY : nbnd, et, wg, ecutwfc, npw, igk, g2kin
+  USE wvfct,            ONLY : nbnd, et, wg, ecutwfc, npw, npwx, igk, g2kin
   USE io_files,         ONLY : iunigk
   USE gvect,            ONLY : ngm, g
   USE cell_base,        ONLY : tpiba2
+  USE fft_base,         ONLY : dfftp
+  USE lsda_mod,         ONLY : nspin
   implicit none
   integer :: ik, ibnd
   real(dp) :: small, fac, xmax, emax
@@ -49,9 +51,9 @@ SUBROUTINE tddft_init()
 
     ! fill out number of bands occupied
     do ik = 1, nks
-       do ibnd = 1, nbnd
-          if (et(ibnd,ik) < emax) nbnd_occ(ik) = ibnd
-       enddo
+      do ibnd = 1, nbnd
+         if (et(ibnd,ik) < emax) nbnd_occ(ik) = ibnd
+      enddo
     enddo
   else
     do ik = 1, nks
@@ -62,25 +64,12 @@ SUBROUTINE tddft_init()
       endif
     enddo
   endif
-  ! print warning if the number of bands is too small
+
+  ! compute the maximum number of occupied bands
   nbnd_occ_max = 0
   do ik = 1, nks
-    if (nbnd_occ(ik) == nbnd) then
-      write(stdout,'(5X,''There might be too few bands at k-point:'',I6)') ik
-    endif
     if (nbnd_occ(ik) > nbnd_occ_max) nbnd_occ_max = nbnd_occ(ik)
   enddo
-
-!  ! initialize pseudopotentials and projectors for LDA+U
-!  call init_us_1
-!  call init_at_1
-!
-!  ! computes the total local potential (external+scf) on the smooth grid
-!  call setlocal
-!  call set_vrs (vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid)
-!    
-!  ! compute the D for the pseudopotentials
-!  call newd
 
   REWIND( iunigk )
   ! the following loop must NOT be called more than once in a run
@@ -92,10 +81,25 @@ SUBROUTINE tddft_init()
      IF ( nks > 1 ) WRITE( iunigk ) igk
   END DO
 
-  !call allocate_memory()
+  ! initialize allocatable variables
+  allocate(tddft_psi (npwx,nbnd,2))
+  allocate(charge(nspin), dipole(3,nspin))
+  allocate(r_pos(3,dfftp%nnr), r_pos_s(3,dfftp%nnr))
+  call allocate_memory()
 
   call stop_clock('tddft_init')
 
-!CONTAINS
+CONTAINS
+
+  !---
+  SUBROUTINE allocate_memory()
+    implicit none
+    tddft_psi = (0.d0,0.d0)
+    charge = 0.d0
+    dipole = 0.d0
+    call molecule_setup_r
+  END SUBROUTINE allocate_memory
+  !---
 
 END SUBROUTINE tddft_init
+!---

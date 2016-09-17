@@ -218,14 +218,8 @@ F
   </EXCHANGE_CORRELATION>
   <OCCUPATIONS>
     <SMEARING_METHOD type="logical" size="1">
-T
+F
     </SMEARING_METHOD>
-    <SMEARING_TYPE type="integer" size="1">
-       -99
-    </SMEARING_TYPE>
-    <SMEARING_PARAMETER type="real" size="1" UNITS="Hartree">
- 9.500000000000000E-004
-    </SMEARING_PARAMETER>
     <TETRAHEDRON_METHOD type="logical" size="1">
 F
     </TETRAHEDRON_METHOD>
@@ -321,7 +315,7 @@ F
         32
     </NUMBER_OF_ATOMIC_WFC>
     <NUMBER_OF_BANDS type="integer" size="1">
-        12
+         8
     </NUMBER_OF_BANDS>
     <NUMBER_OF_ELECTRONS type="real" size="1">
  1.600000000000000E+001
@@ -329,7 +323,7 @@ F
     <UNITS_FOR_K-POINTS UNITS="2 pi / a"/>
     <UNITS_FOR_ENERGIES UNITS="Hartree"/>
     <FERMI_ENERGY type="real" size="1">
- 1.294614361093826E-001
+ 8.545111281486130E-002
     </FERMI_ENERGY>
   </BAND_STRUCTURE_INFO>
   <EIGENVALUES>
