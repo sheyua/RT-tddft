@@ -33,9 +33,9 @@ SUBROUTINE update_hamiltonian(istep)
   call start_clock('updateH')
   
   ! calculate total charge density
-  call deallocate_bec_type(becp)
+  !call deallocate_bec_type(becp)
   call sum_band()
-  call allocate_bec_type(nkb, nbnd, becp)
+  !call allocate_bec_type(nkb, nbnd, becp)
 
   if (lda_plus_U) then
     call new_ns

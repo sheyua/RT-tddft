@@ -59,27 +59,29 @@ subroutine molecule_optical_absorption
   ee = i_complex * dt / 2.d0  ! i*dt/2: do not change
   
   evc = cmplx(0.d0,0.d0)
+  
+  write(stdout, *) shape(evc)
   call tddft_cgsolver_initialize(npwx, nbnd_occ_max)
  
   ! print the legend
   if (ionode) call print_legend
   
-  ! set wfc and ham to the most recent time
-  if (nks > 1) rewind (iunigk)
-  do ik = 1, nks
-     current_k = ik
-     current_spin = isk(ik)
-     
-     ! initialize at k-point k 
-     call gk_sort(xk(1,ik), ngm, g, ecutwfc/tpiba2, npw, igk, g2kin)
-     g2kin = g2kin * tpiba2
-     call init_us_2(npw, igk, xk(1,ik), vkb)
-     
-     ! read wfcs from file and compute becp
-     evc = (0.d0, 0.d0)
-     call get_buffer (evc, nwordwfc, iunwfc, ik)
-  end do
-  call update_hamiltonian(-1)
+!  ! set wfc and ham to the most recent time
+!  if (nks > 1) rewind (iunigk)
+!  do ik = 1, nks
+!     current_k = ik
+!     current_spin = isk(ik)
+!     
+!     ! initialize at k-point k 
+!     call gk_sort(xk(1,ik), ngm, g, ecutwfc/tpiba2, npw, igk, g2kin)
+!     g2kin = g2kin * tpiba2
+!     call init_us_2(npw, igk, xk(1,ik), vkb)
+!     
+!     ! read wfcs from file and compute becp
+!     evc = (0.d0, 0.d0)
+!     call get_buffer (evc, nwordwfc, iunwfc, ik)
+!  end do
+  call tddft_update(0)
  
   call flush_unit(stdout)
 
@@ -156,7 +158,7 @@ subroutine molecule_optical_absorption
     endif
      
     ! update the hamiltonian (recompute charge and potential)
-    call update_hamiltonian(istep)
+    call tddft_update(istep)
      
     call flush_unit(stdout)
      

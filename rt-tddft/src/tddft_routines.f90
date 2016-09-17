@@ -134,10 +134,6 @@ SUBROUTINE tddft_welcome()
 END SUBROUTINE tddft_welcome
 !---
   
-!---
-!SUBROUTINE tddft_init()
-!END SUBROUTINE
-!---
 
 
 
@@ -173,6 +169,10 @@ SUBROUTINE tddft_print_clocks()
   call print_clock ('tddft_init')
   write(stdout,*)
 
+  ! Update
+  write(stdout,'(5X,''Update rho and H'')')
+  call print_clock ('tddft_update')
+  write(stdout,*)
 !  !
 !  write(stdout,*) '    Linear response'
 !  call print_clock ('greenf')
@@ -194,13 +194,6 @@ SUBROUTINE tddft_print_clocks()
 !  call print_clock ('write_rec')
 !  write(stdout,*)
 !
-!#ifdef __PARA
-!  write(stdout,*) '    Parallel routines'
-!  call print_clock ('reduce')  
-!  call print_clock( 'fft_scatter' )
-!  call print_clock( 'ALLTOALL' )
-!  write(stdout,*)
-!#endif
   call print_clock ('RT-tddft') 
 
 END SUBROUTINE tddft_print_clocks
