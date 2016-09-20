@@ -2,8 +2,8 @@
     job = 'transport'
     prefix = 'graphene'
     tmp_dir = './out/'
-    dt = 2.0d0                 ! attoseconds (1e-18 s)
-    num_step = 200             ! 5000-10000 typically
+    dt = 0.5d0                 ! attoseconds (1e-18 s)
+    num_step = 400             ! 5000-10000 typically
     init_step = 1              ! initial step number
     e_mirror = .true.
     e_pstart = 0.005d0
@@ -11,5 +11,5 @@
     e_nstart = 0.255d0
     e_nend = 0.495d0
     e_volt = 0.0735d0
-    e_decay = 0.00d0         ! decays to zero after 400 steps
+    e_decay = 0.0025d0         ! decays to zero after 400 steps
 /
