@@ -14,9 +14,9 @@
 	ntyp=1
 	ecutwfc=25.0
 	ecutrho=350.0
-	!occupations = 'smearing'
-	!smearing = 'fermi-dirac'
-	!degauss = 0.0019
+	occupations = 'smearing'
+	smearing = 'fermi-dirac'
+	degauss = 0.0019
 	edir = 3
 	emirror = .true.
 	epstart = 0.005d0
