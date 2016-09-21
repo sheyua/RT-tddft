@@ -13,6 +13,7 @@ SUBROUTINE tddft_init()
   call allocate_sum_band()
   call set_tddft_allocatable()
   call tddft_update(0)
+  call tddft_compute(0)
 
   call stop_clock('tddft_init')
 CONTAINS
@@ -96,9 +97,9 @@ CONTAINS
     endif
 
     ! compute the maximum number of occupied bands
-    nbnd_occ_max = 0
+    max_nbnd_occ = 0
     do ik = 1, nks
-      if (nbnd_occ(ik) > nbnd_occ_max) nbnd_occ_max = nbnd_occ(ik)
+      if (nbnd_occ(ik) > max_nbnd_occ) max_nbnd_occ = nbnd_occ(ik)
     enddo
   
   END SUBROUTINE set_nbnd_occ
@@ -122,7 +123,6 @@ CONTAINS
   END SUBROUTINE allocate_sum_band
   !---
 
-
   !---
   SUBROUTINE set_tddft_allocatable()
     !---
@@ -133,24 +133,18 @@ CONTAINS
     implicit none
     
     ! allocate variables
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    allocate( tddft_psi (npwx,nbnd,2))
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    allocate( tddft_psi(npwx,nbnd)  )
     allocate( charge(nspin)         ) 
     allocate( dipole(3,nspin)       )
     allocate( r_pos(3,dfftp%nnr)    )
     allocate( r_pos_s(3,dfftp%nnr)  )
     
     ! initialize variables
-    tddft_psi = cmplx(0.d0,0.d0)
+    tddft_psi = (0.d0, 0.d0)
     charge = 0.d0
     dipole = 0.d0
     r_pos = 0.d0
     r_pos_s = 0.d0
-    
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    call molecule_setup_r
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   END SUBROUTINE set_tddft_allocatable
   !---

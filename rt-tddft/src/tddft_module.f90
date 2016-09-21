@@ -9,9 +9,10 @@ MODULE tddft_module
   
   ! input parameters
   character(80) :: job                          ! 'transport'
-  real(dp) :: conv_threshold                    ! convergence threshold for the linear solver
+  real(dp) :: conv_threshold                    ! convergence threshold for the solver
+  integer  :: max_iter                          ! maximum iteration of the solver
   real(dp) :: dt                                ! time step length delta_t
-  integer  :: num_step                          ! number of timesteps for real-time tddft
+  integer  :: num_step                          ! number of timesteps
   integer  :: init_step                         ! initial istep may be used for restart
   logical  :: e_mirror                          ! external bias use mirror image
   real(dp) :: e_pstart                          ! bias voltage hits maximum
@@ -22,18 +23,17 @@ MODULE tddft_module
   real(dp) :: e_decay                           ! how fast the bias voltage decays
 
   ! shared global parameters
-  complex(dp), parameter :: i_complex = (0.0_dp,1.0_dp)
+  integer :: num_iter                           ! number of iterations per step
   integer, parameter :: iuntdwfc = 51           ! to save RT-tddft intermediate wfcs
   integer :: nwordtdwfc 
   integer, allocatable :: nbnd_occ(:)           ! occupied bands for each k-point
-  integer :: nbnd_occ_max                       ! max number of occupied bands
-  integer :: tddft_exit_code = 0
+  integer :: max_nbnd_occ                       ! max number of occupied bands
   ! shared allocatable
   real(dp), allocatable :: r_pos(:,:)           ! position operator in real space
-  real(dp), allocatable :: r_pos_s(:,:)         ! position operator in real space (smooth grid)
+  real(dp), allocatable :: r_pos_s(:,:)         ! position operator smooth grid
   real(dp), allocatable :: charge(:)            ! total charges for each spin 
   real(dp), allocatable :: dipole(:,:)          ! dipole moment for each spin
-  complex(dp), allocatable :: tddft_psi(:,:,:)  ! time-propagated wvfcts
+  complex(dp), allocatable :: tddft_psi(:,:)    ! time-propagated wvfcts
 
 END MODULE tddft_module
 !---

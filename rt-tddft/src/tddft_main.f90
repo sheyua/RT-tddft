@@ -4,10 +4,10 @@ PROGRAM tddft_main
   !---
   ! This is the main driver of the real time TDDFT propagation.
   USE mp_global,       ONLY : mp_startup, nproc_pool_file
-  USE environment,     ONLY : environment_start
+  USE environment,     ONLY : environment_start, environment_end
   USE mp_bands,        ONLY : nbgrp
   USE check_stop,      ONLY : check_stop_init
-  USE control_flags,   ONLY : io_level, use_para_diag
+  USE control_flags,   ONLY : io_level, use_para_diag, gamma_only
   USE ldaU,            ONLY : lda_plus_u
   USE uspp,            ONLY : okvan
   USE paw_variables,   ONLY : okpaw 
@@ -16,11 +16,9 @@ PROGRAM tddft_main
   USE klist,           ONLY : two_fermi_energies
   USE wvfct,           ONLY : nbnd
   USE mp_pools,        ONLY : nproc_pool
-!  USE tddft_module,    ONLY : job, tddft_exit_code
-!  USE iotk_module  
-!  USE xml_io_base
+  USE tddft_module,    ONLY : job
   implicit none
-  character(len=9)   :: code = 'QE'
+  character(len=9)   :: code = 'RT-tddft'
   logical, external  :: check_para_diag
 
   ! initialize the environment
@@ -38,14 +36,13 @@ PROGRAM tddft_main
   endif
 #endif
 
-  call start_clock('RT-tddft')
   call tddft_read_input()
   call check_stop_init()
 
   ! read PW calculations setup
   io_level = 1
   call read_file
-  
+
   ! restrict RT-tddft to certain xc functional types
   if (lda_plus_u) then
     call errore('tddft_main', 'RT-tddft does not support LDA plus U!',1)
@@ -69,6 +66,11 @@ PROGRAM tddft_main
   if (two_fermi_energies) then
     call errore('tddft_main', 'RT-tddft does not support two Fermi energies!',1)
   endif
+  ! restrict RT-tddft to manually set gamma point
+  if (gamma_only) then
+    call errore('tddft_main', 'RT-tddft does not support gamma only calculation! &
+        Please manually specify the Gamma point!',1)
+  endif
 
 #ifdef __PARA
   use_para_diag = check_para_diag(nbnd)
@@ -78,31 +80,30 @@ PROGRAM tddft_main
 
   ! read PW ground state wavefunctions
   call tddft_openfile()
-  
+
   ! restrict RT-tddft to use the same number of proc as pwscf
   if ( nproc_pool_file /= nproc_pool ) then
     call errore('tddft_main', 'RT-tddft does not support different nproc from PWSCF!', 1)
   endif
 
+  ! summarize the calculation
   call tddft_welcome()
   call tddft_init()
-!
-!
-!  ! calculation
-!  select case (trim(job))
-!  case ('transport')
-     call molecule_optical_absorption
-!  case default
-!     call errore('tddft_main', 'RT-tddft cannot recognize this job type in input', 1)
-!  end select
-!  
-!  ! print timings and stop the code
-!  call tddft_closefil
-   call tddft_print_clocks()
-!  call stop_run(tddft_exit_code)
-!  call do_stop(tddft_exit_code)
-!  
-!  STOP
-  
-END PROGRAM tddft_main
 
+  ! do time propagation
+  select case (trim(job))
+    case ('transport')
+      call tddft_propagate() 
+    case default
+      call errore('tddft_main', 'RT-tddft cannot recognize this job type in input', 1)
+  end select
+
+  ! print timings and stop the code
+  call tddft_closefile()
+  call tddft_print_clocks()
+
+  ! stop the program
+  call environment_end(code)
+  STOP
+
+END PROGRAM tddft_main
