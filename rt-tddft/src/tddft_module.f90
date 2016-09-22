@@ -23,7 +23,6 @@ MODULE tddft_module
   real(dp) :: e_decay                           ! how fast the bias voltage decays
 
   ! shared global parameters
-  integer :: num_iter                           ! number of iterations per step
   integer, parameter :: iuntdwfc = 51           ! to save RT-tddft intermediate wfcs
   integer :: nwordtdwfc 
   integer, allocatable :: nbnd_occ(:)           ! occupied bands for each k-point
@@ -31,7 +30,7 @@ MODULE tddft_module
   ! shared allocatable
   real(dp), allocatable :: r_pos(:,:)           ! position operator in real space
   real(dp), allocatable :: r_pos_s(:,:)         ! position operator smooth grid
-  real(dp), allocatable :: charge(:)            ! total charges for each spin 
+  real(dp), allocatable :: num_elec(:)          ! total num_elecs for each spin 
   real(dp), allocatable :: dipole(:,:)          ! dipole moment for each spin
   complex(dp), allocatable :: tddft_psi(:,:)    ! time-propagated wvfcts
 

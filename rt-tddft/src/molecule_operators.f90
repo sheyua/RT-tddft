@@ -11,7 +11,7 @@ SUBROUTINE molecule_setup_r
   !-----------------------------------------------------------------------
   !
   ! ... Setup the position operator in real space. The origin is set to center
-  ! ... of ionic charge. (r is in units of alat)
+  ! ... of ionic num_elec. (r is in units of alat)
   !
   USE kinds,        ONLY : dp
   USE mp_global,    ONLY : me_pool, intra_pool_comm
@@ -27,7 +27,7 @@ SUBROUTINE molecule_setup_r
   real(dp) :: inv_nr1s, inv_nr2s, inv_nr3s
   integer :: ia, i, j, k, index, index0, ir, ipol
 
-  ! calculate the center of charge
+  ! calculate the center of num_elec
   zvtot = 0.d0
   x0 = 0.d0
   do ia = 1, nat
@@ -112,10 +112,10 @@ END SUBROUTINE molecule_setup_r
 
 
 !-----------------------------------------------------------------------
-SUBROUTINE molecule_compute_dipole(charge, dip)
+SUBROUTINE molecule_compute_dipole(num_elec, dip)
   !-----------------------------------------------------------------------
   !
-  ! ... Compute electron dipole moment using total charge density
+  ! ... Compute electron dipole moment using total num_elec density
   !
   USE kinds,        ONLY : dp
   USE mp_global,    ONLY : me_pool, intra_pool_comm
@@ -127,23 +127,23 @@ SUBROUTINE molecule_compute_dipole(charge, dip)
   USE tddft_module, ONLY : r_pos
   implicit none
 
-  real(dp), intent(out) :: charge(nspin), dip(3,nspin)
+  real(dp), intent(out) :: num_elec(nspin), dip(3,nspin)
   integer :: ispin, ipol, nrp
 
   call start_clock('dipole')
   do ispin = 1, nspin
-    charge(ispin) = sum(rho%of_r(:,ispin))
+    num_elec(ispin) = sum(rho%of_r(:,ispin))
     do ipol = 1, 3
       dip(ipol,ispin) = sum(r_pos(ipol,:)*rho%of_r(:,ispin))
     enddo
   enddo
  
   nrp = dfftp%nr1 * dfftp%nr2 * dfftp%nr3 
-  charge = charge * omega / real(nrp, dp)  
+  num_elec = num_elec * omega / real(nrp, dp)  
   dip = dip * omega / real(nrp, dp) * alat
 
 #ifdef __MPI
-  call mp_sum(charge, intra_pool_comm)
+  call mp_sum(num_elec, intra_pool_comm)
   call mp_sum(dip, intra_pool_comm)
 #endif
   call stop_clock('dipole')

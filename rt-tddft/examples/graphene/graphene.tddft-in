@@ -3,7 +3,7 @@
     prefix = 'graphene'
     tmp_dir = './out/'
     dt = 0.5d0                 ! attoseconds (1e-18 s)
-    num_step = 400             ! 5000-10000 typically
+    num_step = 4             ! 5000-10000 typically
     init_step = 1              ! initial step number
     e_mirror = .true.
     e_pstart = 0.005d0

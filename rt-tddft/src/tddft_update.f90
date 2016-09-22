@@ -1,6 +1,6 @@
 
 !---
-SUBROUTINE tddft_update(istep)
+SUBROUTINE tddft_update(istep, mid_flag)
   !---
   ! Update the Hamiltonian
   USE kinds,                ONLY : dp
@@ -17,7 +17,7 @@ SUBROUTINE tddft_update(istep)
   USE lsda_mod,             ONLY : nspin
   USE gvecs,                ONLY : doublegrid
   implicit none
-  integer, intent(in) :: istep
+  integer, intent(in) :: istep, mid_flag
   real(dp) :: dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
   call start_clock('tddft_update')
   
@@ -38,9 +38,22 @@ SUBROUTINE tddft_update(istep)
     evolt = e_volt
     call add_efield(vltot, dummy1, rho%of_r, .false.)
   elseif ( abs(e_decay) < 1d-10 .or. istep <= 1.d0/e_decay ) then
-    evolt = -e_volt * e_decay
-    call add_efield(vltot, dummy1, rho%of_r, .false.)
-    evolt = e_volt * (1.0d0 - istep*e_decay)
+    ! decrease a full step
+    if (mid_flag == 1) then
+      evolt = -e_volt * e_decay
+      call add_efield(vltot, dummy1, rho%of_r, .false.)
+      evolt = e_volt * (1.0d0 - istep*e_decay)
+    ! decrease to the first mid step
+    elseif (mid_flag == 2) then
+      evolt = -e_volt * e_decay * 0.5d0
+      call add_efield(vltot, dummy1, rho%of_r, .false.)
+      evolt = e_volt * (1.0d0 - (istep-0.5d0)*e_decay)
+    ! decrease to the second mid step
+    else
+      evolt = -e_volt * e_decay * 0.5d0
+      call add_efield(vltot, dummy1, rho%of_r, .false.)
+      evolt = e_volt * (1.0d0 - istep*e_decay)
+    endif
   else
     emirror = .false.
   endif

@@ -18,8 +18,8 @@ SUBROUTINE tddft_read_input()
   job               = 'transport'
   prefix            = 'pwscf'
   tmp_dir           = './scratch/'
-  conv_threshold    = 1.0d-12
-  max_iter          = 30 
+  conv_threshold    = 1.0d-16
+  max_iter          = 200 
   dt                = 0.1d0
   num_step          = 1000
   init_step         = 1
@@ -127,7 +127,7 @@ SUBROUTINE tddft_welcome()
   write(stdout,'(5X,''Calculation type      : '',A12)') trim(job)
   write(stdout,'(5X,''Initial time step     : '',I12)') init_step
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
-  write(stdout,'(5X,''Time step             : '',F12.4,'' Rydberg Atomic Time Unit'')') dt
+  write(stdout,'(5X,''Time step             : '',E12.4,'' Rydberg Atomic Time Unit'')') dt
   write(stdout,*)
 
   call flush_unit( stdout )
@@ -182,8 +182,8 @@ SUBROUTINE tddft_print_clocks()
   call print_clock ('h_psi')
   write(stdout,*)
 
-  ! compute charge and dipole
-  write(stdout,'(5X,''Compute charge and dipole'')')
+  ! compute num_elec and dipole
+  write(stdout,'(5X,''Compute num_elec and dipole'')')
   call print_clock ('tddft_propagate')
   write(stdout,*)
 

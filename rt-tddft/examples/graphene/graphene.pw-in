@@ -2,7 +2,7 @@
 	calculation = 'scf'
 	restart_mode='from_scratch'
 	prefix='graphene'
-	pseudo_dir = '../../../espresso/pseudo/',
+	pseudo_dir = '/home/sy0302/works/RT-tddft/espresso/pseudo/',
 	outdir = './out'
 	tefield = .true.
 /
@@ -14,9 +14,9 @@
 	ntyp=1
 	ecutwfc=25.0
 	ecutrho=350.0
-	occupations = 'smearing'
-	smearing = 'fermi-dirac'
-	degauss = 0.0019
+	!occupations = 'smearing'
+	!smearing = 'fermi-dirac'
+	!degauss = 0.0019
 	edir = 3
 	emirror = .true.
 	epstart = 0.005d0
