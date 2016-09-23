@@ -127,7 +127,7 @@ END SUBROUTINE tddft_openfile
 SUBROUTINE tddft_welcome()
   !---
   ! Print a short welcome summary of the calculation
-  USE tddft_module
+  USE tddft_module, ONLY : job, solver, method, init_step, num_step, dt
   USE io_global,    ONLY : stdout
   implicit none
   
@@ -141,6 +141,9 @@ SUBROUTINE tddft_welcome()
   write(stdout,'(5X,''Initial time step     : '',I12)') init_step
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
   write(stdout,'(5X,''Time step             : '',E12.4,'' Rydberg Atomic Time Unit'')') dt
+  if(init_step /= 1) then
+    write(stdout,'(5X,''Restart from last run, please make sure your parameters are the same between two runs'')')
+  endif
   write(stdout,*)
 
   call flush_unit( stdout )

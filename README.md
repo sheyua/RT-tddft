@@ -38,6 +38,13 @@ nano-junction like structure.
 		'cgsolver': Conjugate Gradient square solver, implemented by Xiaofeng
 		Qian at MIT
 
+## Restart
+
+	To restart a terminated calculation, please specify init_step as the latest
+	step number output from last calculation plus one. Please also make sure 
+	that other parameters including the bias potential, solver, method are all
+	the same except <i>num_step</i>.
+
 #* Quantum Espresso README
 
 This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO: 
