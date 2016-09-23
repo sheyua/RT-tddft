@@ -30,7 +30,8 @@ nano-junction like structure.
 
 		'CN'    : Crank-Nicolson, O(dt^2) local error, unconditionally stable
 		'CN2'   : second order Crank-Nicolson, O(dt^3) local error
-		'CN-mid': second order Crank-Nicolson, O(dt^3) local error
+		'CN-mid': mid point Crank-Nicolson, O(dt^3) local error, unconditionally
+		stable
 
 	The integration schemes are driven by two different linear solvers:
 
