@@ -5,7 +5,7 @@ SUBROUTINE tddft_compute(istep)
   USE tddft_module
   implicit none
   integer, intent(in) :: istep
-  
+  call start_clock('tddft_compute')
     
   if(istep == 0) then
     call molecule_setup_r
@@ -18,5 +18,6 @@ SUBROUTINE tddft_compute(istep)
   endif
      
 
+  call stop_clock('tddft_compute')
 END SUBROUTINE tddft_compute
 !---

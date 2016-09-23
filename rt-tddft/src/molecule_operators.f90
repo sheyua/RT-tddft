@@ -130,7 +130,6 @@ SUBROUTINE molecule_compute_dipole(num_elec, dip)
   real(dp), intent(out) :: num_elec(nspin), dip(3,nspin)
   integer :: ispin, ipol, nrp
 
-  call start_clock('dipole')
   do ispin = 1, nspin
     num_elec(ispin) = sum(rho%of_r(:,ispin))
     do ipol = 1, 3
@@ -146,6 +145,5 @@ SUBROUTINE molecule_compute_dipole(num_elec, dip)
   call mp_sum(num_elec, intra_pool_comm)
   call mp_sum(dip, intra_pool_comm)
 #endif
-  call stop_clock('dipole')
     
 END SUBROUTINE molecule_compute_dipole

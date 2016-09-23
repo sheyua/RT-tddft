@@ -9,6 +9,8 @@ MODULE tddft_module
   
   ! input parameters
   character(80) :: job                          ! 'transport'
+  character(80) :: solver                       ! 'itsolver' or 'cgsolver'
+  character(80) :: method                       ! 'CN', 'CN2', or 'CN-mid'
   real(dp) :: conv_threshold                    ! convergence threshold for the solver
   integer  :: max_iter                          ! maximum iteration of the solver
   real(dp) :: dt                                ! time step length delta_t

@@ -11,18 +11,24 @@ SUBROUTINE tddft_read_input()
   implicit none
   integer :: ios
   namelist /input_tddft/ job, prefix, tmp_dir, &
-    conv_threshold, max_iter, dt, num_step, init_step, &
+    solver, method, conv_threshold, max_iter, &
+    dt, num_step, init_step, &
     e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt, e_decay
   
   ! define input defult values
   job               = 'transport'
   prefix            = 'pwscf'
   tmp_dir           = './scratch/'
+
+  solver            = 'itsolver'
+  method            = 'CN-mid'
   conv_threshold    = 1.0d-16
   max_iter          = 200 
+
   dt                = 0.1d0
   num_step          = 1000
   init_step         = 1
+
   e_mirror          = .true.
   e_pstart          = 0.0d0
   e_pend            = 0.25d0
@@ -64,11 +70,16 @@ SUBROUTINE tddft_broadcast_input()
   call mp_bcast(job, root, world_comm)
   call mp_bcast(prefix, root, world_comm)
   call mp_bcast(tmp_dir, root, world_comm)
+
+  call mp_bcast(solver, root, world_comm)
+  call mp_bcast(method, root, world_comm)
   call mp_bcast(conv_threshold, root, world_comm)
   call mp_bcast(max_iter, root, world_comm)
+
   call mp_bcast(dt, root, world_comm)
   call mp_bcast(num_step, root, world_comm)
   call mp_bcast(init_step, root, world_comm)
+
   call mp_bcast(e_mirror, root, world_comm)
   call mp_bcast(e_pstart, root, world_comm)
   call mp_bcast(e_pend, root, world_comm)
@@ -125,6 +136,8 @@ SUBROUTINE tddft_welcome()
   write(stdout,'(5X,''*** Welcome to RT-tddft ***'')')
   write(stdout,'(5X,''***************************'')')
   write(stdout,'(5X,''Calculation type      : '',A12)') trim(job)
+  write(stdout,'(5X,''Solver                : '',A12)') trim(solver)
+  write(stdout,'(5X,''Propagation method    : '',A12)') trim(method)
   write(stdout,'(5X,''Initial time step     : '',I12)') init_step
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
   write(stdout,'(5X,''Time step             : '',E12.4,'' Rydberg Atomic Time Unit'')') dt
@@ -155,7 +168,8 @@ END SUBROUTINE tddft_closefile
 SUBROUTINE tddft_print_clocks()
   !---
   ! Print clock information for tddft routines
-  USE io_global,  ONLY : stdout
+  USE io_global,    ONLY : stdout
+  USE tddft_module, ONLY : solver
   implicit none
 
   ! initialization
@@ -177,14 +191,27 @@ SUBROUTINE tddft_print_clocks()
   call print_clock ('tddft_propagate')
   write(stdout,*)
 
+  ! solver
+  select case(trim(solver))
+    case('cgsolver')
+      write(stdout,'(5X,''CG square solver time'')')
+      call print_clock ('cgsolver')
+      write(stdout,*)
+    case('itsolver')
+      write(stdout,'(5X,''Iterative solver time'')')
+      call print_clock ('itsolver')
+      write(stdout,*)
+    case default
+  end select
+
   ! h_psi in iterations
-  write(stdout,'(5X,''H|psi> in iteration solver'')')
+  write(stdout,'(5X,''H|psi> in linear solver'')')
   call print_clock ('h_psi')
   write(stdout,*)
 
   ! compute num_elec and dipole
   write(stdout,'(5X,''Compute num_elec and dipole'')')
-  call print_clock ('tddft_propagate')
+  call print_clock ('tddft_compute')
   write(stdout,*)
 
   call flush_unit( stdout )

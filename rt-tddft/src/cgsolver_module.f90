@@ -2,7 +2,7 @@
 !---
 MODULE cgsolver_module
   !---
-  ! Variables used in the linear solver
+  ! Variables used in the linear cg solver
   USE kinds,    ONLY : dp
   implicit none
   save
