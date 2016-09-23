@@ -45,3 +45,28 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #* RT-tddft README
 
+This repository simulate how real-time electronic states evolve after unsetting
+and initial bias voltage between left and right side of a nano-capacity like / 
+nano-junction like structure.
+
+## Ground State Calculation
+
+	Biased ground state are computed by the pwscf routine, fictious dipole
+	moment is cancelled with a mirror image of the computational cell. please
+	see the graphene example for how to setup the bias voltage
+
+## Time Propagation
+
+	The initial bias voltage can be unset with a linear decay form. Time 
+	integration is carried out with the following schemes which all strictly
+	conserve the charge:
+
+		'CN'    : Crank-Nicolson, O(dt^2) local error, unconditionally stable
+		'CN2'   : second order Crank-Nicolson, O(dt^3) local error
+		'CN-mid': second order Crank-Nicolson, O(dt^3) local error
+
+	The integration schemes are driven by two different linear solvers:
+
+		'itsolver': Iterative solver
+		'cgsolver': Conjugate Gradient square solver, implemented by Xiaofeng
+		Qian at MIT
