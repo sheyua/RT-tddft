@@ -2,21 +2,21 @@
 	calculation = 'scf'
 	restart_mode='from_scratch'
 	prefix='graphene'
-	pseudo_dir = '/home/sy0302/works/RT-tddft/espresso/pseudo/',
+	pseudo_dir = '../../../espresso/pseudo/',
 	outdir = './out'
 	tefield = .true.
 /
 &system
 	ibrav=4
 	celldm(1)=4.648728119
-	celldm(3)=4.06504065
-	nat=4
+	celldm(3)=19.1056910569d0
+	nat=8
 	ntyp=1
 	ecutwfc=25.0
 	ecutrho=350.0
-	!occupations = 'smearing'
-	!smearing = 'fermi-dirac'
-	!degauss = 0.0019
+	occupations = 'smearing'
+	smearing = 'fermi-dirac'
+	degauss = 0.0019
 	edir = 3
 	emirror = .true.
 	epstart = 0.005d0
@@ -37,10 +37,14 @@ ATOMIC_SPECIES
 C 12.011 C.pbe-mt_gipaw.UPF
 
 ATOMIC_POSITIONS (angstrom)
-C 0.000000000 0.000000000 3.450000000
-C 1.230000000 0.710140830 3.450000000
-C 0.000000000 0.000000000 6.550000000
-C 0.000000000 1.420281660 6.550000000
+C	0.00000000	0.00000000	10.00000000
+C	1.23000000	0.71014083	10.00000000
+C	0.00000000	0.00000000	13.50000000
+C	0.00000000	1.42028166	13.50000000
+C	0.00000000	1.42028166	33.50000000
+C	0.00000000	0.00000000	33.50000000
+C	1.23000000	0.71014083	37.00000000
+C	0.00000000	0.00000000	37.00000000
 
 K_POINTS {automatic}
 8 8 1 0 0 0
