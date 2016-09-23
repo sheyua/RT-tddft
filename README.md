@@ -9,19 +9,19 @@ first.
 	./configure --with-qepath=[YOUR QE PREFIX]
 	make build
 
-#* RT-tddft README
+# RT-tddft README
 
 This repository simulate how real-time electronic states evolve after unsetting
 and initial bias voltage between left and right side of a nano-capacity like / 
 nano-junction like structure.
 
-## Ground State Calculation
+- **Ground State Calculation**
 
 	Biased ground state are computed by the pwscf routine, fictious dipole
 	moment is cancelled with a mirror image of the computational cell. please
 	see the graphene example for how to setup the bias voltage
 
-## Time Propagation
+- **Time Propagation**
 
 	The initial bias voltage can be unset with a linear decay form. Time 
 	integration is carried out with the following schemes which all strictly
@@ -38,14 +38,14 @@ nano-junction like structure.
 		'cgsolver': Conjugate Gradient square solver, implemented by Xiaofeng
 		Qian at MIT
 
-## Restart
+- **Restart**
 
-	To restart a terminated calculation, please specify init_step as the latest
+	To restart a terminated calculation, please specify *init_step* as the latest
 	step number output from last calculation plus one. Please also make sure 
 	that other parameters including the bias potential, solver, method are all
-	the same except <i>num_step</i>.
+	the same except *num_step*.
 
-#* Quantum Espresso README
+# Quantum Espresso README
 
 This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO: 
 opEn-Source Package for Research in Electronic Structure, Simulation, 
@@ -61,7 +61,7 @@ Quick installation instructions for the impatient:
 
 ("make" alone prints a list of acceptable targets). Binaries go in bin/.
 For more information, see the general documentation in directory Doc/, 
-package-specific documentation in */Doc/, and the web site
+package-specific documentation in Doc/, and the web site
 http://www.quantum-espresso.org/
 
 All the material included in this distribution is free software;
