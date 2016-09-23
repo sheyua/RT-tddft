@@ -12,7 +12,7 @@ MODFLAGS = $(MOD_FLAG)$(QE_PATH)/iotk/src $(MOD_FLAG)$(QE_PATH)/Modules \
 TDDFT_OBJS = tddft_module.o tddft_main.o tddft_routines.o \
 			 tddft_init.o tddft_propagate.o tddft_update.o propagator_Euler.o \
 			 cgsolver_module.o cgsolver_routines.o itsolver_module.o itsolver_routines.o\
-	 		 tddft_compute.o molecule_operators.o 
+	 		 tddft_compute.o 
 # Fortran and C Library objects to be linked
 LIBOBJS = $(QE_PATH)/flib/ptools.a $(QE_PATH)/flib/flib.a $(QE_PATH)/clib/clib.a \
 		  $(QE_PATH)/iotk/src/libiotk.a

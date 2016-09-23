@@ -29,14 +29,12 @@ nano-junction like structure.
 
 		'CN'    : Crank-Nicolson, O(dt^2) local error, unconditionally stable
 		'CN2'   : second order Crank-Nicolson, O(dt^3) local error
-		'CN-mid': mid point Crank-Nicolson, O(dt^3) local error, unconditionally
-		stable
+		'CN-mid': mid point Crank-Nicolson, O(dt^3) local error, unconditionally stable
 
 	The integration schemes are driven by two different linear solvers:
 
 		'itsolver': Iterative solver
-		'cgsolver': Conjugate Gradient square solver, implemented by Xiaofeng
-		Qian at MIT
+		'cgsolver': Conjugate Gradient square solver, implemented by Xiaofeng Qian at MIT
 
 - **Restart**
 

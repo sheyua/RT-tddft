@@ -30,8 +30,7 @@ MODULE tddft_module
   integer, allocatable :: nbnd_occ(:)           ! occupied bands for each k-point
   integer :: max_nbnd_occ                       ! max number of occupied bands
   ! shared allocatable
-  real(dp), allocatable :: r_pos(:,:)           ! position operator in real space
-  real(dp), allocatable :: r_pos_s(:,:)         ! position operator smooth grid
+  real(dp), allocatable :: rpos(:,:)            ! position operator in real space
   real(dp), allocatable :: num_elec(:)          ! total num_elecs for each spin 
   real(dp), allocatable :: dipole(:,:)          ! dipole moment for each spin
   complex(dp), allocatable :: tddft_psi(:,:)    ! time-propagated wvfcts
