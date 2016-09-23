@@ -1,3 +1,5 @@
+! This CG square routine is created by Xiaofeng Qian @ MIT
+! 
 
 !---
 SUBROUTINE cgsolver_initialize()
@@ -28,8 +30,7 @@ END SUBROUTINE cgsolver_finalize
 
 !---
 SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
-  !----------------------------------------------------------------------
-  !
+  !---
   ! ... Conjugate-Gradient Square method for solving:   A * x = b
   ! ... where: A*x is evaluated by subroutine 'A', and 'A' is implicit
   ! ... general square-matrix.
@@ -38,7 +39,6 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
   USE mp_pools,         ONLY : intra_pool_comm
   USE mp,               ONLY : mp_sum
   USE cgsolver_module
-  !----------------------------------------------------------------------
   implicit none
   integer, intent(in) :: max_iter           ! the number of bands
   integer, intent(in) :: nbnd               ! the number of bands
@@ -51,9 +51,6 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
   complex(dp), external :: zdotc
   real(dp), external    :: ddot
   integer :: imin, stag, i, ibnd
-
-  if (.not. allocated(r)) call errore('cgsolver', 'cgsolver not initialized', 1)
-  
   call start_clock ('cgsolver')
 
   ! initialize module variables
@@ -186,11 +183,10 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
   !----------------------------------------------------------------------
   
   if (flag > 0) then
-     call errore('cgsolver', 'cgsolver cannot achieve convergence', flag)
+     call errore('cgsolver', 'RT-tddft::cgsolver cannot achieve convergence', flag)
      stop
   end if
+
   call stop_clock ('cgsolver')
-  
   return
-  
 END SUBROUTINE cgsolver

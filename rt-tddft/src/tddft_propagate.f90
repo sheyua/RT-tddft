@@ -4,10 +4,7 @@ SUBROUTINE tddft_propagate()
   !---
   ! Real-time propagation of the electronic states
   USE kinds,                ONLY : dp
-  USE wvfct,                ONLY : npwx, nbnd, npw
-  USE io_files,             ONLY : iunigk
-  USE klist,                ONLY : nks
-  USE wavefunctions_module, ONLY : evc
+  USE wvfct,                ONLY : npwx
   USE tddft_module
   implicit none
   complex(dp) :: dt_cmplx
@@ -16,96 +13,42 @@ SUBROUTINE tddft_propagate()
   external propgator_Euler
   call start_clock ('tddft_propagate')
 
-  ! setup parameters
-  call cgsolver_initialize()
+  ! setup solver and parameters
+  select case(trim(solver))
+    case('cgsolver')
+      call cgsolver_initialize()
+    case('itsolver')
+      call itsolver_initialize(max_nbnd_occ)
+    case default
+      call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
+  end select
   allocate(b(npwx, max_nbnd_occ))
 
   ! main loop
   do istep = init_step, (init_step+num_step-1)
 
-!    ! CN itegrator
-!    if(nks > 1) rewind(iunigk)
-!    do ik = 1, nks
-! 
-!      ! init potential inorder to call h_psi
-!      call init_k()
-!
-!      ! prepare b
-!      ! b = [I - iH(t)dt/hbar]*psi(t-dt)
-!      call propgator_Euler(evc, b, 0.5d0*dt, nbnd_occ(ik))
-!
-!      ! solve A * x = b
-!      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
-!        tddft_psi(1:npw,1:nbnd_occ(ik))
-!      call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
-!        -0.5d0*dt, max_iter)
-!
-!      !call iterative_solver()
-!      call save_k()
-!    enddo
-!    call tddft_update(istep, 1)
-!    call tddft_compute(istep)
+    select case(trim(method))
+      case('CN')
+        call method_CN()
+      case('CN-mid')
+        call method_CN_mid()
+      case('CN2')
+        call method_CN2()
+      case default
+        call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this propagation method in input', 1)
+    end select
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    ! second half integrator
-    if(nks > 1) rewind(iunigk)
-    do ik = 1, nks
- 
-      ! init potential inorder to call h_psi
-      call init_k()
-
-      ! prepare b
-      ! b = [I - iH(t)0.25dt/hbar]*psi(t)
-      call propgator_Euler(evc, b, 0.25d0*dt, nbnd_occ(ik))
-      !b = (0.d0, 0.d0)
-      !call h_psi(npwx, npw, nbnd_occ(ik), evc, b)
-      !b(1:npw, 1:nbnd_occ(ik)) = evc(1:npw, 1:nbnd_occ(ik)) - &
-      !  (0.d0, 1.d0)*dt*0.25d0*b(1:npw, 1:nbnd_occ(ik))
-
-      ! compute psi(t+0.5dt)
-      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
-        tddft_psi(1:npw,1:nbnd_occ(ik))
-      call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
-        -0.25d0*dt, max_iter)
-
-      call save_k()
-    enddo
-
-    call tddft_update(istep, 2)
-
-    ! second half integrator
-    if(nks > 1) rewind(iunigk)
-    do ik = 1, nks
- 
-      ! init potential inorder to call h_psi
-      call init_k()
-
-      ! prepare b
-      ! b = [I - iH(t+0.5dt)dt/hbar]*psi(t)
-      call propgator_Euler(tddft_psi, b, 0.5d0*dt, nbnd_occ(ik))
-      !b = (0.d0, 0.d0)
-      !call h_psi(npwx, npw, nbnd_occ(ik), tddft_psi, b)
-      !b(1:npw, 1:nbnd_occ(ik)) = tddft_psi(1:npw, 1:nbnd_occ(ik)) - &
-      !  (0.d0, 1.d0)*dt*0.5d0*b(1:npw, 1:nbnd_occ(ik))
-
-      ! compute psi(t+dt)
-      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
-        tddft_psi(1:npw,1:nbnd_occ(ik))
-      call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
-        -0.5d0*dt, max_iter)
-
-      call save_k()
-    enddo
-
-    call tddft_update(istep, 3)
-    call tddft_compute(istep)
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   enddo
 
-  ! deallocate  parameters
-  call cgsolver_finalize()
+  ! finalize solver and parameters
+  select case(trim(solver))
+    case('cgsolver')
+      call cgsolver_finalize()
+    case('itsolver')
+      call itsolver_finalize()
+    case default
+      call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
+  end select
   deallocate(b)
 
   call stop_clock('tddft_propagate')
@@ -165,58 +108,161 @@ CONTAINS
   END SUBROUTINE save_k
   !---
 
+  !---
+  SUBROUTINE method_CN()
+    !---
+    ! CN method, o(dt^2) locally, unconditionally stable
+    USE klist,                ONLY : nks
+    USE io_files,             ONLY : iunigk
+    USE wavefunctions_module, ONLY : evc
+    USE wvfct,                ONLY : npw
+    implicit none
+
+    if(nks > 1) rewind(iunigk)
+    do ik = 1, nks
+ 
+      ! init potential inorder to call h_psi
+      call init_k()
+
+      ! prepare b
+      ! b = [I - iH(t)0.5dt/hbar]*psi(t)
+      call propgator_Euler(evc, b, 0.5d0*dt, nbnd_occ(ik))
+
+      ! solve A * x = b
+      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
+        tddft_psi(1:npw,1:nbnd_occ(ik))
+      select case(trim(solver))
+        case('cgsolver')
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            -0.5d0*dt, max_iter)
+        case('itsolver')
+          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            0.5d0*dt, max_iter)
+        case default
+          call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
+      end select
+
+      call save_k()
+    enddo
+    call tddft_update(istep, 1)
+    call tddft_compute(istep)
+
+  END SUBROUTINE method_CN
+  !---
+
+  !---
+  SUBROUTINE method_CN_mid()
+    !---
+    ! mid-point CN method, o(dt^3) locally, unconditionally stable
+    USE klist,                ONLY : nks
+    USE io_files,             ONLY : iunigk
+    USE wavefunctions_module, ONLY : evc
+    USE wvfct,                ONLY : npw
+    implicit none
+
+    ! first half integrator
+    if(nks > 1) rewind(iunigk)
+    do ik = 1, nks
+ 
+      ! init potential inorder to call h_psi
+      call init_k()
+
+      ! prepare b
+      ! b = [I - iH(t)0.25dt/hbar]*psi(t)
+      call propgator_Euler(evc, b, 0.25d0*dt, nbnd_occ(ik))
+
+      ! guess psi(t+0.5dt)
+      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
+        tddft_psi(1:npw,1:nbnd_occ(ik))
+      select case(trim(solver))
+        case('cgsolver')
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            -0.25d0*dt, max_iter)
+        case('itsolver')
+          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            0.25d0*dt, max_iter)
+        case default
+          call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
+      end select
+
+      call save_k()
+    enddo
+    call tddft_update(istep, 2)
+
+    ! second half integrator
+    if(nks > 1) rewind(iunigk)
+    do ik = 1, nks
+ 
+      ! init potential inorder to call h_psi
+      call init_k()
+
+      ! prepare b
+      ! b = [I - iH(t+0.5dt)dt/hbar]*psi(t)
+      call propgator_Euler(tddft_psi, b, 0.5d0*dt, nbnd_occ(ik))
+
+      ! compute psi(t+dt)
+      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
+        tddft_psi(1:npw,1:nbnd_occ(ik))
+      select case(trim(solver))
+        case('cgsolver')
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            -0.5d0*dt, max_iter)
+        case('itsolver')
+          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            0.5d0*dt, max_iter)
+        case default
+          call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
+      end select
+
+      call save_k()
+    enddo
+    call tddft_update(istep, 3)
+    call tddft_compute(istep)
+
+  END SUBROUTINE method_CN_mid
+  !---
+
+  !---
+  SUBROUTINE method_CN2()
+    !---
+    ! second order CN method, o(dt^3) locally
+    USE klist,                ONLY : nks
+    USE io_files,             ONLY : iunigk
+    USE wavefunctions_module, ONLY : evc
+    USE wvfct,                ONLY : npw
+    implicit none
+
+    if(nks > 1) rewind(iunigk)
+    do ik = 1, nks
+ 
+      ! init potential inorder to call h_psi
+      call init_k()
+
+      ! prepare b
+      ! b = [I - iH(t)dt/hbar]*psi(t-dt)
+      call propgator_Euler(tddft_psi, b, dt, nbnd_occ(ik))
+
+      ! solve A * x = b
+      tddft_psi(1:npw,1:nbnd_occ(ik)) = 2.d0*evc(1:npw,1:nbnd_occ(ik)) - &
+        tddft_psi(1:npw,1:nbnd_occ(ik))
+      select case(trim(solver))
+        case('cgsolver')
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            -dt, max_iter)
+        case('itsolver')
+          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+            dt, max_iter)
+        case default
+          call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
+      end select
+
+      call save_k()
+    enddo
+    call tddft_update(istep, 1)
+    call tddft_compute(istep)
+
+  END SUBROUTINE method_CN2
+  !---
+
 END SUBROUTINE tddft_propagate
 !---
-
-
-
-!---
-!  SUBROUTINE iterative_solver()
-!    !---
-!    ! Solve psi(t+dt) from H(t) and b
-!    ! [I + iH(t)dt/hbar]*psi(t+dt) = b
-!    USE wvfct,                  ONLY : npwx, npw
-!    USE wavefunctions_module,   ONLY : evc
-!    USE io_global,              ONLY : stdout
-!    implicit none
-!    integer :: num_iter_ik
-!
-!    ! prepare b
-!    ! b = [I - iH(t)dt/hbar]*psi(t-dt)
-!    call h_psi(npwx, npw, nbnd_occ(ik), tddft_psi, tddft_hpsi)
-!    b(1:npw, 1:nbnd_occ(ik)) = tddft_psi(1:npw, 1:nbnd_occ(ik)) - &
-!        dt_cmplx * tddft_hpsi(1:npw, 1:nbnd_occ(ik))
-!
-!    ! guess wavefunction psi(t+dt)
-!    call h_psi(npwx, npw, nbnd_occ(ik), evc, tddft_hpsi)
-!    tddft_psi(1:npw, 1:nbnd_occ(ik)) = b(1:npw, 1:nbnd_occ(ik)) - &
-!        dt_cmplx * tddft_hpsi(1:npw, 1:nbnd_occ(ik))
-!
-!    ! compute increment y
-!    y(1:npw, 1:nbnd_occ(ik)) = tddft_psi(1:npw, 1:nbnd_occ(ik)) - &
-!        evc(1:npw, 1:nbnd_occ(ik))
-!
-!    ! start iterations
-!    num_iter_ik = 0
-!    do while(maxval(abs(y(1:npw, 1:nbnd_occ(ik)))) > conv_threshold)
-!      ! compute diff(psi)
-!      call h_psi(npwx, npw, nbnd_occ(ik), y, tddft_hpsi)
-!      y(1:npw, 1:nbnd_occ(ik)) = -dt_cmplx * tddft_hpsi(1:npw, 1:nbnd_occ(ik))
-!      
-!      ! update tddft_psi
-!      tddft_psi(1:npw, 1:nbnd_occ(ik)) = tddft_psi(1:npw, 1:nbnd_occ(ik)) + &
-!        y(1:npw, 1:nbnd_occ(ik))
-!      num_iter_ik = num_iter_ik + 1
-!      
-!      ! falls out of maximum iterations
-!      if(num_iter_ik > max_iter) then
-!        ! debug
-!        write(stdout, *) 'max|diff(psi)|:', maxval( abs(y(1:npw,1:nbnd_occ(ik))) )
-!        call errore('tddft_propagate::iterative_solver', 'Iterative solver &
-!        does not converge after maximum number of steps',1)
-!      endif
-!    enddo
-!    if(num_iter_ik > num_iter) num_iter = num_iter_ik
-!
-!  END SUBROUTINE iterative_solver
-!  !---

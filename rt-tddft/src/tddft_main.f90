@@ -43,7 +43,7 @@ PROGRAM tddft_main
   call tddft_init()
 
   ! do time propagation
-  select case (trim(job))
+  select case(trim(job))
     case ('transport')
       call tddft_propagate() 
     case default
