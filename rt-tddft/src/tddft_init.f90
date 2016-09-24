@@ -138,7 +138,6 @@ CONTAINS
     allocate( num_elec(nspin) ) 
     allocate( dipole(3,nspin) )
     allocate( rpos(3,dfftp%nnr) )
-    allocate( rpos_s(3,dfftp%nnr) )
     
     ! initialize variables
     tddft_psi = (0.d0, 0.d0)
@@ -178,7 +177,7 @@ CONTAINS
     inv_nr(3) = 1.d0 / real(dfftp%nr3,dp)
   
     index0 = 0
-#ifdef __PARA
+#ifdef __MPI
     do i = 1, me_pool
       index0 = index0 + dfftp%nr1x*dfftp%nr2x*dfftp%npp(i)
     enddo

@@ -72,7 +72,7 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
   do ibnd = 1, nbnd
 
      n2b = dble(zdotc(npw, b(1,ibnd), 1, b(1,ibnd), 1))
-#ifdef __PARA
+#ifdef __MPI
      call mp_sum(n2b, intra_pool_comm)
 #endif
      n2b = dsqrt(n2b)
@@ -82,7 +82,7 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
      
      r = b(:,ibnd) - Ax
      normr = dble(zdotc( npw, r, 1, r, 1))
-#ifdef __PARA
+#ifdef __MPI
      call mp_sum(normr, intra_pool_comm)
 #endif  
      normr = dsqrt(normr)
@@ -101,7 +101,7 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
      do i = 1, max_iter
         rho1 = rho
         rho = zdotc(npw, rt, 1, r, 1)
-#ifdef __PARA
+#ifdef __MPI
         call mp_sum(rho, intra_pool_comm)
 #endif
         
@@ -126,7 +126,7 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
         call A(p, vh, dt, 1)
         
         rtvh = zdotc(npw, rt, 1, vh, 1)
-#ifdef __PARA
+#ifdef __MPI
         call mp_sum(rtvh, intra_pool_comm)
 #endif
         
@@ -152,7 +152,7 @@ SUBROUTINE cgsolver (A, b, x, tol, nbnd, dt, max_iter)
         call A(x(1,ibnd), Ax, dt, 1)
         
         normr = sum(conjg(b(:,ibnd) - Ax) * (b(:,ibnd) - Ax))
-#ifdef __PARA
+#ifdef __MPI
         call mp_sum(normr, intra_pool_comm)
 #endif
         

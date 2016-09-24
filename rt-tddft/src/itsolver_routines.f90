@@ -64,7 +64,7 @@ SUBROUTINE itsolver (b, x, tol, nbnd, delta_t, max_iter)
 
     ! compute residual(iter)
     residual = maxval(abs(y(1:npw, 1:nbnd)))
-#ifdef __PARA
+#ifdef __MPI
     call mp_max(residual, intra_pool_comm)
 #endif
 

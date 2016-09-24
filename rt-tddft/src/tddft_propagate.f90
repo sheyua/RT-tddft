@@ -132,10 +132,10 @@ CONTAINS
         tddft_psi(1:npw,1:nbnd_occ(ik))
       select case(trim(solver))
         case('cgsolver')
-          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_thr, nbnd_occ(ik), &
             -0.5d0*dt, max_iter)
         case('itsolver')
-          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call itsolver(b, tddft_psi, conv_thr, nbnd_occ(ik), &
             0.5d0*dt, max_iter)
         case default
           call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
@@ -175,10 +175,10 @@ CONTAINS
         tddft_psi(1:npw,1:nbnd_occ(ik))
       select case(trim(solver))
         case('cgsolver')
-          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_thr, nbnd_occ(ik), &
             -0.25d0*dt, max_iter)
         case('itsolver')
-          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call itsolver(b, tddft_psi, conv_thr, nbnd_occ(ik), &
             0.25d0*dt, max_iter)
         case default
           call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
@@ -204,10 +204,10 @@ CONTAINS
         tddft_psi(1:npw,1:nbnd_occ(ik))
       select case(trim(solver))
         case('cgsolver')
-          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_thr, nbnd_occ(ik), &
             -0.5d0*dt, max_iter)
         case('itsolver')
-          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call itsolver(b, tddft_psi, conv_thr, nbnd_occ(ik), &
             0.5d0*dt, max_iter)
         case default
           call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)
@@ -246,10 +246,10 @@ CONTAINS
         tddft_psi(1:npw,1:nbnd_occ(ik))
       select case(trim(solver))
         case('cgsolver')
-          call cgsolver(propgator_Euler, b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call cgsolver(propgator_Euler, b, tddft_psi, conv_thr, nbnd_occ(ik), &
             -dt, max_iter)
         case('itsolver')
-          call itsolver(b, tddft_psi, conv_threshold, nbnd_occ(ik), &
+          call itsolver(b, tddft_psi, conv_thr, nbnd_occ(ik), &
             dt, max_iter)
         case default
           call errore('tddft_propagate', 'RT-tddft::tddft_progapate cannot recognize this solver in input', 1)

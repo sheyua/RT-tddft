@@ -11,7 +11,8 @@ SUBROUTINE tddft_read_input()
   implicit none
   integer :: ios
   namelist /input_tddft/ job, prefix, tmp_dir, &
-    solver, method, conv_threshold, max_iter, &
+    solver, method, conv_thr, max_iter, &
+    dump, dump_dir, &
     dt, num_step, init_step, &
     e_mirror, e_pstart, e_pend, e_nstart, e_nend, e_volt, e_decay
   
@@ -22,8 +23,11 @@ SUBROUTINE tddft_read_input()
 
   solver            = 'itsolver'
   method            = 'CN-mid'
-  conv_threshold    = 1.0d-16
+  conv_thr          = 1.0d-12
   max_iter          = 200 
+
+  dump               = .true.
+  dump_dir           = './scratch/'
 
   dt                = 0.1d0
   num_step          = 1000
@@ -47,17 +51,17 @@ SUBROUTINE tddft_read_input()
     dt = dt * 1.d-18 / ( 2.d0*AU_SEC)   ! au_sec using hartree
   endif
 
-#ifdef __PARA
+#ifdef __MPI
   ! broadcast input variables  
-  call tddft_broadcast_input()
+  call tddft_bcast_input()
 #endif
 
 END SUBROUTINE tddft_read_input
 !---
 
-#ifdef __PARA
+#ifdef __MPI
 !---
-SUBROUTINE tddft_broadcast_input()
+SUBROUTINE tddft_bcast_input()
   !--- 
   ! Broadcast tddft parameters to all processors 
   USE mp_world,     ONLY : world_comm
@@ -73,8 +77,11 @@ SUBROUTINE tddft_broadcast_input()
 
   call mp_bcast(solver, root, world_comm)
   call mp_bcast(method, root, world_comm)
-  call mp_bcast(conv_threshold, root, world_comm)
+  call mp_bcast(conv_thr, root, world_comm)
   call mp_bcast(max_iter, root, world_comm)
+
+  call mp_bcast(dump, root, world_comm)
+  call mp_bcast(dump_dir, root, world_comm)
 
   call mp_bcast(dt, root, world_comm)
   call mp_bcast(num_step, root, world_comm)
@@ -88,7 +95,7 @@ SUBROUTINE tddft_broadcast_input()
   call mp_bcast(e_volt, root, world_comm)
   call mp_bcast(e_decay, root, world_comm)
 
-END SUBROUTINE tddft_broadcast_input
+END SUBROUTINE tddft_bcast_input
 !---
 #endif
 
@@ -100,12 +107,19 @@ SUBROUTINE tddft_openfile()
   USE noncollin_module, ONLY : npol
   USE buffers,          ONLY : open_buffer
   USE io_files,         ONLY : iunwfc, nwordwfc, iunigk, seqopn
-  USE tddft_module,     ONLY : iuntdwfc, nwordtdwfc
+  USE tddft_module,     ONLY : iuntdwfc, nwordtdwfc, &
+                               dump_dir, dump, iuntdrho, iuntdvks
   USE control_flags,    ONLY : io_level    
+  USE wrappers,         ONLY : f_mkdir_safe
+  USE io_global,        ONLY : ionode, ionode_id
+  USE mp_images,        ONLY : intra_image_comm
+  USE mp,               ONLY : mp_bcast
+  USE mp_global,        ONLY : me_pool
   implicit none 
   logical :: exst
+  integer :: ios
+  character(len=1024) :: filename_rho, filename_vks
 
-  !
   ! ... nwordwfc is the record length (IN REAL WORDS)
   ! ... for the direct-access file containing wavefunctions
   ! ... io_level > 0 : open a file; io_level <= 0 : open a buffer
@@ -120,6 +134,29 @@ SUBROUTINE tddft_openfile()
   ! iunigk contains the number of PW and the indices igk
   CALL seqopn( iunigk, 'igk', 'UNFORMATTED', exst )
 
+  ! open folder for dumping rho and vks
+  if(dump) then
+    if(ionode) then
+      ios = f_mkdir_safe(trim(dump_dir))
+      if ( ios > 0 ) then
+        call errore ('tddft_openfile','dump_dir cannot be opened',1)
+      endif
+    endif
+#ifdef __MPI
+    call mp_bcast(ios, ionode_id, intra_image_comm)
+    write(filename_rho, '(A4,I0)') "rho_",  me_pool
+    write(filename_vks, '(A4,I0)') "vks_",  me_pool
+#else
+    write(filename_rho, '(A4,I1)') "rho_",  0
+    write(filename_vks, '(A4,I1)') "vks_",  0
+#endif
+
+    ! open files
+    open(unit=iuntdrho, file=trim(dump_dir)//trim(filename_rho))
+    open(unit=iuntdvks, file=trim(dump_dir)//trim(filename_vks))
+
+  endif
+
 END SUBROUTINE tddft_openfile
 !---
 
@@ -128,7 +165,7 @@ SUBROUTINE tddft_welcome()
   !---
   ! Print a short welcome summary of the calculation
   USE tddft_module, ONLY : job, solver, method, &
-                           init_step, num_step, dt, conv_threshold
+                           init_step, num_step, dt, conv_thr
   USE io_global,    ONLY : stdout
   implicit none
   
@@ -142,7 +179,7 @@ SUBROUTINE tddft_welcome()
   write(stdout,'(5X,''Initial time step     : '',I12)') init_step
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
   write(stdout,'(5X,''Time step             : '',ES12.4,'' Rydberg Atomic Time Unit'')') dt
-  write(stdout,'(5X,''Convergence Threshold : '',ES12.4)') conv_threshold
+  write(stdout,'(5X,''Convergence Threshold : '',ES12.4)') conv_thr
   if(init_step /= 1) then
     write(stdout,'(5X,''Restart from last run, please make sure your parameters are the same between two runs'')')
   endif
@@ -158,13 +195,17 @@ SUBROUTINE tddft_closefile()
   !---
   ! Close wavefunction files
   !
-  USE tddft_module,     ONLY : iuntdwfc
+  USE tddft_module,     ONLY : iuntdwfc, dump, iuntdrho, iuntdvks
   USE io_files,         ONLY : iunwfc
   USE buffers,          ONLY : close_buffer
   implicit none
 
   call close_buffer( iunwfc, 'keep' )
   call close_buffer( iuntdwfc, 'keep' )
+  if(dump) then
+    call close_buffer( iuntdrho, 'keep' )
+    call close_buffer( iuntdvks, 'keep' )
+  endif
 
 END SUBROUTINE tddft_closefile
 !---

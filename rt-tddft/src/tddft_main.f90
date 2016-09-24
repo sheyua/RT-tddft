@@ -14,7 +14,7 @@ PROGRAM tddft_main
   logical, external  :: check_para_diag
 
   ! initialize the environment
-#ifdef __PARA
+#ifdef __MPI
   call mp_startup(start_images=.true.)
 #else
   call mp_startup(start_images=.false.)
@@ -28,7 +28,7 @@ PROGRAM tddft_main
   io_level = 1
   call read_file
 
-#ifdef __PARA
+#ifdef __MPI
   use_para_diag = check_para_diag(nbnd)
 #else
   use_para_diag = .false.
@@ -55,7 +55,7 @@ PROGRAM tddft_main
   call tddft_print_clocks()
 
   ! stop the program
-#ifdef __PARA
+#ifdef __MPI
   call mp_global_end()
 #endif
   call environment_end(code)

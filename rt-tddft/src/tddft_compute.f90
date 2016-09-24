@@ -31,7 +31,7 @@ SUBROUTINE tddft_compute(istep)
   num_elec = num_elec * volRatio
   dipole = dipole * alat * volRatio
 
-#ifdef __PARA
+#ifdef __MPI
   call mp_sum(num_elec, intra_pool_comm)
   call mp_sum(dipole, intra_pool_comm)
 #endif
@@ -58,7 +58,7 @@ END SUBROUTINE tddft_compute
 !    !========================================================================
 !    if (istep == 1) then
 !      index0 = 0
-!#ifdef __PARA
+!#ifdef __MPI
 !      write(filename, '(A8,I0)') "rho_",  me_pool
 !        do idz = 1, me_pool
 !          index0 = index0 + dfftp%npp(idz)
@@ -72,7 +72,7 @@ END SUBROUTINE tddft_compute
 !    endif ! open charge density writer
 !
 !    if (istep == 1) then
-!#ifdef __PARA
+!#ifdef __MPI
 !      write(filename, '(A8,I0)') "v_",  me_pool
 !#else
 !      write(filename, '(A8)') "v_"
