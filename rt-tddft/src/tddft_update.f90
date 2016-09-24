@@ -35,9 +35,11 @@ SUBROUTINE tddft_update(istep, mid_flag)
   enstart   = e_nstart
   enend     = e_nend
   if ( istep == 0 ) then
-    evolt = e_volt * (1.0d0 - (init_step-1)*e_decay)
+    evolt = e_volt * max((1.0d0 - (init_step-1)*e_decay), 0.d0)
     call add_efield(vltot, dummy1, rho%of_r, .false.)
-  elseif ( abs(e_decay) < 1d-10 .or. istep <= 1.d0/e_decay ) then
+  elseif ( istep*e_decay > 1.d0 ) then
+    emirror = .false.
+  else
     ! decrease a full step
     if (mid_flag == 1) then
       evolt = -e_volt * e_decay
@@ -54,8 +56,6 @@ SUBROUTINE tddft_update(istep, mid_flag)
       call add_efield(vltot, dummy1, rho%of_r, .false.)
       evolt = e_volt * (1.0d0 - istep*e_decay)
     endif
-  else
-    emirror = .false.
   endif
   
   ! calculate HXC-potential

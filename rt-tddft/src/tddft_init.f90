@@ -3,6 +3,7 @@
 SUBROUTINE tddft_init()
   !---
   ! Setup RT-tddft calculation
+  !
   USE tddft_module
   implicit none
   call start_clock ('tddft_init')
@@ -11,6 +12,7 @@ SUBROUTINE tddft_init()
   call set_nbnd_occ()
   call allocate_sum_band()
   call set_tddft_allocatable()
+  call set_rpos()
   call tddft_update(0, 0)
   call tddft_compute(0)
 
@@ -126,30 +128,42 @@ CONTAINS
   SUBROUTINE set_tddft_allocatable()
     !---
     ! Allocate and initialize all array variables
-    USE kinds,      ONLY : dp
     USE wvfct,      ONLY : nbnd, npwx
     USE lsda_mod,   ONLY : nspin
     USE fft_base,   ONLY : dfftp
-    USE ions_base,  ONLY : nat, tau, ityp, zv
-    USE cell_base,  ONLY : at, bg
-    USE mp_global,  ONLY : me_pool
     implicit none
-    real(dp) :: zvtot, x0(3), inv_nr(3), rtmp(3)
-    integer :: ia, index0, ir, index, i, j, k, ipol
-
+    
     ! allocate variables
     allocate( tddft_psi(npwx,nbnd) )
     allocate( num_elec(nspin) ) 
     allocate( dipole(3,nspin) )
     allocate( rpos(3,dfftp%nnr) )
+    allocate( rpos_s(3,dfftp%nnr) )
     
     ! initialize variables
     tddft_psi = (0.d0, 0.d0)
     num_elec = 0.d0
     dipole = 0.d0
-
     rpos = 0.d0
-    ! calculate the center of positive charges
+
+  END SUBROUTINE set_tddft_allocatable
+  !---
+
+  !---
+  SUBROUTINE set_rpos()
+    !---
+    ! Setup the position operator in real space. The origin is set to center of ionic charges. (r is in units of alat)
+    USE kinds,        ONLY : dp
+    USE mp_global,    ONLY : me_pool
+    USE fft_base,     ONLY : dfftp
+    USE ions_base,    ONLY : nat, tau, ityp, zv
+    USE cell_base,    ONLY : at, bg
+    USE tddft_module, ONLY : rpos
+    implicit none
+    real(dp) :: zvtot, x0(3), rtmp(3), inv_nr(3)
+    integer :: ia, i, j, k, index, index0, ir, ipol
+  
+    ! calculate the center of ionic charges
     zvtot = 0.d0
     x0 = 0.d0
     do ia = 1, nat
@@ -157,7 +171,7 @@ CONTAINS
        x0(:) = x0(:) + tau(:,ia)*zv(ityp(ia))
     enddo
     x0 = x0 / zvtot
-
+  
     ! grid density
     inv_nr(1) = 1.d0 / real(dfftp%nr1,dp)
     inv_nr(2) = 1.d0 / real(dfftp%nr2,dp)
@@ -169,7 +183,7 @@ CONTAINS
       index0 = index0 + dfftp%nr1x*dfftp%nr2x*dfftp%npp(i)
     enddo
 #endif
-
+  
     ! loop over real space grid
     do ir = 1, dfftp%nnr
       index = index0 + ir - 1
@@ -181,8 +195,8 @@ CONTAINS
   
       do ipol = 1, 3
         rtmp(ipol) = real(i,dp)*inv_nr(1)*at(ipol,1) + &
-                     real(j,dp)*inv_nr(2)*at(ipol,2) + &
-                     real(k,dp)*inv_nr(3)*at(ipol,3)
+            real(j,dp)*inv_nr(2)*at(ipol,2) + &
+            real(k,dp)*inv_nr(3)*at(ipol,3)
       enddo
   
       ! minimum image convenction
@@ -193,8 +207,8 @@ CONTAINS
       
       rpos(:,ir) = rtmp(:)
     enddo
-
-  END SUBROUTINE set_tddft_allocatable
+  
+  END SUBROUTINE set_rpos
   !---
 
 END SUBROUTINE tddft_init

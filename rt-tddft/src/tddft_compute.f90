@@ -16,7 +16,7 @@ SUBROUTINE tddft_compute(istep)
   integer :: is, ipol
   real(dp) :: volRatio
   call start_clock('tddft_compute')
-  
+
   ! grid volume ratio
   volRatio = omega / real(dfftp%nr1 * dfftp%nr2 * dfftp%nr3, dp)
   
