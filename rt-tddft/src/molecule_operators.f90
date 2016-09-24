@@ -1,33 +1,19 @@
-!
-! Copyright (C) 2001-2014 Quantum-ESPRESSO group
-! This file is distributed under the terms of the
-! GNU General Public License. See the file `License'
-! in the root directory of the present distribution,
-! or http://www.gnu.org/copyleft/gpl.txt .
-!
 
-!-----------------------------------------------------------------------
-SUBROUTINE molecule_setup_r
-  !-----------------------------------------------------------------------
-  !
-  ! ... Setup the position operator in real space. The origin is set to center
-  ! ... of ionic num_elec. (r is in units of alat)
-  !
+!---
+SUBROUTINE set_rpos()
+  !---
+  ! Setup the position operator in real space. The origin is set to center of ionic charges. (r is in units of alat)
   USE kinds,        ONLY : dp
-  USE mp_global,    ONLY : me_pool, intra_pool_comm
-  USE mp,           ONLY : mp_sum
-  USE fft_base,     ONLY : dfftp, dffts
+  USE mp_global,    ONLY : me_pool
+  USE fft_base,     ONLY : dfftp
   USE ions_base,    ONLY : nat, tau, ityp, zv
-  USE cell_base,    ONLY : at, bg, alat
-  USE tddft_module, ONLY : rpos, rpos_s
+  USE cell_base,    ONLY : at, bg
+  USE tddft_module, ONLY : rpos
   implicit none
-
-  real(dp) :: zvtot, x0(3), r(3)
-  real(dp) :: inv_nr1, inv_nr2, inv_nr3
-  real(dp) :: inv_nr1s, inv_nr2s, inv_nr3s
+  real(dp) :: zvtot, x0(3), rtmp(3), inv_nr(3)
   integer :: ia, i, j, k, index, index0, ir, ipol
 
-  ! calculate the center of num_elec
+  ! calculate the center of ionic charges
   zvtot = 0.d0
   x0 = 0.d0
   do ia = 1, nat
@@ -36,13 +22,13 @@ SUBROUTINE molecule_setup_r
   enddo
   x0 = x0 / zvtot
 
-  ! density (hard) grid
-  inv_nr1 = 1.d0 / real(dfftp%nr1,dp)
-  inv_nr2 = 1.d0 / real(dfftp%nr2,dp)
-  inv_nr3 = 1.d0 / real(dfftp%nr3,dp)
+  ! grid density
+  inv_nr(1) = 1.d0 / real(dfftp%nr1,dp)
+  inv_nr(2) = 1.d0 / real(dfftp%nr2,dp)
+  inv_nr(3) = 1.d0 / real(dfftp%nr3,dp)
 
   index0 = 0
-#ifdef __MPI
+#ifdef __PARA
   do i = 1, me_pool
     index0 = index0 + dfftp%nr1x*dfftp%nr2x*dfftp%npp(i)
   enddo
@@ -58,92 +44,18 @@ SUBROUTINE molecule_setup_r
     i     = index
 
     do ipol = 1, 3
-      r(ipol) = real(i,dp)*inv_nr1*at(ipol,1) + &
-                real(j,dp)*inv_nr2*at(ipol,2) + &
-                real(k,dp)*inv_nr3*at(ipol,3)
+      rtmp(ipol) = real(i,dp)*inv_nr(1)*at(ipol,1) + &
+                   real(j,dp)*inv_nr(2)*at(ipol,2) + &
+                   real(k,dp)*inv_nr(3)*at(ipol,3)
     enddo
 
     ! minimum image convenction
-    r = r - x0
-    call cryst_to_cart( 1, r, bg, -1 )
-    r = r - anint(r)
-    call cryst_to_cart( 1, r, at, 1 )
+    rtmp = rtmp - x0
+    call cryst_to_cart( 1, rtmp, bg, -1 )
+    rtmp = rtmp - anint(rtmp)
+    call cryst_to_cart( 1, rtmp, at, 1 )
     
-    rpos(1:3,ir) = r(1:3)
+    rpos(:,ir) = rtmp(:)
   enddo
 
-  ! wavefunction (smooth) grid
-  inv_nr1s = 1.d0 / real(dffts%nr1,dp)
-  inv_nr2s = 1.d0 / real(dffts%nr2,dp)
-  inv_nr3s = 1.d0 / real(dffts%nr3,dp)
-
-  index0 = 0
-#ifdef __MPI
-  do i = 1, me_pool
-    index0 = index0 + dffts%nr1x * dffts%nr2x * dffts%npp(i)
-  enddo
-#endif
-
-  ! loop over real space grid
-  do ir = 1, dffts%nnr
-    index = index0 + ir - 1
-    k     = index / (dffts%nr1x*dffts%nr2x)
-    index = index - (dffts%nr1x*dffts%nr2x)*k
-    j     = index / dffts%nr1x
-    index = index - dffts%nr1x*j
-    i     = index
-
-    do ipol = 1, 3
-      r(ipol) = real(i,dp)*inv_nr1s*at(ipol,1) + &
-                real(j,dp)*inv_nr2s*at(ipol,2) + &
-                real(k,dp)*inv_nr3s*at(ipol,3)
-    enddo
-
-    ! minimum image convenction
-    r = r - x0
-    call cryst_to_cart( 1, r, bg, -1 )
-    r = r - anint(r)
-    call cryst_to_cart( 1, r, at, 1 )
-    
-    rpos_s(1:3,ir) = r(1:3)
-  enddo
-
-END SUBROUTINE molecule_setup_r
-
-
-!-----------------------------------------------------------------------
-SUBROUTINE molecule_compute_dipole(num_elec, dip)
-  !-----------------------------------------------------------------------
-  !
-  ! ... Compute electron dipole moment using total num_elec density
-  !
-  USE kinds,        ONLY : dp
-  USE mp_global,    ONLY : me_pool, intra_pool_comm
-  USE mp,           ONLY : mp_sum
-  USE fft_base,     ONLY : dfftp
-  USE cell_base,    ONLY : omega, alat
-  USE scf,          ONLY : rho
-  USE lsda_mod,     ONLY : nspin
-  USE tddft_module, ONLY : rpos
-  implicit none
-
-  real(dp), intent(out) :: num_elec(nspin), dip(3,nspin)
-  integer :: ispin, ipol, nrp
-
-  do ispin = 1, nspin
-    num_elec(ispin) = sum(rho%of_r(:,ispin))
-    do ipol = 1, 3
-      dip(ipol,ispin) = sum(rpos(ipol,:)*rho%of_r(:,ispin))
-    enddo
-  enddo
- 
-  nrp = dfftp%nr1 * dfftp%nr2 * dfftp%nr3 
-  num_elec = num_elec * omega / real(nrp, dp)  
-  dip = dip * omega / real(nrp, dp) * alat
-
-#ifdef __MPI
-  call mp_sum(num_elec, intra_pool_comm)
-  call mp_sum(dip, intra_pool_comm)
-#endif
-    
-END SUBROUTINE molecule_compute_dipole
+END SUBROUTINE set_rpos
