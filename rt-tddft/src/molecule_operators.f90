@@ -19,7 +19,7 @@ SUBROUTINE molecule_setup_r
   USE fft_base,     ONLY : dfftp, dffts
   USE ions_base,    ONLY : nat, tau, ityp, zv
   USE cell_base,    ONLY : at, bg, alat
-  USE tddft_module, ONLY : r_pos, r_pos_s
+  USE tddft_module, ONLY : rpos, rpos_s
   implicit none
 
   real(dp) :: zvtot, x0(3), r(3)
@@ -69,7 +69,7 @@ SUBROUTINE molecule_setup_r
     r = r - anint(r)
     call cryst_to_cart( 1, r, at, 1 )
     
-    r_pos(1:3,ir) = r(1:3)
+    rpos(1:3,ir) = r(1:3)
   enddo
 
   ! wavefunction (smooth) grid
@@ -105,7 +105,7 @@ SUBROUTINE molecule_setup_r
     r = r - anint(r)
     call cryst_to_cart( 1, r, at, 1 )
     
-    r_pos_s(1:3,ir) = r(1:3)
+    rpos_s(1:3,ir) = r(1:3)
   enddo
 
 END SUBROUTINE molecule_setup_r
@@ -124,7 +124,7 @@ SUBROUTINE molecule_compute_dipole(num_elec, dip)
   USE cell_base,    ONLY : omega, alat
   USE scf,          ONLY : rho
   USE lsda_mod,     ONLY : nspin
-  USE tddft_module, ONLY : r_pos
+  USE tddft_module, ONLY : rpos
   implicit none
 
   real(dp), intent(out) :: num_elec(nspin), dip(3,nspin)
@@ -133,7 +133,7 @@ SUBROUTINE molecule_compute_dipole(num_elec, dip)
   do ispin = 1, nspin
     num_elec(ispin) = sum(rho%of_r(:,ispin))
     do ipol = 1, 3
-      dip(ipol,ispin) = sum(r_pos(ipol,:)*rho%of_r(:,ispin))
+      dip(ipol,ispin) = sum(rpos(ipol,:)*rho%of_r(:,ispin))
     enddo
   enddo
  

@@ -136,15 +136,15 @@ CONTAINS
     allocate( tddft_psi(npwx,nbnd)  )
     allocate( num_elec(nspin)         ) 
     allocate( dipole(3,nspin)       )
-    allocate( r_pos(3,dfftp%nnr)    )
-    allocate( r_pos_s(3,dfftp%nnr)  )
+    allocate( rpos(3,dfftp%nnr)    )
+    allocate( rpos_s(3,dfftp%nnr)  )
     
     ! initialize variables
     tddft_psi = (0.d0, 0.d0)
     num_elec = 0.d0
     dipole = 0.d0
-    r_pos = 0.d0
-    r_pos_s = 0.d0
+    rpos = 0.d0
+    rpos_s = 0.d0
 
   END SUBROUTINE set_tddft_allocatable
   !---
