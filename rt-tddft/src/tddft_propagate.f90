@@ -66,7 +66,6 @@ CONTAINS
     USE buffers,                ONLY : get_buffer
     USE wavefunctions_module,   ONLY : evc
     USE io_files,               ONLY : nwordwfc, iunwfc
-    USE tddft_module,           ONLY : tddft_psi, nwordtdwfc, iuntdwfc
     implicit none
 
     ! initialize potential

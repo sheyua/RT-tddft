@@ -8,7 +8,7 @@ SUBROUTINE tddft_update(istep, mid_flag)
   USE wavefunctions_module, ONLY : evc 
   USE io_files,             ONLY : nwordwfc, iunwfc
   USE buffers,              ONLY : get_buffer
-  USE tddft_module,         ONLY : e_mirror, e_pstart, e_pend, &
+  USE tddft_module,         ONLY : init_step, e_mirror, e_pstart, e_pend, &
                                    e_nstart, e_nend, e_volt, e_decay
   USE extfield,             ONLY : emirror, epstart, epend, &
                                    enstart, enend, evolt
@@ -35,7 +35,7 @@ SUBROUTINE tddft_update(istep, mid_flag)
   enstart   = e_nstart
   enend     = e_nend
   if ( istep == 0 ) then
-    evolt = e_volt
+    evolt = e_volt * (1.0d0 - (init_step-1)*e_decay)
     call add_efield(vltot, dummy1, rho%of_r, .false.)
   elseif ( abs(e_decay) < 1d-10 .or. istep <= 1.d0/e_decay ) then
     ! decrease a full step
