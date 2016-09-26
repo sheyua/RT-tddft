@@ -43,6 +43,12 @@ nano-junction like structure.
 	that other parameters including the bias potential, solver, method are all
 	the same except *num_step*.
 
+- **Dump**
+
+	The input parameter *dump* and *dump_dir* can be used to dump the real-time charge
+	density and Kohn-Sham potential along z direction to a specified directory. This
+	is enable by default and can be unset with *dump*=.false.
+
 # Quantum Espresso README
 
 This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO: 
