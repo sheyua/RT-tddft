@@ -45,9 +45,20 @@ nano-junction like structure.
 
 - **Dump**
 
-	The input parameter *dump* and *dump_dir* can be used to dump the real-time charge
+	The input parameter *dump* and *dump_dir* can be used to dump real-time charge
 	density and Kohn-Sham potential along z direction to a specified directory. This
-	is enable by default and can be unset with *dump*=.false.
+	is enabled by default and can be unset with *dump*=.false. The dump files are loaded
+	back into a python library for post-processing.
+
+- **Post-Processing**
+
+	Post-processing are handled with C++ and then wrappe into a python module --- tdpost.
+	To install the post-processing tool please have Cython and numpy installed first:
+	
+		cd tools
+		./install.sh
+
+	Please see examples for how to use the tdpost.
 
 # Quantum Espresso README
 
