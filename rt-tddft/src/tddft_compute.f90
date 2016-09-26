@@ -82,8 +82,8 @@ CONTAINS
 
     ! print legend
     if(istep == 0) then
-      write(iuntdrho, *) '#ProcId=', me_pool, nspin, dfftp%nnr, dfftp%nr1x, dfftp%nr2x
-      write(iuntdvks, *) '#ProcId=', me_pool, nspin, dfftp%nnr, dfftp%nr1x, dfftp%nr2x
+      write(iuntdrho, *) '#ProcId=', me_pool, nspin, dfftp%nr1x, dfftp%nr2x, dfftp%nr3x, index0
+      write(iuntdvks, *) '#ProcId=', me_pool, nspin, dfftp%nr1x, dfftp%nr2x, dfftp%nr3x, index0
       write(iuntdrho,*) 'TimeStep:', init_step-1
       write(iuntdvks,*) 'TimeStep:', init_step-1
     else

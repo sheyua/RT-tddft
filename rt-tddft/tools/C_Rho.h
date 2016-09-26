@@ -13,6 +13,8 @@ namespace TD_Post{
 	
 			C_Rho(std::string);
 			~C_Rho();
+
+			void load();
 	};
 }
 #endif

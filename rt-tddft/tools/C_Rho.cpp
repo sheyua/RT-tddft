@@ -31,3 +31,25 @@ C_Rho::C_Rho(std::string dump_dir){
 }
 
 C_Rho::~C_Rho(){}
+
+C_Rho::load(){
+	// open all files
+	std::ifstream *infile = new ifstream[num_proc];
+	for(int idx=0; idx<num_proc; idx++){
+		std::ostringstream os;
+		os << idx;
+		std::string filename = "rho_"+os.str();
+		if(dump_dir[dump_dir.length()-1]=='/')
+			filename = dump_dir+filename;
+		else
+			filename = dump_dir+"/"+filename;
+
+		infile[idx].open(filename.c_str());
+	}
+
+	// 
+
+	// finalize
+	delete[] infile;
+	
+}
