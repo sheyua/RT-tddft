@@ -68,7 +68,9 @@ CONTAINS
     ! dump rho vks
     USE mp_global,      ONLY : me_pool
     USE tddft_module,   ONLY : iuntdrho, iuntdvks
+    USE constants,      ONLY : AU_SEC, BOHR_RADIUS_ANGS
     USE scf,            ONLY : v
+    USE cell_base,      ONLY : at
     implicit none
     integer :: index0, idx, idy, idz, id_xy
     real(dp) :: tmprho(2), tmpvks(2)
@@ -82,13 +84,15 @@ CONTAINS
 
     ! print legend
     if(istep == 0) then
-      write(iuntdrho, *) '#ProcId=', me_pool, nspin, dfftp%nr1x, dfftp%nr2x, dfftp%nr3x, index0
-      write(iuntdvks, *) '#ProcId=', me_pool, nspin, dfftp%nr1x, dfftp%nr2x, dfftp%nr3x, index0
-      write(iuntdrho,*) 'TimeStep:', init_step-1
-      write(iuntdvks,*) 'TimeStep:', init_step-1
+      write(iuntdrho, '(''#ProcID= '',I6,1X,I1,1X,ES16.8,1X,I6,1X,I6,1X,ES16.8)') me_pool, nspin, dt*(2.d18*AU_SEC), &
+        index0, dfftp%nr3, sqrt(sum(at(3,:)*at(3,:)))*alat*BOHR_RADIUS_ANGS
+      write(iuntdvks, '(''#ProcID= '',I6,1X,I1,1X,ES16.8,1X,I6,1X,I6,1X,ES16.8)') me_pool, nspin, dt*(2.d18*AU_SEC), &
+        index0, dfftp%nr3, sqrt(sum(at(3,:)*at(3,:)))*alat*BOHR_RADIUS_ANGS
+      write(iuntdrho,'(''TimeStep: '',I0)') init_step-1
+      write(iuntdvks,'(''TimeStep: '',I0)') init_step-1
     else
-      write(iuntdrho,*) 'TimeStep:', istep
-      write(iuntdvks,*) 'TimeStep:', istep
+      write(iuntdrho,'(''TimeStep: '',I0)') istep
+      write(iuntdvks,'(''TimeStep: '',I0)') istep
     endif
 
     ! compute rho and vks
@@ -111,7 +115,7 @@ CONTAINS
 
       do is = 1, nspin
         write(iuntdrho,'(I1,1X,ES16.8,1X,I0)') is, tmprho(is)*volRatio, index0+idz
-        write(iuntdvks,'(I1,1X,ES16.8,1X,I0)') is, tmpvks(is)/(dfftp%nr2x*dfftp%nr1x), index0+idz
+        write(iuntdvks,'(I1,1X,ES16.8,1X,I0)') is, tmpvks(is)/(dfftp%nr2*dfftp%nr1), index0+idz
       enddo
       idz = idz + 1
 
