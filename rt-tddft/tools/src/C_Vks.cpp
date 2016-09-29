@@ -103,7 +103,7 @@ void C_Vks::load(){
 	
 	// report simulation summary
 	std::cout << "Number of spin: " << nspin << std::endl;
-	std::cout << "Delta t:        " << dt << std::endl;
+	std::cout << "Delta t (atto): " << dt << std::endl;
 	std::cout << "Lattice c (A):  " << c << std::endl;
 	std::cout << "Initial step:   " << init_step << std::endl;
 	std::cout << "Number of step: " << num_step << std::endl;
