@@ -88,11 +88,11 @@ CONTAINS
         index0, dfftp%nr3, sqrt(sum(at(3,:)*at(3,:)))*alat*BOHR_RADIUS_ANGS
       write(iuntdvks, '(''#ProcID= '',I6,1X,I1,1X,ES16.8,1X,I6,1X,I6,1X,ES16.8)') me_pool, nspin, dt*(2.d18*AU_SEC), &
         index0, dfftp%nr3, sqrt(sum(at(3,:)*at(3,:)))*alat*BOHR_RADIUS_ANGS
-      write(iuntdrho,'(''TimeStep: '',I0)') init_step-1
-      write(iuntdvks,'(''TimeStep: '',I0)') init_step-1
+      write(iuntdrho,'(''TimeStep: '',I8,1X,ES16.8)') init_step-1, evolt
+      write(iuntdvks,'(''TimeStep: '',I8,1X,ES16.8)') init_step-1, evolt
     else
-      write(iuntdrho,'(''TimeStep: '',I0)') istep
-      write(iuntdvks,'(''TimeStep: '',I0)') istep
+      write(iuntdrho,'(''TimeStep: '',I8,1X,ES16.8)') istep, evolt
+      write(iuntdvks,'(''TimeStep: '',I8,1X,ES16.8)') istep, evolt
     endif
 
     ! compute rho and vks
