@@ -173,3 +173,8 @@ void C_Rho::load(double *vbias, double *rho){
 		infile[idx].close();
 	delete[] infile;
 }
+
+void C_Rho::comp_cur(double* cur){
+	// passing value to local pointer
+	this->cur = cur;
+}

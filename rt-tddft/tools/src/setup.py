@@ -7,7 +7,7 @@ setup(ext_modules = cythonize(Extension(
 	'tdpost',
 	sources=[
 		'tdpost.pyx',
-		'C_Rho.cpp'#, 'C_Vks.cpp'
+		'C_Rho.cpp', 'C_Vks.cpp'
 	],
 	include_dirs=[
 		numpy.get_include()

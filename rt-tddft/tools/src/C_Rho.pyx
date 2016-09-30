@@ -1,7 +1,6 @@
 cimport numpy as cnp
 import numpy as np
 import os.path
-from matplotlib import pyplot as plt
 
 cdef class Rho:
   # member variables
@@ -14,6 +13,7 @@ cdef class Rho:
   cdef public int num_mids
   cdef public cnp.ndarray vbias
   cdef public cnp.ndarray rho
+  cdef public cnp.ndarray cur
   # constructor
   def __cinit__(self, str dump_dir):
     dump_dir = os.path.expanduser(dump_dir)
@@ -38,6 +38,7 @@ cdef class Rho:
     cdef cnp.ndarray[double, ndim=1, mode='c'] vbias = self.vbias
     cdef cnp.ndarray[double, ndim=3, mode='c'] rho = self.rho
     self.thisptr.load(&vbias[0], &rho[0,0,0])
-  def plot(self):
-    plt.ion();
-    plt.figure();
+    # compute current
+    self.cur = np.empty(shape=(self.nspin, self.num_step+1,self.num_mids), dtype=np.double, order='C')
+    cdef cnp.ndarray[double, ndim=3, mode='c'] cur = self.cur
+    self.thisptr.comp_cur(&cur[0,0,0])

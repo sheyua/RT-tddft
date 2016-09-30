@@ -24,11 +24,13 @@ namespace TD_Post{
 			int num_mids;
 			double *vbias;
 			double *rho;
+			double *cur;
 			
 			C_Rho(std::string);
 			~C_Rho();
 			
 			void load(double*, double*);
+			void comp_cur(double*);
 	};
 }
 #endif
