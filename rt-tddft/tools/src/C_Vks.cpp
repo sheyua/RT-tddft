@@ -90,7 +90,6 @@ C_Vks::C_Vks(std::string dump_dir){
 	}
 	
 	// get num_step, init_step, num_mids
-	init_step++;
 	if(infile[0].good())
 		num_step = 1;
 	else

@@ -90,7 +90,6 @@ C_Rho::C_Rho(std::string dump_dir){
 	}
 	
 	// get num_step, init_step, num_mids
-	init_step++;
 	if(infile[0].good())
 		num_step = 1;
 	else
@@ -181,25 +180,35 @@ void C_Rho::comp_cur(double* cur){
 	// passing value to local pointer
 	this->cur = cur;
 	
-	// start from init_step
-	for(int is=0; is<nspin; is++)
-		for(int tdx=0; tdx<num_step; tdx++){
-			// left edge
-			cur[is*num_step*num_mids + tdx*num_mids] = \
-				      rho[is*(num_step+1)*num_mids + (tdx+1)*num_mids] \ 
-				    - rho[is*(num_step+1)*num_mids + tdx*num_mids];
-			// rest values
-			for(int idz=1; idz<num_mids; idz++)
-				cur[is*num_step*num_mids + tdx*num_mids + idz] = \
-				      cur[is*num_step*num_mids + tdx*num_mids + idz-1] \
-				    + rho[is*(num_step+1)*num_mids + (tdx+1)*num_mids + idz] \ 
-				    - rho[is*(num_step+1)*num_mids + tdx*num_mids +idz];
-		}
-	
 	// with coefficients
 	const double ePerAtto2muAmp = 0.1602176462e+6;
-	for(int is=0; is<nspin; is++)
-		for(int tdx=0; tdx<num_step; tdx++)
-			for(int idz=1; idz<num_mids; idz++)
-				cur[is*num_step*num_mids + tdx*num_mids + idz] *= ePerAtto2muAmp;
+	
+	// start from init_step
+	for(int is=0; is<nspin; is++){
+		for(int tdx=0; tdx<num_step; tdx++){
+			double *curl = new double[num_mids];
+			double *curr = new double[num_mids];
+			int shift = is*(num_step+1)*num_mids + tdx*num_mids;
+			
+			// left cdf edge
+			curl[0] = rho[shift + num_mids] - rho[shift];
+			// left cdf
+			for(int idz=0; idz<num_mids-1; idz++)
+				curl[idz+1] = curl[idz] + rho[shift + num_mids + idz+1] - rho[shift + idz+1];
+			
+			// right cdf edge
+			curr[num_mids-1] = rho[shift + 2*num_mids-1] - rho[shift + num_mids-1];
+			// right cdf
+			for(int idz=num_mids-1; idz>0; idz--)
+				curr[idz-1] = curr[idz] + rho[shift + num_mids + idz-1] - rho[shift + idz-1];
+			
+			// paste into cur
+			shift = is*num_step*num_mids + tdx*num_mids;
+			for(int idz=0; idz<num_mids; idz++)
+				cur[shift + idz] = 0.5*ePerAtto2muAmp*(curr[idz] - curl[idz]);
+			
+			delete[] curl;
+			delete[] curr;
+		}
+	}
 }

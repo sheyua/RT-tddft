@@ -1,0 +1,21 @@
+&input_tddft
+	job = 'transport'
+	prefix = 'GrBias'			! be consistent with *.pw-in
+	tmp_dir = './out/'			! be consistent with *.pw-in
+	solver = 'itsolver'			! can be 'cgsolver' or 'itsolver' (default)
+	method = 'CN-mid'			! can be 'CN', 'CN2', or 'CN-mid' (default)
+	conv_thr = 1.0d-12			! (default)
+	max_iter = 200				! (default)
+	dump = .true.				! (default)
+	dump_dir = './dump/'			! directory to dump rho and Kohn-Sham potential
+	dt = 1.0d0				! in attoseconds (1e-18 s)
+	num_step = 1000				! number of time steps
+	init_step = 0				! initial step number, nonzero for restart
+	e_mirror = .true.			! be consistent with *.pw-in
+	e_pstart = 0.005d0			! be consistent with *.pw-in
+	e_pend = 0.245d0			! be consistent with *.pw-in
+	e_nstart = 0.255d0			! be consistent with *.pw-in
+	e_nend = 0.495d0			! be consistent with *.pw-in
+	e_volt = 0.0735d0			! be consistent with *.pw-in
+	e_decay = 0.0025d0			! decays to zero after 1/e_decay steps
+/

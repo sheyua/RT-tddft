@@ -1,0 +1,51 @@
+&control
+	calculation = 'scf'
+	restart_mode='from_scratch'
+	prefix='GrBias'
+	pseudo_dir = '../../../espresso/pseudo/',
+	outdir = './out'
+	tefield = .true.
+/
+&system
+	ibrav=4								! graphene unit cell
+	celldm(1)=4.648728119
+	celldm(3)=19.1056910569d0					! (10A_space + 3.5A_gap + 10A_space)*2
+	nat=8								! (AB stacking 2 layers)*2
+	ntyp=1
+	ecutwfc=25.0
+	ecutrho=350.0
+	occupations = 'smearing'
+	smearing = 'fermi-dirac'
+	degauss = 0.0019						! 300K
+	nosym = .true.
+	edir = 3							! this is a must for later tddft calculation
+	emirror = .true.						! this and tefield must all be true to apply biased voltage
+	epstart = 0.005d0						! [epstart, epend] has +evolt/2 bias potential
+	epend = 0.245d0							! [1-epend, 1-epstart] has +evolt/2 bias potential as a mirror image
+	enstart = 0.255d0						! [enstart, enend] has -evolt/2 bias potential
+	enend = 0.495d0							! [1-enend, 1-enstart] has -evolt/2 bias potential as a mirror image
+	evolt = 0.0735d0						! 1eV in Rydberg
+/
+&electrons
+	diagonalization='david'
+	electron_maxstep = 100
+	mixing_mode='plain'
+	mixing_beta=0.1
+	conv_thr = 1.0e-14
+
+/
+ATOMIC_SPECIES
+C 12.011 C.pbe-mt_gipaw.UPF						! must use a norm-conserving pseudo
+
+ATOMIC_POSITIONS (angstrom)
+C	0.00000000	0.00000000	10.00000000			! Gr_A positively gated
+C	1.23000000	0.71014083	10.00000000			! Gr_A positively gated
+C	0.00000000	0.00000000	13.50000000			! Gr_B negatively gated
+C	0.00000000	1.42028166	13.50000000			! Gr_B negatively gated
+C	0.00000000	1.42028166	33.50000000			! Gr_B mirror
+C	0.00000000	0.00000000	33.50000000			! Gr_B mirror
+C	1.23000000	0.71014083	37.00000000			! Gr_A mirror
+C	0.00000000	0.00000000	37.00000000			! Gr_A mirror
+
+K_POINTS {automatic}
+17 17 1 0 0 0

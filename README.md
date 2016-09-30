@@ -13,23 +13,24 @@ first.
 
 This repository simulate how real-time electronic states evolve after unsetting
 and initial bias voltage between left and right side of a nano-capacity like / 
-nano-junction like structure.
+nano-junction like structure. An example of two graphene layers forming a nano-capacitor
+is given.
 
 - **Ground State Calculation**
 
 	Biased ground state are computed by the pwscf routine, fictious dipole
 	moment is cancelled with a mirror image of the computational cell. please
-	see the graphene example for how to setup the bias voltage
+	see the graphene example GrBias.pw-in for how to setup the bias voltage.
 
 - **Time Propagation**
 
-	The initial bias voltage can be unset with a linear decay form. Time 
+	The initial bias voltage can be unset with a linear decay formula. Time 
 	integration is carried out with the following schemes which all strictly
-	conserve the charge:
+	conserve the charge. For this time-dependent Hamiltonian:
 
-		'CN'    : Crank-Nicolson, O(dt^2) local error, unconditionally stable
-		'CN2'   : second order Crank-Nicolson, O(dt^3) local error
-		'CN-mid': mid point Crank-Nicolson, O(dt^3) local error, unconditionally stable
+		'CN'    : Crank-Nicolson, O(dt^1) local error, unconditionally stable
+		'CN2'   : second order Crank-Nicolson, O(dt^2) local error
+		'CN-mid': mid point Crank-Nicolson, O(dt^2) local error, unconditionally stable
 
 	The integration schemes are driven by two different linear solvers:
 
@@ -39,7 +40,7 @@ nano-junction like structure.
 - **Restart**
 
 	To restart a terminated calculation, please specify *init_step* as the latest
-	step number output from last calculation plus one. Please also make sure 
+	step number output from last calculation. Please also make sure 
 	that other parameters including the bias potential, solver, method are all
 	the same except *num_step*.
 
@@ -52,13 +53,11 @@ nano-junction like structure.
 
 - **Post-Processing**
 
-	Post-processing are handled with C++ and then wrappe into a python module --- tdpost.
+	Post-processing are handled with C++ and then wrapped into a python module --- tdpost.
 	To install the post-processing tool please have Cython and numpy installed first:
 	
 		cd tools
 		./install.sh
-
-	Please see examples for how to use the tdpost.
 
 # Quantum Espresso README
 

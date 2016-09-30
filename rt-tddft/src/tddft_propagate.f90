@@ -25,7 +25,7 @@ SUBROUTINE tddft_propagate()
   allocate(b(npwx, max_nbnd_occ))
 
   ! main loop
-  do istep = init_step, (init_step+num_step-1)
+  do istep = (init_step+1), (init_step+num_step)
 
     select case(trim(method))
       case('CN')

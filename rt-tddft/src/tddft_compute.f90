@@ -44,7 +44,7 @@ SUBROUTINE tddft_compute(istep)
     write(stdout,'(5X,A4,1X,A6,1X,A16,1X,A16,1X,A16)') 'Spin', 'istep', 'Vbias', 'Charge', 'dipole' 
     ! print observables
     do is = 1, nspin
-      write(stdout,'(5X,I4,1X,I6,1X,ES16.8,1X,ES16.8,1X,3ES16.8)') is, init_step-1, evolt, num_elec(is), dipole(:,is)
+      write(stdout,'(5X,I4,1X,I6,1X,ES16.8,1X,ES16.8,1X,3ES16.8)') is, init_step, evolt, num_elec(is), dipole(:,is)
     enddo
   else
     ! print observables
@@ -88,8 +88,8 @@ CONTAINS
         index0, dfftp%nr3, sqrt(sum(at(3,:)*at(3,:)))*alat*BOHR_RADIUS_ANGS
       write(iuntdvks, '(''#ProcID= '',I6,1X,I1,1X,ES16.8,1X,I6,1X,I6,1X,ES16.8)') me_pool, nspin, dt*(2.d18*AU_SEC), &
         index0, dfftp%nr3, sqrt(sum(at(3,:)*at(3,:)))*alat*BOHR_RADIUS_ANGS
-      write(iuntdrho,'(''TimeStep: '',I8,1X,ES16.8)') init_step-1, evolt
-      write(iuntdvks,'(''TimeStep: '',I8,1X,ES16.8)') init_step-1, evolt
+      write(iuntdrho,'(''TimeStep: '',I8,1X,ES16.8)') init_step, evolt
+      write(iuntdvks,'(''TimeStep: '',I8,1X,ES16.8)') init_step, evolt
     else
       write(iuntdrho,'(''TimeStep: '',I8,1X,ES16.8)') istep, evolt
       write(iuntdvks,'(''TimeStep: '',I8,1X,ES16.8)') istep, evolt

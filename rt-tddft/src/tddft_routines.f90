@@ -31,7 +31,7 @@ SUBROUTINE tddft_read_input()
 
   dt                = 0.1d0
   num_step          = 1000
-  init_step         = 1
+  init_step         = 0
 
   e_mirror          = .true.
   e_pstart          = 0.0d0
@@ -180,7 +180,7 @@ SUBROUTINE tddft_welcome()
   write(stdout,'(5X,''Number or steps       : '',I12)') num_step
   write(stdout,'(5X,''Time step             : '',ES12.4,'' Rydberg Atomic Time Unit'')') dt
   write(stdout,'(5X,''Convergence Threshold : '',ES12.4)') conv_thr
-  if(init_step /= 1) then
+  if(init_step /= 0) then
     write(stdout,'(5X,''Restart from last run, please make sure your parameters are the same between two runs'')')
   endif
   write(stdout,*)

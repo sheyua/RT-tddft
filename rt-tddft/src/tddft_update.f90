@@ -35,7 +35,7 @@ SUBROUTINE tddft_update(istep, mid_flag)
   enstart   = e_nstart
   enend     = e_nend
   if ( istep == 0 ) then
-    evolt = e_volt * max((1.0d0 - (init_step-1)*e_decay), 0.d0)
+    evolt = e_volt * max((1.0d0 - init_step*e_decay), 0.d0)
     call add_efield(vltot, dummy1, rho%of_r, .false.)
   elseif ( istep*e_decay > 1.d0 ) then
     emirror = .false.
