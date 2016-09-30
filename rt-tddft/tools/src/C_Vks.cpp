@@ -24,6 +24,7 @@ C_Vks::C_Vks(std::string dump_dir){
 			num_proc++;
 		else
 			break;
+		f.close();
 	}
 
 	// report number of processors and dump file location

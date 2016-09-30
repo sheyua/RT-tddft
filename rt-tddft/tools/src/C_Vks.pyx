@@ -1,8 +1,8 @@
 import os.path
 
-cdef class Rho:
+cdef class Vks:
   # member variables
-  cdef C_Rho *thisptr
+  cdef C_Vks *thisptr
   cdef public int nspin
   cdef public double dt
   cdef public double c
@@ -13,7 +13,7 @@ cdef class Rho:
     dump_dir = os.path.expanduser(dump_dir)
     dump_dir = os.path.abspath(dump_dir)
     cpp_string = dump_dir.encode('utf-8')
-    self.thisptr = new C_Rho(cpp_string)
+    self.thisptr = new C_Vks(cpp_string)
   # destructor
   def __dealloc__(self):
     del self.thisptr
@@ -23,8 +23,5 @@ cdef class Rho:
     self.nspin = self.thisptr.nspin
     self.dt = self.thisptr.dt
     self.c = self.thisptr.c
-    self.num_step = self.thisptr.num_step
     self.init_step = self.thisptr.init_step
-  def plot(self):
-    plt.ion();
-    plt.figure();
+    self.num_step = self.thisptr.num_step

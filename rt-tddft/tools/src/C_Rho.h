@@ -12,20 +12,23 @@ namespace TD_Post{
 			int num_proc;
 			std::vector<int> idz_start;
 			std::vector<int> idz_end;
-			std::vector<int> idz_length;
+			std::vector<int> idzs_length;
 		
 		public:
 			std::string dump_dir;
 			int nspin;
 			double dt;
 			double c;
-			int num_step;
 			int init_step;
+			int num_step;
+			int num_mids;
+			double *vbias;
+			double *rho;
 			
 			C_Rho(std::string);
 			~C_Rho();
 			
-			void load();
+			void load(double*, double*);
 	};
 }
 #endif

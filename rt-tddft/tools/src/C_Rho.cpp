@@ -24,15 +24,12 @@ C_Rho::C_Rho(std::string dump_dir){
 			num_proc++;
 		else
 			break;
+		f.close();
 	}
 	
 	// report number of processors and dump file location
 	std::cout << num_proc << " charge density files are found under " << dump_dir << std::endl;
-}
-
-C_Rho::~C_Rho(){}
-
-void C_Rho::load(){
+	
 	// open all files
 	std::ifstream *infile = new std::ifstream[num_proc];
 	for(int idx=0; idx<num_proc; idx++){
@@ -50,7 +47,7 @@ void C_Rho::load(){
 	// init the arrarys
 	idz_start.resize(num_proc);
 	idz_end.resize(num_proc);
-	idz_length.resize(num_proc);
+	idzs_length.resize(num_proc);
 	
 	// get nspin, dt,  and c
 	std::string tmpLine;
@@ -86,10 +83,10 @@ void C_Rho::load(){
 			else
 				break;
 		}
-		idz_length[idx] = tmpLen;
+		idzs_length[idx] = tmpLen;
 	}
 	
-	// get num_step, init_step
+	// get num_step, init_step, num_mids
 	init_step++;
 	if(infile[0].good())
 		num_step = 1;
@@ -100,6 +97,7 @@ void C_Rho::load(){
 		if(tmpLine[0] == 'T')
 			num_step++;
 	}
+	num_mids = idz_end[num_proc-1];
 	
 	// report simulation summary
 	std::cout << "Number of spin: " << nspin << std::endl;
@@ -107,12 +105,67 @@ void C_Rho::load(){
 	std::cout << "Lattice c (A):  " << c << std::endl;
 	std::cout << "Initial step:   " << init_step << std::endl;
 	std::cout << "Number of step: " << num_step << std::endl;
+	std::cout << "Number of mids: " << num_mids << std::endl;
 	
-	// rewind all file pointers
+	// finalize
+	for(int idx=0; idx<num_proc; idx++)
+		infile[idx].close();
+	delete[] infile;
+}
+
+C_Rho::~C_Rho(){
+}
+
+void C_Rho::load(double *vbias, double *rho){
+	// passing values to local pointers
+	this->vbias = vbias;
+	this->rho = rho;
+	
+	// open all files
+	std::ifstream *infile = new std::ifstream[num_proc];
 	for(int idx=0; idx<num_proc; idx++){
-		infile[idx].clear();
-		infile[idx].seekg(0);
+		std::ostringstream os;
+		os << idx;
+		std::string filename = "rho_"+os.str();
+		if(dump_dir[dump_dir.length()-1]=='/')
+			filename = dump_dir+filename;
+		else
+			filename = dump_dir+"/"+filename;
+		
+		infile[idx].open(filename.c_str());
+	}
+	
+	// read data
+	std::string tmpLine;
+	std::stringstream spliter;
+	for(int idx=0; idx<num_proc; idx++){
+		// remove info line
 		std::getline(infile[idx], tmpLine);
+		
+		// get vbias and rho
+		for(int tdx=0; tdx<=num_step; tdx++){
+			// get vbias
+			std::getline(infile[idx], tmpLine);
+			spliter.clear();
+			spliter.str(tmpLine);
+			spliter >> tmpLine >> tmpLine >> vbias[tdx];
+			
+			// get rhos
+			int idz_true = idz_end[idx] - idz_start[idx];
+			for(int idzs=0; idzs<idzs_length[idx]; idzs++){
+				int tmps, tmpz;
+				double tmp;
+				std::getline(infile[idx], tmpLine);
+				spliter.clear();
+				spliter.str(tmpLine);
+				spliter >> tmps >> tmp >> tmpz;
+				tmps--;
+				
+				// check tmpz range
+				if(tmpz < idz_end[idx])
+					rho[tmps*(num_step+1)*num_mids + tdx*num_mids + tmpz] = tmp;
+			}
+		}
 	}
 	
 	// finalize
