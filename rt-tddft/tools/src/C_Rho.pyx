@@ -39,6 +39,6 @@ cdef class Rho:
     cdef cnp.ndarray[double, ndim=3, mode='c'] rho = self.rho
     self.thisptr.load(&vbias[0], &rho[0,0,0])
     # compute current
-    self.cur = np.empty(shape=(self.nspin, self.num_step+1,self.num_mids), dtype=np.double, order='C')
+    self.cur = np.empty(shape=(self.nspin, self.num_step,self.num_mids), dtype=np.double, order='C')
     cdef cnp.ndarray[double, ndim=3, mode='c'] cur = self.cur
     self.thisptr.comp_cur(&cur[0,0,0])

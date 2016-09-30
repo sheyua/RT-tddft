@@ -30,6 +30,9 @@ C_Vks::C_Vks(std::string dump_dir){
 	// report number of processors and dump file location
 	std::cout << num_proc << " Kohn-Sham potential files are found under " << dump_dir << std::endl;
 	
+	// return if num_proc == 0;
+	if(num_proc == 0) return;
+	
 	// open all files
 	std::ifstream *infile = new std::ifstream[num_proc];
 	for(int idx=0; idx<num_proc; idx++){

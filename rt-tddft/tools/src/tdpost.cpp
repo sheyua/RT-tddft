@@ -1978,7 +1978,7 @@ static PyObject *__pyx_pf_6tdpost_3Rho_4load(struct __pyx_obj_6tdpost_Rho *__pyx
  *     cdef cnp.ndarray[double, ndim=3, mode='c'] rho = self.rho
  *     self.thisptr.load(&vbias[0], &rho[0,0,0])             # <<<<<<<<<<<<<<
  *     # compute current
- *     self.cur = np.empty(shape=(self.nspin, self.num_step+1,self.num_mids), dtype=np.double, order='C')
+ *     self.cur = np.empty(shape=(self.nspin, self.num_step,self.num_mids), dtype=np.double, order='C')
  */
   __pyx_t_7 = 0;
   __pyx_t_8 = -1;
@@ -2015,7 +2015,7 @@ static PyObject *__pyx_pf_6tdpost_3Rho_4load(struct __pyx_obj_6tdpost_Rho *__pyx
   /* "C_Rho.pyx":42
  *     self.thisptr.load(&vbias[0], &rho[0,0,0])
  *     # compute current
- *     self.cur = np.empty(shape=(self.nspin, self.num_step+1,self.num_mids), dtype=np.double, order='C')             # <<<<<<<<<<<<<<
+ *     self.cur = np.empty(shape=(self.nspin, self.num_step,self.num_mids), dtype=np.double, order='C')             # <<<<<<<<<<<<<<
  *     cdef cnp.ndarray[double, ndim=3, mode='c'] cur = self.cur
  *     self.thisptr.comp_cur(&cur[0,0,0])
  */
@@ -2028,7 +2028,7 @@ static PyObject *__pyx_pf_6tdpost_3Rho_4load(struct __pyx_obj_6tdpost_Rho *__pyx
   __Pyx_GOTREF(__pyx_t_5);
   __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_self->nspin); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 42, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_6 = __Pyx_PyInt_From_long((__pyx_v_self->num_step + 1)); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyInt_From_int(__pyx_v_self->num_step); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 42, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_self->num_mids); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
@@ -2066,7 +2066,7 @@ static PyObject *__pyx_pf_6tdpost_3Rho_4load(struct __pyx_obj_6tdpost_Rho *__pyx
 
   /* "C_Rho.pyx":43
  *     # compute current
- *     self.cur = np.empty(shape=(self.nspin, self.num_step+1,self.num_mids), dtype=np.double, order='C')
+ *     self.cur = np.empty(shape=(self.nspin, self.num_step,self.num_mids), dtype=np.double, order='C')
  *     cdef cnp.ndarray[double, ndim=3, mode='c'] cur = self.cur             # <<<<<<<<<<<<<<
  *     self.thisptr.comp_cur(&cur[0,0,0])
  */
@@ -2084,7 +2084,7 @@ static PyObject *__pyx_pf_6tdpost_3Rho_4load(struct __pyx_obj_6tdpost_Rho *__pyx
   __pyx_t_4 = 0;
 
   /* "C_Rho.pyx":44
- *     self.cur = np.empty(shape=(self.nspin, self.num_step+1,self.num_mids), dtype=np.double, order='C')
+ *     self.cur = np.empty(shape=(self.nspin, self.num_step,self.num_mids), dtype=np.double, order='C')
  *     cdef cnp.ndarray[double, ndim=3, mode='c'] cur = self.cur
  *     self.thisptr.comp_cur(&cur[0,0,0])             # <<<<<<<<<<<<<<
  */

@@ -30,6 +30,9 @@ C_Rho::C_Rho(std::string dump_dir){
 	// report number of processors and dump file location
 	std::cout << num_proc << " charge density files are found under " << dump_dir << std::endl;
 	
+	// return if num_proc == 0;
+	if(num_proc == 0) return;
+	
 	// open all files
 	std::ifstream *infile = new std::ifstream[num_proc];
 	for(int idx=0; idx<num_proc; idx++){
@@ -177,4 +180,26 @@ void C_Rho::load(double *vbias, double *rho){
 void C_Rho::comp_cur(double* cur){
 	// passing value to local pointer
 	this->cur = cur;
+	
+	// start from init_step
+	for(int is=0; is<nspin; is++)
+		for(int tdx=0; tdx<num_step; tdx++){
+			// left edge
+			cur[is*num_step*num_mids + tdx*num_mids] = \
+				      rho[is*(num_step+1)*num_mids + (tdx+1)*num_mids] \ 
+				    - rho[is*(num_step+1)*num_mids + tdx*num_mids];
+			// rest values
+			for(int idz=1; idz<num_mids; idz++)
+				cur[is*num_step*num_mids + tdx*num_mids + idz] = \
+				      cur[is*num_step*num_mids + tdx*num_mids + idz-1] \
+				    + rho[is*(num_step+1)*num_mids + (tdx+1)*num_mids + idz] \ 
+				    - rho[is*(num_step+1)*num_mids + tdx*num_mids +idz];
+		}
+	
+	// with coefficients
+	const double ePerAtto2muAmp = 0.1602176462e+6;
+	for(int is=0; is<nspin; is++)
+		for(int tdx=0; tdx<num_step; tdx++)
+			for(int idz=1; idz<num_mids; idz++)
+				cur[is*num_step*num_mids + tdx*num_mids + idz] *= ePerAtto2muAmp;
 }
