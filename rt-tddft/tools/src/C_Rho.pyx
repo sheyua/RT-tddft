@@ -88,6 +88,23 @@ cdef class Rho:
     # tighten layout
     plt.tight_layout()
   def plot_rho(self, istep=0, half=True):
+    # check istep
     if istep < self.init_step:
       print(istep, 'is less than the initial step', self.init_step)
       return
+    elif istep > self.init_step+self.num_step:
+      print(istep, 'is greater than the last step', self.init_step+self.num_step)
+      return
+    # make a plot
+    if half:
+      rho = np.sum(self.rho, axis=0)
+      rho = 0.5*(rho + rho[:,::-1])[istep-self.init_step,:np.ceil(self.num_mids/2).astype(int)]
+    else:
+      rho = np.sum(self.rho, axis=0)[istep-self.init_step,:]
+    zdim = rho.shape[0]
+    # x grid
+    dx = self.c/self.num_mids
+    xcoor = np.arange(0,zdim,1)*dx
+    plt.ion()
+    plt.figure()
+    plt.plot(xcoor, rho/dx)
