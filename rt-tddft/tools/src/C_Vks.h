@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <stdlib.h>
 
 #ifndef C_VKS_H
 #define C_VKS_H

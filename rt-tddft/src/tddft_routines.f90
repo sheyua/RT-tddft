@@ -33,7 +33,7 @@ SUBROUTINE tddft_read_input()
   num_step          = 1000
   init_step         = 0
 
-  e_mirror          = .true.
+  e_mirror          = .false.
   e_pstart          = 0.0d0
   e_pend            = 0.25d0
   e_nstart          = 0.25d0
@@ -49,6 +49,12 @@ SUBROUTINE tddft_read_input()
   
     ! convert to atomic units
     dt = dt * 1.d-18 / ( 2.d0*AU_SEC)   ! au_sec using hartree
+    
+    ! make sure no field
+    if ( .not. e_mirror ) then
+      e_volt = 0.d0
+      e_decay = 0.d0
+    endif
   endif
 
 #ifdef __MPI

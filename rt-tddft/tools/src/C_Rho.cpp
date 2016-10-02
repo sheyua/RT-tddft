@@ -31,7 +31,7 @@ C_Rho::C_Rho(std::string dump_dir){
 	std::cout << num_proc << " charge density files are found under " << dump_dir << std::endl;
 	
 	// return if num_proc == 0;
-	if(num_proc == 0) return;
+	if(num_proc == 0) exit(1);
 	
 	// open all files
 	std::ifstream *infile = new std::ifstream[num_proc];
@@ -181,7 +181,7 @@ void C_Rho::comp_cur(double* cur){
 	this->cur = cur;
 	
 	// with coefficients
-	const double ePerAtto2muAmp = 0.1602176462e+6;
+	const double ePerAtto2Amp = 0.1602176462;
 	
 	// start from init_step
 	for(int is=0; is<nspin; is++){
@@ -205,7 +205,7 @@ void C_Rho::comp_cur(double* cur){
 			// paste into cur
 			shift = is*num_step*num_mids + tdx*num_mids;
 			for(int idz=0; idz<num_mids; idz++)
-				cur[shift + idz] = 0.5*ePerAtto2muAmp*(curr[idz] - curl[idz]);
+				cur[shift + idz] = 0.5*ePerAtto2Amp*(curr[idz] - curl[idz]);
 			
 			delete[] curl;
 			delete[] curr;

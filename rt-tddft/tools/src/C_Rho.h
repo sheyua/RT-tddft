@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <stdlib.h>
 
 #ifndef C_RHO_H
 #define C_RHO_H

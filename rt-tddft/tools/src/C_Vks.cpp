@@ -31,7 +31,7 @@ C_Vks::C_Vks(std::string dump_dir){
 	std::cout << num_proc << " Kohn-Sham potential files are found under " << dump_dir << std::endl;
 	
 	// return if num_proc == 0;
-	if(num_proc == 0) return;
+	if(num_proc == 0) exit(1);
 	
 	// open all files
 	std::ifstream *infile = new std::ifstream[num_proc];
