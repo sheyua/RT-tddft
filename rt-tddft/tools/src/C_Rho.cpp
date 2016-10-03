@@ -205,7 +205,7 @@ void C_Rho::comp_cur(double* cur){
 			// paste into cur
 			shift = is*num_step*num_mids + tdx*num_mids;
 			for(int idz=0; idz<num_mids; idz++)
-				cur[shift + idz] = 0.5*ePerAtto2Amp*(curr[idz] - curl[idz]);
+				cur[shift + idz] = 0.5*ePerAtto2Amp*(curl[idz] - curr[idz]);
 			
 			delete[] curl;
 			delete[] curr;
