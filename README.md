@@ -42,9 +42,9 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 	AB-stacking graphene nano-capacitor along the z direction. Layer A is located
 	at z = 10 A while layer B is at z = 13.5 A.
 
-![gsRho](rt-tddft/doc/gsRho.png?raw=true)
+	![gsRho](rt-tddft/doc/gsRho.png?raw=true)
 
-	To form the initial biased state for discharge, we need to gate this unbiased
+	To form the initial biased state, we need to gate this unbiased
 	state with an external potential. In this case, -Vbias/2 is applied to the
 	left layer whil Vbias/2 is applied to the right one. This biased ground state 
 	is computed by the pwscf routine, fictious dipole moment is cancelled with 
@@ -52,7 +52,7 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 	The following plot shows how electrons are "dragged" to the right electrode
 	by this bias voltage.
 
-![gsRho](rt-tddft/doc/gsRhoBias.png?raw=true)
+	![gsRho](rt-tddft/doc/gsRhoBias.png?raw=true)
 
 - **Time Propagation**
 
