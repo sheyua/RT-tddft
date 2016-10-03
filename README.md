@@ -1,7 +1,7 @@
 This repository contains the Real Time-Time Dependent Density Functional
 Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 
-![Alt text](rt-tddft/doc/totHcur.png?raw=true "Title")
+![Alt text](rt-tddft/doc/mapCur.png?raw=true)
 
 To compile rt-tddft, please compile the quantum espresso code (QE-5.2.0)
 first.
