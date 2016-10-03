@@ -1,28 +1,49 @@
-This repository contains the Real Time-Time Dependent Density Functional
-Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
+This repository simulate how real-time electronic states evolve after unsetting
+and initial bias voltage between left and right side of a nano-capacity / 
+junction like structure.
+
+The following heatmap shows this discharging current of a bilayer graphene 
+nano-capacitor. Graphene layer A is located at z = 10 A while graphene layer
+B is located at z = 13.5 A. At time = 0 atto, an equilibrium ground state is
+achieved with the left layer gated at -Vbias/2 = -0.5 V and the right layer
+gated at Vbias/2 = 0.5 V. After unsetting this bias voltage, a discharging 
+current flows back to the right electrode. Please see the RT-tddft README for
+complete info.
 
 ![Alt text](rt-tddft/doc/mapCur.png?raw=true)
 
-To compile rt-tddft, please compile the quantum espresso code (QE-5.2.0)
-first.
-
-	cd rt-tddft
-	autoconf
-	./configure --with-qepath=[YOUR QE PREFIX]
-	make build
-
 # RT-tddft README
 
-This repository simulate how real-time electronic states evolve after unsetting
-and initial bias voltage between left and right side of a nano-capacity like / 
-nano-junction like structure. An example of two graphene layers forming a nano-capacitor
-is given.
+This repository contains the Real Time-Time Dependent Density Functional
+Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
+
+- **Installation**
+
+	To install rt-tddft, please compile the quantum espresso code (QE-5.2.0)
+	first.
+
+		unzip espresso.zip
+		cd espresso
+		./configure --prefix=[YOUR QE PREFIX]
+		make pw
+
+	Parallelization is automatically enabled in QE, however you can choose
+	to disable it. Please see ./configure --help for more info. The RT-tddft
+	code inherits QE's parallelization option by including make.sys.
+
+		cd rt-tddft
+		autoconf
+		./configure --with-qepath=[YOUR QE PREFIX]
+		make build
 
 - **Ground State Calculation**
 
 	Biased ground state are computed by the pwscf routine, fictious dipole
 	moment is cancelled with a mirror image of the computational cell. please
-	see the graphene example GrBias.pw-in for how to setup the bias voltage.
+	see the graphene example GrBias.pw-in for how to setup the bias voltage
+	and the mirror image.
+
+	![Alt text](rt-tddft/doc/gsRho.png?raw=true)
 
 - **Time Propagation**
 
@@ -67,13 +88,6 @@ This is the distribution of the Quantum ESPRESSO suite of codes (ESPRESSO:
 opEn-Source Package for Research in Electronic Structure, Simulation, 
 and Optimization), promoted by the IOM-DEMOCRITOS National Simulation Center 
 of the Italian CNR (http://www.democritos.it). 
-
-Quick installation instructions for the impatient:
-
-	unzip espresso.zip
-	cd espresso
-	./configure [options]
-	make pw
 
 ("make" alone prints a list of acceptable targets). Binaries go in bin/.
 For more information, see the general documentation in directory Doc/, 
