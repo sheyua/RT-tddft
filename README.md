@@ -10,7 +10,7 @@ gated at Vbias/2 = 0.5 V. After unsetting this bias voltage, a discharging
 current flows back to the right electrode. Please see the RT-tddft README for
 complete info.
 
-![Alt text](rt-tddft/doc/mapCur.png?raw=true)
+![mapCur](rt-tddft/doc/mapCur.png?raw=true)
 
 # RT-tddft README
 
@@ -43,7 +43,7 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 	see the graphene example GrBias.pw-in for how to setup the bias voltage
 	and the mirror image.
 
-	![Alt text](rt-tddft/doc/gsRho.png?raw=true)
+![gsRho](rt-tddft/doc/gsRho.png =480x)
 
 - **Time Propagation**
 
