@@ -1,8 +1,8 @@
-This repository simulate how real-time electronic states evolve after unsetting
-and initial bias voltage between left and right side of a nano-capacity / 
-junction like structure.
+This repository simulates how real-time electronic states evolve after unsetting
+an initial bias voltage between left and right side of a nano-capacity/
+junction-like structure.
 
-The following heatmap shows this discharging current of a bilayer graphene 
+The following heatmap shows a discharging current of a bilayer graphene 
 nano-capacitor. Graphene layer A is located at z = 10 A while graphene layer
 B is located at z = 13.5 A. At time = 0 atto, an equilibrium ground state is
 achieved with the left layer gated at -Vbias/2 = -0.5 V and the right layer
@@ -46,8 +46,9 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 
 	To form the initial biased state, we need to gate this unbiased
 	state with an external potential. In this case, -Vbias/2 is applied to the
-	left layer whil Vbias/2 is applied to the right one. This biased ground state 
-	is computed by the pwscf routine, fictious dipole moment is cancelled with 
+	left layer while Vbias/2 is applied to the right one. This biased ground state 
+	is computed by a modified pwscf routine distributed as espresso.zip along with
+	rt-tddft. Fictious dipole moment is cancelled with 
 	a mirror image of the computational cell (please see examples/GrBias/GrBias.pw-in).
 	The following plot shows how electrons are "dragged" to the right electrode
 	by this bias voltage.
@@ -58,7 +59,7 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 
 	The initial bias voltage can be unset with a linear decay formula. Time 
 	integration is carried out with the following schemes which all strictly
-	conserve the charge. For this time-dependent Hamiltonian:
+	conserve the charge. For a general time-dependent Hamiltonian:
 
 		'CN'    : Crank-Nicolson, O(dt^1) local error, unconditionally stable
 		'CN2'   : second order Crank-Nicolson, O(dt^2) local error
@@ -68,6 +69,11 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 
 		'itsolver': Iterative solver
 		'cgsolver': Conjugate Gradient square solver, implemented by Xiaofeng Qian at MIT
+
+	The following plot shows scheduled decay of the external bias voltage Vbias and the
+	resulting current at the middle between 2 graphene layers.
+
+	![gsRho](rt-tddft/doc/midCur.png?raw=true)
 
 - **Restart**
 
@@ -85,8 +91,9 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 
 - **Post-Processing**
 
-	Post-processing are handled with C++ and then wrapped into a python module --- tdpost.
-	To install the post-processing tool please have Cython and numpy installed first:
+	Post-processing are handled with a python module --- tdpost.
+	To install the post-processing tool please install Cython, numpy and matplotlib
+	first:
 	
 		cd tools
 		./install.sh
