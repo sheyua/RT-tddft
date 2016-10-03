@@ -38,12 +38,21 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 
 - **Ground State Calculation**
 
-	Biased ground state are computed by the pwscf routine, fictious dipole
-	moment is cancelled with a mirror image of the computational cell. please
-	see the graphene example GrBias.pw-in for how to setup the bias voltage
-	and the mirror image.
+	The following plot shows unbiased ground state charge density for an 
+	AB-stacking graphene nano-capacitor along the z direction. Layer A is located
+	at z = 10 A while layer B is at z = 13.5 A.
 
-![gsRho](rt-tddft/doc/gsRho.png = 480x)
+![gsRho](rt-tddft/doc/gsRho.png?raw=true)
+
+	To form the initial biased state for discharge, we need to gate this unbiased
+	state with an external potential. In this case, -Vbias/2 is applied to the
+	left layer whil Vbias/2 is applied to the right one. This biased ground state 
+	is computed by the pwscf routine, fictious dipole moment is cancelled with 
+	a mirror image of the computational cell (please see examples/GrBias/GrBias.pw-in).
+	The following plot shows how electrons are "dragged" to the right electrode
+	by this bias voltage.
+
+![gsRho](rt-tddft/doc/gsRhoBias.png?raw=true)
 
 - **Time Propagation**
 
