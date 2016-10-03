@@ -43,7 +43,7 @@ Theory (rt-tddft) extension and the Quantum Espresso code on top of it.
 	see the graphene example GrBias.pw-in for how to setup the bias voltage
 	and the mirror image.
 
-![gsRho](rt-tddft/doc/gsRho.png =480x)
+![gsRho](rt-tddft/doc/gsRho.png = 480x)
 
 - **Time Propagation**
 
