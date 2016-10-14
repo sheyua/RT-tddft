@@ -81,6 +81,8 @@ C_Rho::C_Rho(std::string dump_dir){
 		int tmpLen = 0;
 		while(infile[idx].good()){
 			std::getline(infile[idx], tmpLine);
+			if(tmpLine.length() == 0)
+				break;
 			if(tmpLine[0] != 'T')
 				tmpLen++;
 			else
